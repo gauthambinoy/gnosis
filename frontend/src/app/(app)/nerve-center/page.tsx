@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/shared/Card";
+import LiveExecutionFeed from "@/components/dashboard/LiveExecutionFeed";
 
 interface AgentCard {
   id: string;
@@ -63,7 +64,7 @@ export default function NerveCenterPage() {
         <p className="text-gnosis-muted mt-1">Real-time overview of your agent network</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total Agents", value: stats.total, icon: "◎" },
           { label: "Active Now", value: stats.active, icon: "◉", highlight: true },
@@ -94,7 +95,7 @@ export default function NerveCenterPage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-48 rounded-2xl bg-gnosis-surface animate-pulse border border-gnosis-border" />
             ))}
@@ -112,7 +113,7 @@ export default function NerveCenterPage() {
             </a>
           </Card>
         ) : (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {agents.map((agent, i) => (
               <motion.div
                 key={agent.id}
@@ -147,6 +148,12 @@ export default function NerveCenterPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Live Execution Feed */}
+      <div>
+        <h2 className="text-lg font-semibold text-gnosis-text mb-4">Live Execution Feed</h2>
+        <LiveExecutionFeed />
       </div>
     </div>
   );

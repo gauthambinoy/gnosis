@@ -10,6 +10,28 @@
   --border: #1A1A1A;
   --primary: #C8FF00;
   --gold: #D4AF37;
+  --bg-primary: #050505;
+  --bg-surface: #0A0A0A;
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --border-color: rgba(255, 255, 255, 0.05);
+  --accent: #C8FF00;
+}
+
+.light-theme {
+  --bg: #FAFAFA;
+  --surface: #FFFFFF;
+  --border: #E5E5E5;
+  --primary: #4A7A00;
+  --gold: #8B7322;
+  --bg-primary: #FAFAFA;
+  --bg-surface: #FFFFFF;
+  --text-primary: #111111;
+  --text-secondary: rgba(0, 0, 0, 0.7);
+  --text-muted: rgba(0, 0, 0, 0.4);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --accent: #4A7A00;
 }
 
 * {
@@ -28,6 +50,30 @@ body {
 ::selection {
   background: rgba(200, 255, 0, 0.2);
   color: #C8FF00;
+}
+
+/* Mobile responsive utilities */
+@media (max-width: 767px) {
+  .desktop-only { display: none !important; }
+  .mobile-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 50;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  .mobile-sidebar.open { transform: translateX(0); }
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 40;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-only { display: none !important; }
 }
 
 /* Noise texture overlay */

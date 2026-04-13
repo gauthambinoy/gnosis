@@ -10,7 +10,10 @@ from app.core.memory_engine import MemoryEngine, memory_engine
 from app.core.context_assembler import ContextAssembler, context_assembler
 from app.core.event_bus import event_bus, Events
 from app.core.embeddings import embedding_service
+from app.core.execution_recorder import execution_recorder
 from app.llm.router import ModelRouter, model_router
+from app.ws.execution_stream import execution_stream
+from app.core.confidence import confidence_engine
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +66,7 @@ class ExecutionResult:
     status: str = "completed"
     total_latency_ms: float = 0.0
     total_cost_usd: float = 0.0
+    confidence: dict = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -100,32 +104,45 @@ class Orchestrator:
 
         try:
             # Phase 1 — Perceive
+            await execution_stream.broadcast_phase(agent_id, "perceive", {"status": "started", "input": str(trigger_data)[:200]})
             perception = await self._perceive(trigger_type, trigger_data)
             steps.append(perception)
+            await execution_stream.broadcast_phase(agent_id, "perceive", {"status": "completed", "duration_ms": perception.latency_ms})
 
             # Phase 2 — Memory Retrieval (parallel across tiers)
+            await execution_stream.broadcast_phase(agent_id, "memory", {"status": "started"})
             memory_step = await self._retrieve_memory(agent_id, trigger_data)
             steps.append(memory_step)
+            await execution_stream.broadcast_phase(agent_id, "memory", {"status": "completed", "duration_ms": memory_step.latency_ms})
 
             # Phase 3 — Context Assembly
+            await execution_stream.broadcast_phase(agent_id, "context", {"status": "started"})
             context_step = await self._assemble_context(
                 memory_step.metadata.get("memory_context"),
                 perception.metadata.get("summary", ""),
             )
             steps.append(context_step)
+            await execution_stream.broadcast_phase(agent_id, "context", {"status": "completed", "duration_ms": context_step.latency_ms})
 
             # Phase 4 — Reasoning via LLM
+            await execution_stream.broadcast_phase(agent_id, "reason", {"status": "started"})
             urgency = perception.metadata.get("urgency", "low")
             reasoning = await self._reason(agent_id, context_step, urgency)
             steps.append(reasoning)
+            await execution_stream.broadcast_phase(agent_id, "reason", {"status": "completed", "duration_ms": reasoning.latency_ms})
 
             # Phase 5 — Meta-cognition (confidence check)
+            await execution_stream.broadcast_phase(agent_id, "meta", {"status": "started"})
             meta_step = self._meta_cognition(reasoning)
             steps.append(meta_step)
+            await execution_stream.broadcast_phase(agent_id, "meta", {"status": "completed", "confidence": meta_step.confidence})
 
             # Phase 6 — Action execution
+            await execution_stream.broadcast_phase(agent_id, "act", {"status": "started"})
             actions = await self._act(agent_id, meta_step)
             steps.extend(actions)
+            act_latency = sum(a.latency_ms for a in actions)
+            await execution_stream.broadcast_phase(agent_id, "act", {"status": "completed", "duration_ms": act_latency})
 
             status = "completed"
         except Exception as exc:
@@ -147,8 +164,28 @@ class Orchestrator:
             total_cost_usd=total_cost,
         )
 
+        # Compute confidence scoring
+        mem_ctx = memory_step.metadata.get("memory_context")
+        confidence = confidence_engine.score(
+            memory_results=len(mem_ctx.relevant_past) if hasattr(mem_ctx, 'relevant_past') and mem_ctx else 0,
+            memory_max_score=max((m.relevance_score for m in mem_ctx.relevant_past), default=0) if hasattr(mem_ctx, 'relevant_past') and mem_ctx else 0,
+            context_tokens=len(str(context_step.content)) // 4 if context_step.content else 0,
+            reasoning_level=2,
+            response_length=len(str(reasoning.content)) if reasoning.content else 0,
+        )
+        result.confidence = {
+            "overall": confidence.overall,
+            "memory_match": confidence.memory_match,
+            "model_certainty": confidence.model_certainty,
+            "context_coverage": confidence.context_coverage,
+            "reasoning_depth": confidence.reasoning_depth,
+            "explanation": confidence.explanation,
+        }
+
         # Phase 7 — Post-execution
+        await execution_stream.broadcast_phase(agent_id, "post", {"status": "started"})
         await self._post_execution(agent_id, result)
+        await execution_stream.broadcast_phase(agent_id, "post", {"status": "completed", "duration_ms": result.total_latency_ms})
         return result
 
     # ------------------------------------------------------------------

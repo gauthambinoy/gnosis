@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 import asyncio
 
 from app.config import get_settings
-from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers, prompts, versions
+from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers, replay, marketplace, export_import, prompts, versions
 from app.ws import nerve_center, minds_eye
 from app.ws.routes import router as ws_execution_router
 from app.core.event_wiring import setup_event_wiring
@@ -165,6 +165,10 @@ app.include_router(pipelines.router)
 
 app.include_router(files.router)
 app.include_router(webhook_triggers.router)
+app.include_router(replay.router)
+
+app.include_router(marketplace.router)
+app.include_router(export_import.router)
 app.include_router(prompts.router)
 app.include_router(versions.router)
 
