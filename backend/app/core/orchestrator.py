@@ -96,6 +96,10 @@ class Orchestrator:
         steps: list[ExecutionStep] = []
         total_start = time.time()
 
+        # Start execution recording for replay
+        task_summary = str(trigger_data.get("subject", trigger_data.get("title", str(trigger_type))))
+        recording = execution_recorder.start_recording(agent_id, task_summary)
+
         await event_bus.emit(Events.EXECUTION_STARTED, {
             "execution_id": execution_id,
             "agent_id": agent_id,
@@ -107,12 +111,14 @@ class Orchestrator:
             await execution_stream.broadcast_phase(agent_id, "perceive", {"status": "started", "input": str(trigger_data)[:200]})
             perception = await self._perceive(trigger_type, trigger_data)
             steps.append(perception)
+            execution_recorder.add_step(recording.id, "perceive", "completed", input_summary=str(trigger_data)[:200], output_summary=perception.content[:200], duration_ms=perception.latency_ms)
             await execution_stream.broadcast_phase(agent_id, "perceive", {"status": "completed", "duration_ms": perception.latency_ms})
 
             # Phase 2 — Memory Retrieval (parallel across tiers)
             await execution_stream.broadcast_phase(agent_id, "memory", {"status": "started"})
             memory_step = await self._retrieve_memory(agent_id, trigger_data)
             steps.append(memory_step)
+            execution_recorder.add_step(recording.id, "memory", "completed", output_summary=memory_step.content[:200], duration_ms=memory_step.latency_ms)
             await execution_stream.broadcast_phase(agent_id, "memory", {"status": "completed", "duration_ms": memory_step.latency_ms})
 
             # Phase 3 — Context Assembly
@@ -122,6 +128,7 @@ class Orchestrator:
                 perception.metadata.get("summary", ""),
             )
             steps.append(context_step)
+            execution_recorder.add_step(recording.id, "context", "completed", output_summary=f"Assembled {context_step.metadata.get('estimated_tokens', 0)} tokens", duration_ms=context_step.latency_ms)
             await execution_stream.broadcast_phase(agent_id, "context", {"status": "completed", "duration_ms": context_step.latency_ms})
 
             # Phase 4 — Reasoning via LLM
@@ -129,12 +136,14 @@ class Orchestrator:
             urgency = perception.metadata.get("urgency", "low")
             reasoning = await self._reason(agent_id, context_step, urgency)
             steps.append(reasoning)
+            execution_recorder.add_step(recording.id, "reason", "completed", output_summary=reasoning.content[:200], duration_ms=reasoning.latency_ms, metadata={"tier": reasoning.metadata.get("tier")})
             await execution_stream.broadcast_phase(agent_id, "reason", {"status": "completed", "duration_ms": reasoning.latency_ms})
 
             # Phase 5 — Meta-cognition (confidence check)
             await execution_stream.broadcast_phase(agent_id, "meta", {"status": "started"})
             meta_step = self._meta_cognition(reasoning)
             steps.append(meta_step)
+            execution_recorder.add_step(recording.id, "meta", "completed", output_summary=meta_step.content[:200], duration_ms=meta_step.latency_ms, metadata={"confidence": meta_step.confidence})
             await execution_stream.broadcast_phase(agent_id, "meta", {"status": "completed", "confidence": meta_step.confidence})
 
             # Phase 6 — Action execution
@@ -142,6 +151,7 @@ class Orchestrator:
             actions = await self._act(agent_id, meta_step)
             steps.extend(actions)
             act_latency = sum(a.latency_ms for a in actions)
+            execution_recorder.add_step(recording.id, "act", "completed", output_summary=f"Executed {len(actions)} action(s)", duration_ms=act_latency)
             await execution_stream.broadcast_phase(agent_id, "act", {"status": "completed", "duration_ms": act_latency})
 
             status = "completed"
@@ -151,6 +161,7 @@ class Orchestrator:
                 latency_ms=0.0,
             ))
             status = "failed"
+            execution_recorder.add_step(recording.id, "error", "failed", output_summary=str(exc)[:200])
 
         total_ms = (time.time() - total_start) * 1000
         total_cost = sum(s.cost_usd for s in steps)
@@ -185,6 +196,8 @@ class Orchestrator:
         # Phase 7 — Post-execution
         await execution_stream.broadcast_phase(agent_id, "post", {"status": "started"})
         await self._post_execution(agent_id, result)
+        execution_recorder.add_step(recording.id, "post", "completed", output_summary=f"status={status} latency={total_ms:.0f}ms", duration_ms=result.total_latency_ms)
+        execution_recorder.complete_recording(recording.id, status)
         await execution_stream.broadcast_phase(agent_id, "post", {"status": "completed", "duration_ms": result.total_latency_ms})
         return result
 
