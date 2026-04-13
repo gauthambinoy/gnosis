@@ -53,6 +53,8 @@ def register_error_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception):
         logger.error(f"Unhandled: {exc}", extra={"extra_data": {"traceback": traceback.format_exc(), "path": str(request.url)}})
+        from app.core.sentry_integration import error_tracker
+        error_tracker.capture_exception(exc, {"path": str(request.url)})
         return JSONResponse(
             status_code=500,
             content={"error": "Internal server error"}

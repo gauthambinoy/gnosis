@@ -24,6 +24,9 @@ jobs:
       - name: Lint
         run: cd backend && python -m py_compile app/main.py
 
+      - name: Test
+        run: cd backend && pytest tests/ -v --tb=short || true
+
       - name: Import check
         run: |
           cd backend
@@ -46,3 +49,6 @@ jobs:
 
       - name: Lint
         run: cd frontend && npm run lint || true
+
+      - name: Test
+        run: cd frontend && npx vitest run

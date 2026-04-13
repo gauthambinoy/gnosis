@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 import uuid
@@ -12,65 +11,12 @@ from app.core.database import get_db
 from app.models.agent import Agent, AgentStatus
 from app.models.memory import Memory, MemoryTier
 from app.core.memory_engine import memory_engine
+from app.schemas.agents import (
+    CreateAgentRequest, UpdateAgentRequest, AgentResponse,
+    AgentListResponse, ExecuteResponse, CorrectRequest, CorrectResponse,
+)
 
 router = APIRouter()
-
-
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
-
-class AgentCreate(BaseModel):
-    name: str
-    description: str
-    personality: Optional[str] = "professional"
-    avatar_emoji: Optional[str] = "◎"
-    trigger_type: Optional[str] = "manual"
-    trigger_config: Optional[dict] = {}
-    integrations: Optional[list[str]] = []
-    guardrails: Optional[list[str]] = []
-    owner_id: Optional[str] = None
-
-
-class AgentUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    personality: Optional[str] = None
-    avatar_emoji: Optional[str] = None
-    status: Optional[str] = None
-
-
-class AgentResponse(BaseModel):
-    id: str
-    name: str
-    description: str
-    personality: str
-    avatar_emoji: str
-    status: str
-    trigger_type: str
-    trust_level: int
-    total_executions: int
-    successful_executions: int
-    failed_executions: int
-    total_corrections: int
-    accuracy: float
-    avg_latency_ms: float
-    total_tokens_used: int
-    total_cost_usd: float
-    time_saved_minutes: float
-    memory_count: int
-    integrations: list[str]
-    guardrails: list[str]
-    created_at: str
-    updated_at: str
-
-
-class AgentListResponse(BaseModel):
-    agents: list[AgentResponse]
-    total: int
-    page: int
-    per_page: int
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +58,7 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
     )
 
 
-def _make_agent_dict(data: AgentCreate) -> dict:
+def _make_agent_dict(data: CreateAgentRequest) -> dict:
     now = datetime.utcnow().isoformat()
     return {
         "id": str(uuid.uuid4()),
@@ -122,7 +68,6 @@ def _make_agent_dict(data: AgentCreate) -> dict:
         "avatar_emoji": data.avatar_emoji or "◎",
         "status": "idle",
         "trigger_type": data.trigger_type or "manual",
-        "trigger_config": data.trigger_config or {},
         "trust_level": 0,
         "total_executions": 0,
         "successful_executions": 0,
@@ -151,17 +96,17 @@ _DEFAULT_OWNER_ID = uuid.UUID("00000000-0000-0000-0000-000000000001")
 
 
 @router.post("", response_model=AgentResponse, status_code=201)
-async def create_agent(data: AgentCreate, db: AsyncSession = Depends(get_db)):
+async def create_agent(data: CreateAgentRequest, db: AsyncSession = Depends(get_db)):
     if _use_db():
         agent = Agent(
             id=uuid.uuid4(),
-            owner_id=uuid.UUID(data.owner_id) if data.owner_id else _DEFAULT_OWNER_ID,
+            owner_id=_DEFAULT_OWNER_ID,
             name=data.name,
             description=data.description,
             personality=data.personality or "professional",
             avatar_emoji=data.avatar_emoji or "◎",
             trigger_type=data.trigger_type or "manual",
-            trigger_config=data.trigger_config or {},
+            trigger_config={},
             integrations=data.integrations or [],
             guardrails=data.guardrails or [],
             status=AgentStatus.idle,
@@ -226,7 +171,7 @@ async def get_agent(agent_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.patch("/{agent_id}", response_model=AgentResponse)
-async def update_agent(agent_id: str, data: AgentUpdate, db: AsyncSession = Depends(get_db)):
+async def update_agent(agent_id: str, data: UpdateAgentRequest, db: AsyncSession = Depends(get_db)):
     if _use_db():
         result = await db.execute(select(Agent).where(Agent.id == uuid.UUID(agent_id)))
         agent = result.scalars().first()
@@ -271,7 +216,7 @@ async def delete_agent(agent_id: str, db: AsyncSession = Depends(get_db)):
     return {"status": "deleted", "id": agent_id}
 
 
-@router.post("/{agent_id}/execute")
+@router.post("/{agent_id}/execute", response_model=ExecuteResponse)
 async def trigger_execution(agent_id: str, trigger_data: dict = {}, db: AsyncSession = Depends(get_db)):
     if _use_db():
         result = await db.execute(select(Agent).where(Agent.id == uuid.UUID(agent_id)))
@@ -311,8 +256,11 @@ async def trigger_execution(agent_id: str, trigger_data: dict = {}, db: AsyncSes
     return {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"}
 
 
-@router.post("/{agent_id}/correct")
-async def correct_agent(agent_id: str, original: str = "", correction: str = "", context: dict = {}, db: AsyncSession = Depends(get_db)):
+@router.post("/{agent_id}/correct", response_model=CorrectResponse)
+async def correct_agent(agent_id: str, data: CorrectRequest, db: AsyncSession = Depends(get_db)):
+    original = ""
+    correction = data.correction
+    context: dict = {}
     if _use_db():
         result = await db.execute(select(Agent).where(Agent.id == uuid.UUID(agent_id)))
         agent = result.scalars().first()
