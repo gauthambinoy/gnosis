@@ -1,6 +1,7 @@
-"""Wire the event bus to WebSocket broadcasts."""
+"""Wire the event bus to WebSocket broadcasts and audit log."""
 from app.core.event_bus import event_bus, Events
 from app.ws.manager import ws_manager
+from app.core.audit_log import wire_audit_log
 
 
 async def _on_agent_event(event: dict):
@@ -28,3 +29,6 @@ def setup_event_wiring():
     event_bus.on(Events.EXECUTION_FAILED, _on_execution_event)
     event_bus.on(Events.TRUST_CHANGED, _on_agent_event)
     event_bus.on(Events.INSIGHT_GENERATED, _on_insight_event)
+
+    # Wire audit log to all relevant events
+    wire_audit_log()

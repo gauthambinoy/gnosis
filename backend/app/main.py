@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm
+from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates
 from app.ws import nerve_center, minds_eye
 from app.core.event_wiring import setup_event_wiring
 from app.core.security import SecurityMiddleware
@@ -51,6 +51,7 @@ app.include_router(memory.router, prefix=f"{settings.api_prefix}/memory", tags=[
 app.include_router(oracle.router, prefix=f"{settings.api_prefix}/oracle", tags=["oracle"])
 app.include_router(standup.router, prefix=f"{settings.api_prefix}/standup", tags=["standup"])
 
+app.include_router(templates.router, prefix=f"{settings.api_prefix}/templates", tags=["templates"])
 app.include_router(events.router, prefix=f"{settings.api_prefix}/events", tags=["events"])
 app.include_router(llm.router, prefix=f"{settings.api_prefix}/llm", tags=["llm"])
 
