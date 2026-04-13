@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.llm.router import model_router, TIER_CONFIG
+from app.core.cost_tracker import cost_tracker
 
 router = APIRouter()
 
@@ -28,3 +29,18 @@ async def get_providers():
             {"id": "custom", "name": "Custom Endpoint", "description": "Any OpenAI-compatible API"},
         ]
     }
+
+
+@router.get("/costs")
+async def get_costs():
+    return {"today": cost_tracker.today_stats, "total": cost_tracker.total_stats}
+
+
+@router.get("/costs/{agent_id}")
+async def get_agent_costs(agent_id: str):
+    return cost_tracker.agent_stats(agent_id)
+
+
+@router.get("/costs/recent/records")
+async def get_recent_cost_records(limit: int = 50):
+    return {"records": cost_tracker.recent_records(limit)}
