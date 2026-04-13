@@ -1,13 +1,35 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
-from app.core.auth import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
+
+from app.core.auth import (
+    hash_password, verify_password,
+    create_access_token, create_refresh_token, decode_token,
+    get_current_user_id,
+)
+from app.core.database import get_db, db_available
+from app.models.user import User
 
 router = APIRouter()
 
-# In-memory user store (will be replaced with DB queries when p1-db-models wires up)
+# ---------------------------------------------------------------------------
+# In-memory fallback (demo mode when PostgreSQL is unavailable)
+# ---------------------------------------------------------------------------
 _users: dict[str, dict] = {}
 _users_by_email: dict[str, str] = {}
+
+
+def _use_db() -> bool:
+    """Return True when PostgreSQL is reachable."""
+    from app.core.database import db_available as _flag
+    return _flag
+
+
+# ---------------------------------------------------------------------------
+# Schemas
+# ---------------------------------------------------------------------------
 
 
 class RegisterRequest(BaseModel):
@@ -32,75 +54,113 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _user_dict(user_id: str, email: str, full_name: str | None) -> dict:
+    return {"id": str(user_id), "email": email, "full_name": full_name or ""}
+
+
+def _token_response(user_id: str, email: str, full_name: str | None) -> TokenResponse:
+    uid = str(user_id)
+    return TokenResponse(
+        access_token=create_access_token({"sub": uid}),
+        refresh_token=create_refresh_token({"sub": uid}),
+        user=_user_dict(uid, email, full_name),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(data: RegisterRequest):
+async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    if _use_db():
+        result = await db.execute(select(User).where(User.email == data.email))
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        user = User(
+            id=uuid.uuid4(),
+            email=data.email,
+            full_name=data.full_name,
+            hashed_password=hash_password(data.password),
+        )
+        db.add(user)
+        await db.flush()
+        return _token_response(user.id, user.email, user.full_name)
+
+    # Fallback: in-memory
     if data.email in _users_by_email:
         raise HTTPException(status_code=400, detail="Email already registered")
-
     user_id = str(uuid.uuid4())
-    user = {
-        "id": user_id,
-        "email": data.email,
-        "full_name": data.full_name,
+    _users[user_id] = {
+        "id": user_id, "email": data.email, "full_name": data.full_name,
         "hashed_password": hash_password(data.password),
-        "is_active": True,
-        "llm_preset": "balanced",
     }
-    _users[user_id] = user
     _users_by_email[data.email] = user_id
-
-    access_token = create_access_token({"sub": user_id})
-    refresh_token = create_refresh_token({"sub": user_id})
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user={"id": user_id, "email": data.email, "full_name": data.full_name},
-    )
+    return _token_response(user_id, data.email, data.full_name)
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(data: LoginRequest):
-    user_id = _users_by_email.get(data.email)
-    if not user_id:
+async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    if _use_db():
+        result = await db.execute(select(User).where(User.email == data.email))
+        user = result.scalars().first()
+        if not user or not verify_password(data.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        return _token_response(user.id, user.email, user.full_name)
+
+    # Fallback
+    uid = _users_by_email.get(data.email)
+    if not uid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
-
-    user = _users[user_id]
-    if not verify_password(data.password, user["hashed_password"]):
+    u = _users[uid]
+    if not verify_password(data.password, u["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
-
-    access_token = create_access_token({"sub": user_id})
-    refresh_token = create_refresh_token({"sub": user_id})
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user={"id": user_id, "email": user["email"], "full_name": user["full_name"]},
-    )
+    return _token_response(uid, u["email"], u["full_name"])
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(data: RefreshRequest):
+async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(data.refresh_token)
     if payload.get("type") != "refresh":
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     user_id = payload.get("sub")
+
+    if _use_db():
+        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        user = result.scalars().first()
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        return _token_response(user.id, user.email, user.full_name)
+
+    # Fallback
     if user_id not in _users:
         raise HTTPException(status_code=401, detail="User not found")
-
-    user = _users[user_id]
-    access_token = create_access_token({"sub": user_id})
-    new_refresh_token = create_refresh_token({"sub": user_id})
-
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=new_refresh_token,
-        user={"id": user_id, "email": user["email"], "full_name": user["full_name"]},
-    )
+    u = _users[user_id]
+    return _token_response(user_id, u["email"], u["full_name"])
 
 
 @router.get("/me")
-async def get_me():
-    """Get current user profile — placeholder until wired to get_current_user_id dependency."""
-    return {"message": "Wire up get_current_user_id dependency after DB models"}
+async def get_me(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return current user profile from JWT."""
+    if _use_db():
+        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        user = result.scalars().first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return _user_dict(user.id, user.email, user.full_name)
+
+    # Fallback
+    if user_id not in _users:
+        raise HTTPException(status_code=404, detail="User not found")
+    u = _users[user_id]
+    return _user_dict(user_id, u["email"], u["full_name"])
