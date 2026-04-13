@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ThemeProvider } from "@/lib/theme";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-gnosis-bg text-gnosis-text font-body antialiased">
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

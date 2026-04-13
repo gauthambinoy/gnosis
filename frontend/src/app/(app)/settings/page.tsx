@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Card } from "@/components/shared/Card";
 import { Button } from "@/components/shared/Button";
 import { Badge } from "@/components/shared/Badge";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 /* ─── Providers ─── */
 const PROVIDERS = [
@@ -300,17 +301,7 @@ export default function SettingsPage() {
 
         <div>
           <label className="text-xs text-gnosis-muted mb-2 block">Theme</label>
-          <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gnosis-primary bg-gnosis-primary/5 text-sm text-gnosis-primary">
-              🌙 Dark
-            </button>
-            <button
-              disabled
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gnosis-border text-sm text-gnosis-muted opacity-40 cursor-not-allowed"
-            >
-              ☀ Light
-            </button>
-          </div>
+          <ThemeToggle />
         </div>
       </Card>
 
