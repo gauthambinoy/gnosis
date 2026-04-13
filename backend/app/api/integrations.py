@@ -1,22 +1,95 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request, Query
+
+from app.integrations.oauth import oauth_manager, PROVIDER_CONFIGS
 
 router = APIRouter()
 
+PROVIDERS = {
+    "gmail": {"name": "Gmail", "icon": "📧", "oauth_provider": "google"},
+    "sheets": {"name": "Google Sheets", "icon": "📊", "oauth_provider": "google"},
+    "slack": {"name": "Slack", "icon": "💬", "oauth_provider": "slack"},
+    "http": {"name": "Universal HTTP", "icon": "🌐", "oauth_provider": None},
+}
 
-@router.get("")
-async def list_integrations():
-    """List available integrations and their connection status."""
-    return {
-        "integrations": [
-            {"id": "gmail", "name": "Gmail", "status": "not_connected", "icon": "📧"},
-            {"id": "sheets", "name": "Google Sheets", "status": "not_connected", "icon": "📊"},
-            {"id": "slack", "name": "Slack", "status": "not_connected", "icon": "💬"},
-            {"id": "http", "name": "Universal HTTP", "status": "available", "icon": "🌐"},
-        ]
-    }
+# Placeholder user_id until full auth middleware is wired
+_DEFAULT_USER = "default"
 
 
-@router.post("/{integration_id}/connect")
-async def connect_integration(integration_id: str):
-    """Initiate OAuth flow for an integration."""
-    return {"redirect_url": f"/oauth/{integration_id}/authorize", "integration_id": integration_id}
+@router.get("/providers")
+async def list_providers():
+    """List available integrations with connection status."""
+    results = []
+    for pid, meta in PROVIDERS.items():
+        oauth_prov = meta["oauth_provider"]
+        if oauth_prov:
+            connected = oauth_manager.is_connected(oauth_prov, _DEFAULT_USER)
+            status = "connected" if connected else "not_connected"
+        else:
+            status = "available"
+        results.append({"id": pid, "name": meta["name"], "icon": meta["icon"], "status": status})
+    return {"integrations": results}
+
+
+@router.get("/{provider}/auth")
+async def start_oauth(provider: str, request: Request):
+    """Start OAuth flow — returns the authorization URL."""
+    meta = PROVIDERS.get(provider)
+    if not meta:
+        raise HTTPException(status_code=404, detail=f"Unknown provider: {provider}")
+    oauth_prov = meta["oauth_provider"]
+    if not oauth_prov:
+        raise HTTPException(status_code=400, detail=f"{provider} does not use OAuth")
+
+    redirect_uri = str(request.base_url).rstrip("/") + f"/api/v1/integrations/{provider}/callback"
+    auth_url = oauth_manager.get_auth_url(oauth_prov, _DEFAULT_USER, redirect_uri)
+    return {"auth_url": auth_url, "provider": provider}
+
+
+@router.get("/{provider}/callback")
+async def oauth_callback(
+    provider: str,
+    request: Request,
+    code: str = Query(...),
+    state: str = Query(default=""),
+):
+    """Handle OAuth callback — exchange code for tokens."""
+    meta = PROVIDERS.get(provider)
+    if not meta:
+        raise HTTPException(status_code=404, detail=f"Unknown provider: {provider}")
+    oauth_prov = meta["oauth_provider"]
+    if not oauth_prov:
+        raise HTTPException(status_code=400, detail=f"{provider} does not use OAuth")
+
+    redirect_uri = str(request.base_url).rstrip("/") + f"/api/v1/integrations/{provider}/callback"
+    try:
+        token_data = await oauth_manager.exchange_code(oauth_prov, _DEFAULT_USER, code, redirect_uri)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "connected", "provider": provider, "scope": token_data.get("scope", "")}
+
+
+@router.delete("/{provider}")
+async def disconnect_provider(provider: str):
+    """Disconnect / revoke OAuth tokens for a provider."""
+    meta = PROVIDERS.get(provider)
+    if not meta:
+        raise HTTPException(status_code=404, detail=f"Unknown provider: {provider}")
+    oauth_prov = meta["oauth_provider"]
+    if not oauth_prov:
+        raise HTTPException(status_code=400, detail=f"{provider} does not use OAuth")
+
+    await oauth_manager.revoke(oauth_prov, _DEFAULT_USER)
+    return {"status": "disconnected", "provider": provider}
+
+
+@router.get("/{provider}/status")
+async def provider_status(provider: str):
+    """Check connection status for a provider."""
+    meta = PROVIDERS.get(provider)
+    if not meta:
+        raise HTTPException(status_code=404, detail=f"Unknown provider: {provider}")
+    oauth_prov = meta["oauth_provider"]
+    if not oauth_prov:
+        return {"provider": provider, "status": "available"}
+    connected = oauth_manager.is_connected(oauth_prov, _DEFAULT_USER)
+    return {"provider": provider, "status": "connected" if connected else "not_connected"}
