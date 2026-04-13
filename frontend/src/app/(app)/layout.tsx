@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { name: "Nerve Center", href: "/nerve-center", icon: "◉", description: "Dashboard" },
   { name: "Awaken", href: "/awaken", icon: "✦", description: "Create agents" },
   { name: "Oracle", href: "/oracle", icon: "⟐", description: "Insights" },
+  { name: "Forge", href: "/integrations", icon: "🧩", description: "Integrations" },
   { name: "Standup", href: "/standup", icon: "◈", description: "Daily report" },
   { name: "Settings", href: "/settings", icon: "⚙", description: "Configuration" },
 ];
