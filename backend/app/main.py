@@ -4,15 +4,18 @@ from contextlib import asynccontextmanager
 import asyncio
 
 from app.config import get_settings
-from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates
+from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system
 from app.ws import nerve_center, minds_eye
 from app.core.event_wiring import setup_event_wiring
 from app.core.security import SecurityMiddleware
+from app.core.versioning import APIVersionMiddleware
 from app.core.logger import setup_logging, get_logger
 from app.core.error_handlers import register_error_handlers
 from app.core.redis_client import redis_manager
 from app.core.task_worker import task_worker
 from app.core.database import engine
+from app.core.metrics import MetricsMiddleware, metrics_endpoint
+from app.api import health as health_router_mod
 import app.core.database as _db_mod
 
 settings = get_settings()
@@ -96,14 +99,19 @@ async def lifespan(app: FastAPI):
 
     # Shutdown: cleanup
     logger.info("◎ Gnosis shutting down...")
+    # 1. Stop accepting new requests (handled by uvicorn)
+    # 2. Stop task worker
     await task_worker.stop()
     worker_task.cancel()
     try:
         await worker_task
     except asyncio.CancelledError:
         pass
+    # 3. Close Redis
     await redis_manager.close()
+    # 4. Dispose DB engine
     await engine.dispose()
+    logger.info("◎ Gnosis shutdown complete")
 
 
 app = FastAPI(
@@ -128,6 +136,9 @@ app.add_middleware(
 # Security middleware
 app.add_middleware(SecurityMiddleware, rate_limit=100)
 
+# API versioning middleware
+app.add_middleware(APIVersionMiddleware)
+
 # REST API routes
 app.include_router(auth.router, prefix=f"{settings.api_prefix}/auth", tags=["auth"])
 app.include_router(agents.router, prefix=f"{settings.api_prefix}/agents", tags=["agents"])
@@ -141,12 +152,16 @@ app.include_router(standup.router, prefix=f"{settings.api_prefix}/standup", tags
 app.include_router(templates.router, prefix=f"{settings.api_prefix}/templates", tags=["templates"])
 app.include_router(events.router, prefix=f"{settings.api_prefix}/events", tags=["events"])
 app.include_router(llm.router, prefix=f"{settings.api_prefix}/llm", tags=["llm"])
+app.include_router(system.router, prefix=f"{settings.api_prefix}/system", tags=["system"])
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
 app.include_router(minds_eye.router, tags=["ws"])
 
 
-@app.get("/health")
-async def health():
-    return {"status": "alive", "service": "gnosis"}
+# Prometheus metrics
+app.add_middleware(MetricsMiddleware)
+app.add_route("/metrics", metrics_endpoint)
+
+# Health check routes (replaces inline /health)
+app.include_router(health_router_mod.router, tags=["health"])

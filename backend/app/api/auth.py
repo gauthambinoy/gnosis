@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
@@ -11,6 +10,10 @@ from app.core.auth import (
 )
 from app.core.database import get_db, db_available
 from app.models.user import User
+from app.schemas.auth import (
+    RegisterRequest, LoginRequest, RefreshRequest,
+    TokenResponse, UserResponse,
+)
 
 router = APIRouter()
 
@@ -25,33 +28,6 @@ def _use_db() -> bool:
     """Return True when PostgreSQL is reachable."""
     from app.core.database import db_available as _flag
     return _flag
-
-
-# ---------------------------------------------------------------------------
-# Schemas
-# ---------------------------------------------------------------------------
-
-
-class RegisterRequest(BaseModel):
-    email: str
-    password: str
-    full_name: str
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-
-class TokenResponse(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-    user: dict
-
-
-class RefreshRequest(BaseModel):
-    refresh_token: str
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +122,7 @@ async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)
     return _token_response(user_id, u["email"], u["full_name"])
 
 
-@router.get("/me")
+@router.get("/me", response_model=UserResponse)
 async def get_me(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
