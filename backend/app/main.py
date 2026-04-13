@@ -6,6 +6,7 @@ from app.config import get_settings
 from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm
 from app.ws import nerve_center, minds_eye
 from app.core.event_wiring import setup_event_wiring
+from app.core.security import SecurityMiddleware
 
 settings = get_settings()
 
@@ -36,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security middleware
+app.add_middleware(SecurityMiddleware, rate_limit=100)
 
 # REST API routes
 app.include_router(auth.router, prefix=f"{settings.api_prefix}/auth", tags=["auth"])
