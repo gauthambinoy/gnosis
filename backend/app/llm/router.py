@@ -6,12 +6,14 @@ from collections import OrderedDict
 from typing import AsyncIterator
 from app.llm.client import gateway, LLMResponse
 
+REDIS_CACHE_TTL = 3600  # 1 hour
+
 
 # ---------------------------------------------------------------------------
-# LRU Response Cache (max 1000 entries)
+# LRU Response Cache (max 1000 entries, Redis-backed when available)
 # ---------------------------------------------------------------------------
 class ResponseCache:
-    """LRU cache for LLM responses."""
+    """LRU cache for LLM responses with optional Redis backing."""
 
     def __init__(self, max_size: int = 1000):
         self._cache: OrderedDict[str, dict] = OrderedDict()
@@ -19,28 +21,68 @@ class ResponseCache:
         self._hits = 0
         self._misses = 0
 
-    def _key(self, messages: list[dict]) -> str:
-        content = json.dumps(messages, sort_keys=True)
-        return hashlib.sha256(content.encode()).hexdigest()[:16]
+    @staticmethod
+    def _key(messages: list[dict], tier: str = "") -> str:
+        content = json.dumps({"tier": tier, "messages": messages}, sort_keys=True)
+        return hashlib.sha256(content.encode()).hexdigest()
 
-    def get(self, messages: list[dict]) -> dict | None:
-        key = self._key(messages)
+    def get(self, messages: list[dict], tier: str = "") -> dict | None:
+        key = self._key(messages, tier)
         if key in self._cache:
             self._hits += 1
-            self._cache.move_to_end(key)  # mark as recently used
+            self._cache.move_to_end(key)
             return self._cache[key]
         self._misses += 1
         return None
 
-    def set(self, messages: list[dict], response: dict):
-        key = self._key(messages)
+    async def get_with_redis(self, messages: list[dict], tier: str = "") -> dict | None:
+        """Check in-memory first, then Redis."""
+        mem = self.get(messages, tier)
+        if mem is not None:
+            return mem
+        try:
+            from app.core.redis_client import redis_manager
+            if redis_manager.available:
+                key = self._key(messages, tier)
+                data = await redis_manager.get(f"llm_cache:{key}")
+                if data is not None:
+                    self._hits += 1
+                    self._misses -= 1  # undo the miss from get()
+                    response = json.loads(data)
+                    # Promote to in-memory cache
+                    self._set_memory(key, response)
+                    return response
+        except Exception:
+            pass
+        return None
+
+    def _set_memory(self, key: str, response: dict):
         if key in self._cache:
             self._cache.move_to_end(key)
             self._cache[key] = response
             return
         if len(self._cache) >= self._max_size:
-            self._cache.popitem(last=False)  # evict least-recently-used
+            self._cache.popitem(last=False)
         self._cache[key] = response
+
+    def set(self, messages: list[dict], response: dict, tier: str = ""):
+        key = self._key(messages, tier)
+        self._set_memory(key, response)
+
+    async def set_with_redis(self, messages: list[dict], response: dict, tier: str = ""):
+        """Write to both in-memory and Redis."""
+        key = self._key(messages, tier)
+        self._set_memory(key, response)
+        try:
+            from app.core.redis_client import redis_manager
+            if redis_manager.available:
+                await redis_manager.set(
+                    f"llm_cache:{key}",
+                    json.dumps(response),
+                    ttl=REDIS_CACHE_TTL,
+                )
+        except Exception:
+            pass
 
     @property
     def hit_rate(self) -> float:
@@ -200,13 +242,13 @@ class ModelRouter:
         force_tier: str | None = None,
     ) -> AsyncIterator[str]:
         """Route a request through the appropriate tier with fallback."""
-        # L0: Check cache first
-        cached = self.cache.get(messages)
+        tier = force_tier or self._classify_tier_from_messages(messages)
+
+        # L0: Check cache first (in-memory + Redis)
+        cached = await self.cache.get_with_redis(messages, tier)
         if cached and not force_tier:
             yield cached["content"]
             return
-
-        tier = force_tier or self._classify_tier_from_messages(messages)
 
         # Apply user overrides if present
         self._apply_user_config(tier)
@@ -236,13 +278,13 @@ class ModelRouter:
         latency_ms = (time.time() - start) * 1000
         output_tokens = self._estimate_tokens(full_response)
 
-        # Cache the response
+        # Cache the response (in-memory + Redis)
         if full_response:
-            self.cache.set(messages, {
+            await self.cache.set_with_redis(messages, {
                 "content": full_response,
                 "tier": tier,
                 "latency_ms": latency_ms,
-            })
+            }, tier)
 
         # Track token usage
         self._cost_tracker["requests"] += 1

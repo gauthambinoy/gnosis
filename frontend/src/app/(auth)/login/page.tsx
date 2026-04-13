@@ -2,34 +2,25 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/shared/Button";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const router = useRouter();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await fetch(API_URL + "/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Login failed");
-      }
-      const data = await res.json();
-      localStorage.setItem("gnosis_token", data.access_token);
-      localStorage.setItem("gnosis_refresh", data.refresh_token);
-      window.location.href = "/nerve-center";
+      await login(email, password);
+      router.push("/nerve-center");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -55,9 +46,21 @@ export default function LoginPage() {
             <label className="text-sm text-gnosis-muted mb-1 block">Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full bg-gnosis-bg border border-gnosis-border rounded-xl px-4 py-2.5 text-sm text-gnosis-text focus:outline-none focus:border-gnosis-primary/50" />
           </div>
-          <Button type="submit" disabled={loading} className="w-full">{loading ? "Signing in..." : "Sign In"}</Button>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-[#050505] border-t-transparent rounded-full animate-spin" />
+                Signing in...
+              </span>
+            ) : (
+              "Sign In"
+            )}
+          </Button>
           <p className="text-center text-sm text-gnosis-muted">
-            No account? <Link href="/signup" className="text-gnosis-primary hover:underline">Create one</Link>
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="text-gnosis-primary hover:underline">
+              Sign up
+            </Link>
           </p>
         </form>
       </div>
