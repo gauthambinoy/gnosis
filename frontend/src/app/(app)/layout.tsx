@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { name: "Awaken", href: "/awaken", icon: "✦", description: "Create agents" },
   { name: "Oracle", href: "/oracle", icon: "⟐", description: "Insights" },
   { name: "Forge", href: "/integrations", icon: "🧩", description: "Integrations" },
+  { name: "Templates", href: "/templates", icon: "📋", description: "Workflow templates" },
   { name: "Standup", href: "/standup", icon: "◈", description: "Daily report" },
   { name: "Settings", href: "/settings", icon: "⚙", description: "Configuration" },
 ];
