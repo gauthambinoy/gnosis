@@ -4,6 +4,8 @@ import asyncio
 from typing import Callable, Awaitable
 from datetime import datetime
 
+REDIS_CHANNEL = "gnosis:events"
+
 # Event types
 class Events:
     AGENT_CREATED = "agent.created"
@@ -23,7 +25,7 @@ EventHandler = Callable[[dict], Awaitable[None]]
 
 
 class EventBus:
-    """In-process event bus (upgrades to Redis pub/sub when Redis is available)."""
+    """In-process event bus with Redis pub/sub for distributed events."""
 
     def __init__(self):
         self._handlers: dict[str, list[EventHandler]] = {}
@@ -37,7 +39,7 @@ class EventBus:
         self._handlers[event_type].append(handler)
 
     async def emit(self, event_type: str, payload: dict):
-        """Emit an event to all registered handlers."""
+        """Emit an event to all registered handlers and Redis pub/sub."""
         event = {
             "type": event_type,
             "payload": payload,
@@ -46,6 +48,14 @@ class EventBus:
         self._history.append(event)
         if len(self._history) > self._max_history:
             self._history = self._history[-self._max_history:]
+
+        # Publish to Redis if available (non-blocking, best-effort)
+        try:
+            from app.core.redis_client import redis_manager
+            if redis_manager.available:
+                await redis_manager.publish(REDIS_CHANNEL, json.dumps(event))
+        except Exception:
+            pass  # graceful degradation
 
         handlers = self._handlers.get(event_type, [])
         # Also notify wildcard handlers
@@ -56,6 +66,17 @@ class EventBus:
                 await handler(event)
             except Exception as e:
                 print(f"Event handler error for {event_type}: {e}")
+
+    async def subscribe_redis(self):
+        """Subscribe to Redis pub/sub channel for distributed event listening.
+
+        Returns a pubsub object to iterate over, or None if Redis is unavailable.
+        """
+        try:
+            from app.core.redis_client import redis_manager
+            return await redis_manager.subscribe(REDIS_CHANNEL)
+        except Exception:
+            return None
 
     def recent_events(self, limit: int = 20) -> list[dict]:
         return self._history[-limit:]

@@ -36,24 +36,27 @@ async def _memory_consolidation():
 
 async def _pattern_learning():
     try:
-        from app.core.learning_engine import learning_engine
-        await learning_engine.run_learning_cycle()
+        from app.core.learning_engine import LearningEngine
+        le = LearningEngine()
+        await le.pattern_learn("system")
     except Exception as e:
         logger.warning(f"pattern-learning: {e}")
 
 
 async def _oracle_analysis():
     try:
-        from app.core.oracle_engine import oracle_engine
-        await oracle_engine.run_analysis()
+        from app.core.oracle_engine import OracleEngine
+        oe = OracleEngine()
+        await oe.generate_insights()
     except Exception as e:
         logger.warning(f"oracle-analysis: {e}")
 
 
 async def _trust_evaluation():
     try:
-        from app.core.trust_engine import trust_engine
-        await trust_engine.evaluate_all()
+        from app.core.trust_engine import TrustEngine
+        te = TrustEngine()
+        await te.evaluate("system", {})
     except Exception as e:
         logger.warning(f"trust-evaluation: {e}")
 

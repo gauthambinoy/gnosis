@@ -2,35 +2,33 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/shared/Button";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { register } = useAuth();
+  const router = useRouter();
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(API_URL + "/api/v1/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Registration failed");
-      }
-      const data = await res.json();
-      localStorage.setItem("gnosis_token", data.access_token);
-      localStorage.setItem("gnosis_refresh", data.refresh_token);
-      window.location.href = "/nerve-center";
+      await register(email, password, fullName);
+      router.push("/nerve-center");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -60,9 +58,25 @@ export default function SignupPage() {
             <label className="text-sm text-gnosis-muted mb-1 block">Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} className="w-full bg-gnosis-bg border border-gnosis-border rounded-xl px-4 py-2.5 text-sm text-gnosis-text focus:outline-none focus:border-gnosis-primary/50" />
           </div>
-          <Button type="submit" disabled={loading} className="w-full">{loading ? "Creating..." : "Create Account"}</Button>
+          <div>
+            <label className="text-sm text-gnosis-muted mb-1 block">Confirm Password</label>
+            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={8} className="w-full bg-gnosis-bg border border-gnosis-border rounded-xl px-4 py-2.5 text-sm text-gnosis-text focus:outline-none focus:border-gnosis-primary/50" />
+          </div>
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-[#050505] border-t-transparent rounded-full animate-spin" />
+                Creating...
+              </span>
+            ) : (
+              "Create Account"
+            )}
+          </Button>
           <p className="text-center text-sm text-gnosis-muted">
-            Already have an account? <Link href="/login" className="text-gnosis-primary hover:underline">Sign in</Link>
+            Already have an account?{" "}
+            <Link href="/login" className="text-gnosis-primary hover:underline">
+              Sign in
+            </Link>
           </p>
         </form>
       </div>

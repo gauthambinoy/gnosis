@@ -1,51 +1,60 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { useAuth } from "./auth";
+
+const API =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
 class ApiClient {
-  private baseUrl: string;
-  private token: string | null = null;
-
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
-
-  setToken(token: string) {
-    this.token = token;
-  }
-
-  private async request<T>(path: string, options?: RequestInit): Promise<T> {
-    const headers: Record<string, string> = {
+  private getHeaders(): HeadersInit {
+    const token = useAuth.getState().accessToken;
+    return {
       "Content-Type": "application/json",
-      ...(this.token && { Authorization: `Bearer ${this.token}` }),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
+  }
 
-    const res = await fetch(`${this.baseUrl}${path}`, {
+  async fetch(path: string, options: RequestInit = {}): Promise<Response> {
+    const res = await fetch(`${API}${path}`, {
       ...options,
-      headers: { ...headers, ...options?.headers },
+      headers: { ...this.getHeaders(), ...options.headers },
     });
 
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({ detail: res.statusText }));
-      throw new Error(error.detail || "API request failed");
+    // Auto-refresh on 401
+    if (res.status === 401) {
+      const refreshed = await useAuth.getState().refreshAccessToken();
+      if (refreshed) {
+        return fetch(`${API}${path}`, {
+          ...options,
+          headers: { ...this.getHeaders(), ...options.headers },
+        });
+      }
+      useAuth.getState().logout();
+      if (typeof window !== "undefined") window.location.href = "/login";
     }
 
-    return res.json();
+    return res;
   }
 
-  get<T>(path: string) {
-    return this.request<T>(path);
+  async get(path: string) {
+    return this.fetch(path);
   }
 
-  post<T>(path: string, body?: unknown) {
-    return this.request<T>(path, { method: "POST", body: JSON.stringify(body) });
+  async post(path: string, body?: unknown) {
+    return this.fetch(path, {
+      method: "POST",
+      body: body ? JSON.stringify(body) : undefined,
+    });
   }
 
-  put<T>(path: string, body?: unknown) {
-    return this.request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+  async put(path: string, body: unknown) {
+    return this.fetch(path, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
   }
 
-  delete<T>(path: string) {
-    return this.request<T>(path, { method: "DELETE" });
+  async delete(path: string) {
+    return this.fetch(path, { method: "DELETE" });
   }
 }
 
-export const api = new ApiClient(API_BASE);
+export const api = new ApiClient();
