@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.event_bus import event_bus, Events
 from app.core.database import get_db
+from app.core.version_manager import version_manager
 from app.models.agent import Agent, AgentStatus
 from app.models.memory import Memory, MemoryTier
 from app.core.memory_engine import memory_engine
@@ -114,12 +115,15 @@ async def create_agent(data: CreateAgentRequest, db: AsyncSession = Depends(get_
         db.add(agent)
         await db.flush()
         await event_bus.emit(Events.AGENT_CREATED, {"agent_id": str(agent.id), "name": agent.name})
-        return _agent_to_response(agent)
+        resp = _agent_to_response(agent)
+        version_manager.save_version(str(agent.id), resp.model_dump(), change_summary="Agent created")
+        return resp
 
     # Fallback
     agent = _make_agent_dict(data)
     _agents[agent["id"]] = agent
     await event_bus.emit(Events.AGENT_CREATED, {"agent_id": agent["id"], "name": agent["name"]})
+    version_manager.save_version(agent["id"], agent, change_summary="Agent created")
     return AgentResponse(**agent)
 
 
@@ -184,7 +188,9 @@ async def update_agent(agent_id: str, data: UpdateAgentRequest, db: AsyncSession
             setattr(agent, key, value)
         await db.flush()
         await event_bus.emit(Events.AGENT_UPDATED, {"agent_id": agent_id, **updates})
-        return _agent_to_response(agent)
+        resp = _agent_to_response(agent)
+        version_manager.save_version(agent_id, resp.model_dump(), change_summary="Agent updated")
+        return resp
 
     if agent_id not in _agents:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -192,6 +198,7 @@ async def update_agent(agent_id: str, data: UpdateAgentRequest, db: AsyncSession
     _agents[agent_id].update(updates)
     _agents[agent_id]["updated_at"] = datetime.utcnow().isoformat()
     await event_bus.emit(Events.AGENT_UPDATED, {"agent_id": agent_id, **updates})
+    version_manager.save_version(agent_id, _agents[agent_id], change_summary="Agent updated")
     return AgentResponse(**_agents[agent_id])
 
 
