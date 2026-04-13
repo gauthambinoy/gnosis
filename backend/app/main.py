@@ -4,14 +4,16 @@ from contextlib import asynccontextmanager
 import asyncio
 
 from app.config import get_settings
-from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system
+from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers
 from app.ws import nerve_center, minds_eye
+from app.ws.routes import router as ws_execution_router
 from app.core.event_wiring import setup_event_wiring
 from app.core.security import SecurityMiddleware
 from app.core.versioning import APIVersionMiddleware
 from app.core.logger import setup_logging, get_logger
 from app.core.error_handlers import register_error_handlers
 from app.core.redis_client import redis_manager
+from app.core.scheduler import scheduler_engine
 from app.core.task_worker import task_worker
 from app.core.database import engine
 from app.core.metrics import MetricsMiddleware, metrics_endpoint
@@ -95,12 +97,17 @@ async def lifespan(app: FastAPI):
     # Start task worker in background
     worker_task = asyncio.create_task(task_worker.start())
 
+    # Start agent scheduler
+    await scheduler_engine.start()
+
     yield
 
     # Shutdown: cleanup
     logger.info("◎ Gnosis shutting down...")
     # 1. Stop accepting new requests (handled by uvicorn)
-    # 2. Stop task worker
+    # 2. Stop agent scheduler
+    await scheduler_engine.stop()
+    # 3. Stop task worker
     await task_worker.stop()
     worker_task.cancel()
     try:
@@ -153,10 +160,16 @@ app.include_router(templates.router, prefix=f"{settings.api_prefix}/templates", 
 app.include_router(events.router, prefix=f"{settings.api_prefix}/events", tags=["events"])
 app.include_router(llm.router, prefix=f"{settings.api_prefix}/llm", tags=["llm"])
 app.include_router(system.router, prefix=f"{settings.api_prefix}/system", tags=["system"])
+app.include_router(schedules.router)
+app.include_router(pipelines.router)
+
+app.include_router(files.router)
+app.include_router(webhook_triggers.router)
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
 app.include_router(minds_eye.router, tags=["ws"])
+app.include_router(ws_execution_router, tags=["ws"])
 
 
 # Prometheus metrics

@@ -11,8 +11,10 @@ import { clsx } from "clsx";
 const NAV_ITEMS = [
   { name: "Nerve Center", href: "/nerve-center", icon: "◉", description: "Dashboard" },
   { name: "Awaken", href: "/awaken", icon: "✦", description: "Create agents" },
+  { name: "Schedules", href: "/schedules", icon: "🕐", description: "Agent scheduling" },
   { name: "Oracle", href: "/oracle", icon: "⟐", description: "Insights" },
   { name: "Forge", href: "/integrations", icon: "🧩", description: "Integrations" },
+  { name: "Pipelines", href: "/pipelines", icon: "⟟", description: "Multi-agent pipelines" },
   { name: "Templates", href: "/templates", icon: "📋", description: "Workflow templates" },
   { name: "Standup", href: "/standup", icon: "◈", description: "Daily report" },
   { name: "Settings", href: "/settings", icon: "⚙", description: "Configuration" },
