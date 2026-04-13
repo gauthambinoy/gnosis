@@ -3,8 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.api import agents, awakening, execute, integrations, memory, oracle, standup
+from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm
 from app.ws import nerve_center, minds_eye
+from app.core.event_wiring import setup_event_wiring
 
 settings = get_settings()
 
@@ -13,6 +14,8 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     # Startup: initialize connections
     print("◎ Gnosis starting up...")
+    setup_event_wiring()
+    print("◎ Event bus wired")
     yield
     # Shutdown: cleanup
     print("◎ Gnosis shutting down...")
@@ -35,6 +38,7 @@ app.add_middleware(
 )
 
 # REST API routes
+app.include_router(auth.router, prefix=f"{settings.api_prefix}/auth", tags=["auth"])
 app.include_router(agents.router, prefix=f"{settings.api_prefix}/agents", tags=["agents"])
 app.include_router(awakening.router, prefix=f"{settings.api_prefix}/awaken", tags=["awakening"])
 app.include_router(execute.router, prefix=f"{settings.api_prefix}/execute", tags=["execute"])
@@ -42,6 +46,9 @@ app.include_router(integrations.router, prefix=f"{settings.api_prefix}/integrati
 app.include_router(memory.router, prefix=f"{settings.api_prefix}/memory", tags=["memory"])
 app.include_router(oracle.router, prefix=f"{settings.api_prefix}/oracle", tags=["oracle"])
 app.include_router(standup.router, prefix=f"{settings.api_prefix}/standup", tags=["standup"])
+
+app.include_router(events.router, prefix=f"{settings.api_prefix}/events", tags=["events"])
+app.include_router(llm.router, prefix=f"{settings.api_prefix}/llm", tags=["llm"])
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
