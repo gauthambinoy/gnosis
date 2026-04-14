@@ -15,6 +15,7 @@ from app.core.security_hardened import UltraSecurityMiddleware
 from app.core.versioning import APIVersionMiddleware
 from app.core.logger import setup_logging, get_logger
 from app.core.error_handlers import register_error_handlers
+from app.middleware.request_id import RequestIDMiddleware
 from app.core.redis_client import redis_manager
 from app.core.scheduler import scheduler_engine
 from app.core.task_worker import task_worker

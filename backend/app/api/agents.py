@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from sqlalchemy import select, func as sa_func
@@ -54,13 +54,13 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         memory_count=agent.memory_count or 0,
         integrations=agent.integrations or [],
         guardrails=agent.guardrails or [],
-        created_at=agent.created_at.isoformat() if agent.created_at else datetime.utcnow().isoformat(),
-        updated_at=agent.updated_at.isoformat() if agent.updated_at else datetime.utcnow().isoformat(),
+        created_at=agent.created_at.isoformat() if agent.created_at else datetime.now(timezone.utc).isoformat(),
+        updated_at=agent.updated_at.isoformat() if agent.updated_at else datetime.now(timezone.utc).isoformat(),
     )
 
 
 def _make_agent_dict(data: CreateAgentRequest) -> dict:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     return {
         "id": str(uuid.uuid4()),
         "name": data.name,
@@ -196,7 +196,7 @@ async def update_agent(agent_id: str, data: UpdateAgentRequest, db: AsyncSession
         raise HTTPException(status_code=404, detail="Agent not found")
     updates = data.model_dump(exclude_none=True)
     _agents[agent_id].update(updates)
-    _agents[agent_id]["updated_at"] = datetime.utcnow().isoformat()
+    _agents[agent_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
     await event_bus.emit(Events.AGENT_UPDATED, {"agent_id": agent_id, **updates})
     version_manager.save_version(agent_id, _agents[agent_id], change_summary="Agent updated")
     return AgentResponse(**_agents[agent_id])
@@ -258,7 +258,7 @@ async def trigger_execution(agent_id: str, trigger_data: dict = {}, db: AsyncSes
     success = _agents[agent_id]["successful_executions"]
     _agents[agent_id]["accuracy"] = success / total if total > 0 else 0.0
     _agents[agent_id]["time_saved_minutes"] += 2.5
-    _agents[agent_id]["updated_at"] = datetime.utcnow().isoformat()
+    _agents[agent_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
     await event_bus.emit(Events.EXECUTION_COMPLETED, {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"})
     return {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"}
 
@@ -297,6 +297,6 @@ async def correct_agent(agent_id: str, data: CorrectRequest, db: AsyncSession = 
     if agent_id not in _agents:
         raise HTTPException(status_code=404, detail="Agent not found")
     _agents[agent_id]["total_corrections"] += 1
-    _agents[agent_id]["updated_at"] = datetime.utcnow().isoformat()
+    _agents[agent_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
     await event_bus.emit(Events.CORRECTION_RECEIVED, {"agent_id": agent_id, "original": original, "correction": correction})
     return {"status": "correction_stored", "agent_id": agent_id}

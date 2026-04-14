@@ -1,5 +1,5 @@
 """Gnosis Cost Tracker — tracks token usage and costs per user/agent."""
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from dataclasses import dataclass, field
 
 
@@ -24,7 +24,7 @@ class CostTracker:
 
     def record(self, agent_id: str, tier: str, model: str, input_tokens: int, output_tokens: int, cost_usd: float, cached: bool = False):
         record = UsageRecord(
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             agent_id=agent_id, tier=tier, model=model,
             input_tokens=input_tokens, output_tokens=output_tokens,
             cost_usd=cost_usd, cached=cached,

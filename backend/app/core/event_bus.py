@@ -2,7 +2,7 @@
 import json
 import asyncio
 from typing import Callable, Awaitable
-from datetime import datetime
+from datetime import datetime, timezone
 
 REDIS_CHANNEL = "gnosis:events"
 
@@ -43,7 +43,7 @@ class EventBus:
         event = {
             "type": event_type,
             "payload": payload,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         self._history.append(event)
         if len(self._history) > self._max_history:

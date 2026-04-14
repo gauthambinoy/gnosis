@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class TaskWorker:
@@ -24,7 +24,7 @@ class TaskWorker:
         self._running = True
         print("◎ Task worker started")
         while self._running:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             for name, task in self.tasks.items():
                 if task["last_run"] is None or \
                    (now - task["last_run"]).total_seconds() >= task["interval"]:

@@ -1,6 +1,6 @@
 """Gnosis Orchestrator — Perceive → Reason → Decide → Act execution engine."""
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import re
 import time
@@ -55,7 +55,7 @@ class ExecutionStep:
     latency_ms: float = 0.0
     cost_usd: float = 0.0
     metadata: dict = field(default_factory=dict)
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass

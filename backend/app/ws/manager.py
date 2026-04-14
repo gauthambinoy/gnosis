@@ -3,7 +3,7 @@ import json
 import asyncio
 from fastapi import WebSocket
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class ConnectionManager:
@@ -20,14 +20,14 @@ class ConnectionManager:
     async def connect_dashboard(self, websocket: WebSocket, user_id: str):
         await websocket.accept()
         self._dashboard.add(websocket)
-        self._metadata[websocket] = {"user_id": user_id, "type": "dashboard", "connected_at": datetime.utcnow().isoformat()}
+        self._metadata[websocket] = {"user_id": user_id, "type": "dashboard", "connected_at": datetime.now(timezone.utc).isoformat()}
 
     async def connect_agent_watcher(self, websocket: WebSocket, agent_id: str, user_id: str = ""):
         await websocket.accept()
         if agent_id not in self._agent_watchers:
             self._agent_watchers[agent_id] = set()
         self._agent_watchers[agent_id].add(websocket)
-        self._metadata[websocket] = {"user_id": user_id, "agent_id": agent_id, "type": "watcher", "connected_at": datetime.utcnow().isoformat()}
+        self._metadata[websocket] = {"user_id": user_id, "agent_id": agent_id, "type": "watcher", "connected_at": datetime.now(timezone.utc).isoformat()}
 
     def disconnect(self, websocket: WebSocket):
         self._dashboard.discard(websocket)
@@ -51,11 +51,11 @@ class ConnectionManager:
             "phase": phase,
             "content": content,
             "metadata": metadata or {},
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
     async def _send_to_set(self, connections: set[WebSocket], event_type: str, payload: dict):
-        message = json.dumps({"type": event_type, "payload": payload, "timestamp": datetime.utcnow().isoformat()})
+        message = json.dumps({"type": event_type, "payload": payload, "timestamp": datetime.now(timezone.utc).isoformat()})
         disconnected = set()
         for ws in connections:
             try:
