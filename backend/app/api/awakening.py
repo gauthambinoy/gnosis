@@ -4,6 +4,8 @@ from pydantic import BaseModel
 import asyncio
 import json
 
+from app.core.llm_gateway import llm_gateway, LLMRequest
+
 router = APIRouter()
 
 
@@ -14,14 +16,36 @@ class AwakenRequest(BaseModel):
 
 @router.post("/chat")
 async def awaken_chat(data: AwakenRequest):
-    """Conversational agent creation via streaming SSE."""
+    """Conversational agent creation via streaming SSE — powered by LLM Gateway."""
 
     async def stream():
-        # Placeholder — will be powered by LLM Gateway in Phase 2
-        response = f"I understand you need help with: '{data.message}'. Let me design an agent for this..."
-        for char in response:
-            yield f"data: {json.dumps({'type': 'token', 'content': char})}\n\n"
-            await asyncio.sleep(0.02)
+        request = LLMRequest(
+            prompt=data.message,
+            system_prompt=(
+                "You are Gnosis, an intelligent AI agent builder. "
+                "Help the user design and create AI agents. Be concise, "
+                "helpful, and suggest specific agent configurations when appropriate."
+            ),
+            model="fast",
+            max_tokens=1024,
+            temperature=0.7,
+        )
+
+        try:
+            response = await llm_gateway.complete(request)
+            content = response.content
+
+            # Stream character by character for SSE effect
+            for char in content:
+                yield f"data: {json.dumps({'type': 'token', 'content': char})}\n\n"
+                await asyncio.sleep(0.01)
+
+            yield f"data: {json.dumps({'type': 'meta', 'model': response.model, 'provider': response.provider, 'tokens': response.tokens_used, 'latency_ms': round(response.latency_ms, 1)})}\n\n"
+        except Exception as e:
+            error_msg = f"Error: {str(e)}"
+            for char in error_msg:
+                yield f"data: {json.dumps({'type': 'token', 'content': char})}\n\n"
+
         yield f"data: {json.dumps({'type': 'done'})}\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")
