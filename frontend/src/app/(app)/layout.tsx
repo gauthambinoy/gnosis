@@ -11,6 +11,7 @@ import { clsx } from "clsx";
 
 const NAV_ITEMS = [
   { name: "Nerve Center", href: "/nerve-center", icon: "◉", description: "Dashboard" },
+  { name: "✨ Factory", href: "/factory", icon: "✨", description: "Create agents from text" },
   { name: "Awaken", href: "/awaken", icon: "✦", description: "Create agents" },
   { name: "Schedules", href: "/schedules", icon: "🕐", description: "Agent scheduling" },
   { name: "Oracle", href: "/oracle", icon: "⟐", description: "Insights" },
@@ -21,9 +22,18 @@ const NAV_ITEMS = [
   { name: "Documents", href: "/documents", icon: "📄", description: "RAG documents" },
   { name: "Collaboration", href: "/collaboration", icon: "🤝", description: "Agent rooms" },
   { name: "Knowledge", href: "/knowledge", icon: "🧠", description: "Knowledge graph" },
+  { name: "Swarm", href: "/swarm", icon: "🐝", description: "Agent swarm intelligence" },
+  { name: "APIs", href: "/api-hub", icon: "🔗", description: "Auto-API discovery" },
+  { name: "Automations", href: "/automations", icon: "🤖", description: "Browser RPA" },
+  { name: "Dreams", href: "/dreams", icon: "🌀", description: "Agent dreams & evolution" },
+  { name: "Predictions", href: "/predictions", icon: "🔮", description: "Predictive agents" },
+  { name: "Real World", href: "/realworld", icon: "🌍", description: "Real-world connectors" },
+  { name: "System", href: "/system", icon: "🖥️", description: "System control" },
   { name: "Standup", href: "/standup", icon: "◈", description: "Daily report" },
   { name: "Replay", href: "/replay", icon: "▶", description: "Execution replay" },
   { name: "Billing", href: "/billing", icon: "💳", description: "Plans & usage" },
+  { name: "Infrastructure", href: "/infrastructure", icon: "🏗️", description: "System status" },
+  { name: "Security", href: "/security", icon: "🛡️", description: "Security center" },
   { name: "Settings", href: "/settings", icon: "⚙", description: "Configuration" },
 ];
 

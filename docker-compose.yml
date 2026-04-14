@@ -2,36 +2,93 @@ version: "3.8"
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file: ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://gnosis:${POSTGRES_PASSWORD:-gnosis_secret}@postgres:5432/gnosis
+      - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - redis
-      - postgres
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: always
+    networks:
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
     depends_on:
       - backend
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    restart: always
+    networks:
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   postgres:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: gnosis
       POSTGRES_USER: gnosis
-      POSTGRES_PASSWORD: gnosis_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gnosis_secret}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gnosis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    networks:
+      - backend-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
 volumes:
   pgdata:
+  redisdata:
+
+networks:
+  backend-net:
+    driver: bridge

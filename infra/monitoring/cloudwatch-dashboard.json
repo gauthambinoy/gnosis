@@ -1,0 +1,246 @@
+{
+  "widgets": [
+    {
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "# Gnosis Production Dashboard"
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 1,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## ECS Services"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 2,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "ECS CPU Utilization",
+        "metrics": [
+          ["AWS/ECS", "CPUUtilization", "ClusterName", "gnosis-cluster", "ServiceName", "gnosis-backend", { "label": "Backend CPU", "stat": "Average" }],
+          ["AWS/ECS", "CPUUtilization", "ClusterName", "gnosis-cluster", "ServiceName", "gnosis-frontend", { "label": "Frontend CPU", "stat": "Average" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "max": 100, "label": "Percent" } }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 2,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "title": "ECS Memory Utilization",
+        "metrics": [
+          ["AWS/ECS", "MemoryUtilization", "ClusterName", "gnosis-cluster", "ServiceName", "gnosis-backend", { "label": "Backend Memory", "stat": "Average" }],
+          ["AWS/ECS", "MemoryUtilization", "ClusterName", "gnosis-cluster", "ServiceName", "gnosis-frontend", { "label": "Frontend Memory", "stat": "Average" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "max": 100, "label": "Percent" } }
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 8,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## Application Load Balancer"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 9,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ALB Request Count",
+        "metrics": [
+          ["AWS/ApplicationELB", "RequestCount", "LoadBalancer", "app/gnosis-alb/0123456789", { "label": "Requests", "stat": "Sum" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 60,
+        "yAxis": { "left": { "min": 0, "label": "Count" } }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 9,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ALB Target Response Time",
+        "metrics": [
+          ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "app/gnosis-alb/0123456789", { "label": "Avg Latency", "stat": "Average" }],
+          ["AWS/ApplicationELB", "TargetResponseTime", "LoadBalancer", "app/gnosis-alb/0123456789", { "label": "p99 Latency", "stat": "p99" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 60,
+        "yAxis": { "left": { "min": 0, "label": "Seconds" } }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 9,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "ALB 5xx Errors",
+        "metrics": [
+          ["AWS/ApplicationELB", "HTTPCode_ELB_5XX_Count", "LoadBalancer", "app/gnosis-alb/0123456789", { "label": "ELB 5xx", "stat": "Sum" }],
+          ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", "app/gnosis-alb/0123456789", { "label": "Target 5xx", "stat": "Sum" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 60,
+        "yAxis": { "left": { "min": 0, "label": "Count" } }
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 15,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## RDS (PostgreSQL)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 16,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "RDS Database Connections",
+        "metrics": [
+          ["AWS/RDS", "DatabaseConnections", "DBInstanceIdentifier", "gnosis-db", { "label": "Connections", "stat": "Average" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "label": "Count" } }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 16,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "RDS CPU Utilization",
+        "metrics": [
+          ["AWS/RDS", "CPUUtilization", "DBInstanceIdentifier", "gnosis-db", { "label": "CPU", "stat": "Average" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "max": 100, "label": "Percent" } }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 16,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "RDS Free Storage Space",
+        "metrics": [
+          ["AWS/RDS", "FreeStorageSpace", "DBInstanceIdentifier", "gnosis-db", { "label": "Free Storage", "stat": "Average" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "label": "Bytes" } }
+      }
+    },
+    {
+      "type": "text",
+      "x": 0,
+      "y": 22,
+      "width": 24,
+      "height": 1,
+      "properties": {
+        "markdown": "## Redis (ElastiCache)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 23,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "Redis Current Connections",
+        "metrics": [
+          ["AWS/ElastiCache", "CurrConnections", "CacheClusterId", "gnosis-redis", { "label": "Connections", "stat": "Average" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "label": "Count" } }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 8,
+      "y": 23,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "Redis Memory Usage",
+        "metrics": [
+          ["AWS/ElastiCache", "DatabaseMemoryUsagePercentage", "CacheClusterId", "gnosis-redis", { "label": "Memory %", "stat": "Average" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "max": 100, "label": "Percent" } }
+      }
+    },
+    {
+      "type": "metric",
+      "x": 16,
+      "y": 23,
+      "width": 8,
+      "height": 6,
+      "properties": {
+        "title": "Redis Cache Hit Rate",
+        "metrics": [
+          ["AWS/ElastiCache", "CacheHits", "CacheClusterId", "gnosis-redis", { "label": "Hits", "stat": "Sum" }],
+          ["AWS/ElastiCache", "CacheMisses", "CacheClusterId", "gnosis-redis", { "label": "Misses", "stat": "Sum" }]
+        ],
+        "view": "timeSeries",
+        "region": "us-east-1",
+        "period": 300,
+        "yAxis": { "left": { "min": 0, "label": "Count" } }
+      }
+    }
+  ]
+}
