@@ -41,6 +41,14 @@ class FileManager:
         self._files: Dict[str, FileRecord] = {}
         UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     
+    def _get_aws(self):
+        """Lazy import to avoid circular dependency at module load."""
+        try:
+            from app.core.aws_services import aws_services
+            return aws_services
+        except Exception:
+            return None
+    
     async def upload(self, content: bytes, original_name: str, agent_id: str = None, 
                      uploaded_by: str = None, tags: list = None) -> FileRecord:
         if len(content) > MAX_FILE_SIZE:
@@ -52,16 +60,23 @@ class FileManager:
         
         file_id = str(uuid.uuid4())
         filename = f"{file_id}{ext}"
-        filepath = UPLOAD_DIR / filename
         
         checksum = hashlib.sha256(content).hexdigest()
         mime_type = mimetypes.guess_type(original_name)[0] or "application/octet-stream"
         
-        filepath.write_bytes(content)
+        # Try S3 first, fall back to local storage
+        s3_uri = None
+        aws = self._get_aws()
+        if aws:
+            s3_uri = await aws.upload_file(content, filename, content_type=mime_type)
+        
+        if not s3_uri:
+            filepath = UPLOAD_DIR / filename
+            filepath.write_bytes(content)
         
         record = FileRecord(
             id=file_id,
-            filename=filename,
+            filename=s3_uri or filename,
             original_name=original_name,
             size=len(content),
             mime_type=mime_type,
@@ -71,7 +86,8 @@ class FileManager:
             tags=tags or [],
         )
         self._files[file_id] = record
-        logger.info(f"File uploaded: {file_id} ({original_name}, {len(content)} bytes)")
+        storage = "S3" if s3_uri else "local"
+        logger.info(f"File uploaded ({storage}): {file_id} ({original_name}, {len(content)} bytes)")
         return record
     
     def get(self, file_id: str) -> Optional[FileRecord]:
@@ -80,9 +96,26 @@ class FileManager:
     def get_path(self, file_id: str) -> Optional[Path]:
         record = self._files.get(file_id)
         if record:
+            if record.filename.startswith("s3://"):
+                return None  # Use download_content() for S3 files
             path = UPLOAD_DIR / record.filename
             if path.exists():
                 return path
+        return None
+    
+    async def download_content(self, file_id: str) -> Optional[bytes]:
+        """Download file content — works for both S3 and local files."""
+        record = self._files.get(file_id)
+        if not record:
+            return None
+        if record.filename.startswith("s3://"):
+            aws = self._get_aws()
+            if aws:
+                return await aws.download_file(record.filename)
+            return None
+        path = UPLOAD_DIR / record.filename
+        if path.exists():
+            return path.read_bytes()
         return None
     
     def list_files(self, agent_id: str = None) -> List[FileRecord]:
@@ -91,18 +124,31 @@ class FileManager:
             files = [f for f in files if f.agent_id == agent_id]
         return sorted(files, key=lambda f: f.created_at, reverse=True)
     
-    def delete(self, file_id: str) -> bool:
+    async def delete(self, file_id: str) -> bool:
         record = self._files.pop(file_id, None)
         if record:
-            path = UPLOAD_DIR / record.filename
-            if path.exists():
-                path.unlink()
+            if record.filename.startswith("s3://"):
+                aws = self._get_aws()
+                if aws:
+                    await aws.delete_file(record.filename)
+            else:
+                path = UPLOAD_DIR / record.filename
+                if path.exists():
+                    path.unlink()
             logger.info(f"File deleted: {file_id}")
             return True
         return False
     
-    def read_text(self, file_id: str) -> Optional[str]:
+    async def read_text(self, file_id: str) -> Optional[str]:
         """Read file content as text (for text-based files)."""
+        if self._files.get(file_id, None) and self._files[file_id].filename.startswith("s3://"):
+            content = await self.download_content(file_id)
+            if content is None:
+                return None
+            try:
+                return content.decode("utf-8")
+            except UnicodeDecodeError:
+                return None
         path = self.get_path(file_id)
         if not path:
             return None
