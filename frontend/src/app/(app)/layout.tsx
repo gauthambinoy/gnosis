@@ -18,8 +18,12 @@ const NAV_ITEMS = [
   { name: "Pipelines", href: "/pipelines", icon: "⟟", description: "Multi-agent pipelines" },
   { name: "Templates", href: "/templates", icon: "📋", description: "Workflow templates" },
   { name: "Marketplace", href: "/marketplace", icon: "🏪", description: "Agent marketplace" },
+  { name: "Documents", href: "/documents", icon: "📄", description: "RAG documents" },
+  { name: "Collaboration", href: "/collaboration", icon: "🤝", description: "Agent rooms" },
+  { name: "Knowledge", href: "/knowledge", icon: "🧠", description: "Knowledge graph" },
   { name: "Standup", href: "/standup", icon: "◈", description: "Daily report" },
   { name: "Replay", href: "/replay", icon: "▶", description: "Execution replay" },
+  { name: "Billing", href: "/billing", icon: "💳", description: "Plans & usage" },
   { name: "Settings", href: "/settings", icon: "⚙", description: "Configuration" },
 ];
 
