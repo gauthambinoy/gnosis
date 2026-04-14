@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from app.core.templates import WORKFLOW_TEMPLATES
@@ -48,7 +48,7 @@ async def deploy_template(template_id: str, body: DeployRequest = DeployRequest(
     if not template:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     agent_id = str(uuid.uuid4())
     agent = {
         "id": agent_id,

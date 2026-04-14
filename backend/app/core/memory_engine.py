@@ -2,7 +2,7 @@
 import uuid
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from app.core.embeddings import embedding_service
 from app.core.vector_store import agent_vectors, SearchResult
@@ -18,7 +18,7 @@ class MemoryEntry:
     access_count: int = 0
     strength: float = 1.0
     last_accessed: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     metadata: dict = field(default_factory=dict)
 
 
@@ -79,7 +79,7 @@ class MemoryEngine:
         if agent_id not in self._sensory_buffer:
             self._sensory_buffer[agent_id] = []
         self._sensory_buffer[agent_id].append({
-            **event, "timestamp": datetime.utcnow().isoformat(),
+            **event, "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         # Keep only last 100
         if len(self._sensory_buffer[agent_id]) > 100:

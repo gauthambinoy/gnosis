@@ -1,7 +1,7 @@
 """Gnosis Chorus — agent-to-agent communication and collaboration."""
 import asyncio
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Awaitable
 
 from app.core.event_bus import event_bus
@@ -71,7 +71,7 @@ class AgentChorus:
             "sender": sender_id,
             "channel": channel,
             "message": message,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         self._log_message(msg_record)
 
@@ -105,7 +105,7 @@ class AgentChorus:
             "sender": sender_id,
             "recipient": recipient_id,
             "message": message,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "response": None,
         }
 
@@ -131,7 +131,7 @@ class AgentChorus:
             "sender": from_agent,
             "recipient": to_agent,
             "task": task,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "status": "pending",
             "result": None,
         }
@@ -196,7 +196,7 @@ class AgentChorus:
             "requester": requester,
             "query": query,
             "results_count": len(results),
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
         return results
@@ -247,7 +247,7 @@ class AgentChorus:
             "votes": votes,
             "tally": {"approve": approve, "reject": reject, "abstain": abstain},
             "consensus": approve > total / 2,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         self._log_message({

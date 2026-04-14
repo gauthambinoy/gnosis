@@ -1,7 +1,7 @@
 """Gnosis Learning Engine — 3-loop self-learning system."""
 import uuid
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from app.core.memory_engine import memory_engine, MemoryEntry
@@ -67,7 +67,7 @@ class LearningEngine:
             "memory_id": mem.id,
             "original": original_action,
             "correction": correction,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
         metrics = self._get_metrics(agent_id)
@@ -113,7 +113,7 @@ class LearningEngine:
                         "type": "learned_pattern",
                         "source_episodes": len(cluster),
                         "confidence": rule["confidence"],
-                        "learned_at": datetime.utcnow().isoformat(),
+                        "learned_at": datetime.now(timezone.utc).isoformat(),
                     },
                 )
                 patterns_extracted += 1
@@ -122,7 +122,7 @@ class LearningEngine:
         if agent_id not in self._pattern_log:
             self._pattern_log[agent_id] = []
         self._pattern_log[agent_id].append({
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "episodes_analyzed": len(episodes),
             "clusters_found": len(clusters),
             "patterns_extracted": patterns_extracted,
@@ -274,7 +274,7 @@ class LearningEngine:
         health_score = max(0.0, 1.0 - correction_ratio * 5)  # many corrections = low health
 
         snapshot = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "total_memories": len(all_memories),
             "tier_distribution": dict(tier_counts),
             "pruned": pruned,
@@ -330,7 +330,7 @@ class LearningEngine:
                     metadata={
                         "type": "consolidated",
                         "source_count": len(cluster),
-                        "consolidated_at": datetime.utcnow().isoformat(),
+                        "consolidated_at": datetime.now(timezone.utc).isoformat(),
                     },
                 )
                 consolidated += 1
