@@ -89,9 +89,33 @@ class Orchestrator:
     # ------------------------------------------------------------------
     # Public entry point
     # ------------------------------------------------------------------
+    def _get_aws(self):
+        """Lazy import to avoid circular dependency at module load."""
+        try:
+            from app.core.aws_services import aws_services
+            return aws_services
+        except Exception:
+            return None
+
     async def execute(
-        self, agent_id: str, trigger_type: str, trigger_data: dict
+        self, agent_id: str, trigger_type: str, trigger_data: dict,
+        async_execution: bool = False,
     ) -> ExecutionResult:
+        # If async_execution requested, try to queue via SQS
+        if async_execution:
+            aws = self._get_aws()
+            if aws:
+                user_input = trigger_data.get("body", trigger_data.get("content", ""))
+                user_id = trigger_data.get("user_id", "")
+                msg_id = await aws.send_execution_task(agent_id, user_input, user_id)
+                if msg_id:
+                    return ExecutionResult(
+                        execution_id=msg_id,
+                        agent_id=agent_id,
+                        steps=[ExecutionStep(phase="queued", content=f"Queued via SQS: {msg_id}")],
+                        status="queued",
+                    )
+
         execution_id = str(uuid.uuid4())
         steps: list[ExecutionStep] = []
         total_start = time.time()
@@ -199,6 +223,25 @@ class Orchestrator:
         execution_recorder.add_step(recording.id, "post", "completed", output_summary=f"status={status} latency={total_ms:.0f}ms", duration_ms=result.total_latency_ms)
         execution_recorder.complete_recording(recording.id, status)
         await execution_stream.broadcast_phase(agent_id, "post", {"status": "completed", "duration_ms": result.total_latency_ms})
+
+        # Log execution to DynamoDB (best-effort, never blocks return)
+        try:
+            aws = self._get_aws()
+            if aws:
+                await aws.log_execution(
+                    agent_id=agent_id,
+                    user_id=trigger_data.get("user_id", ""),
+                    result={
+                        "execution_id": execution_id,
+                        "status": status,
+                        "duration_ms": total_ms,
+                        "tokens_used": sum(s.metadata.get("tokens", 0) for s in steps),
+                        "total_cost_usd": total_cost,
+                    },
+                )
+        except Exception:
+            pass  # Never let DynamoDB logging break execution
+
         return result
 
     # ------------------------------------------------------------------

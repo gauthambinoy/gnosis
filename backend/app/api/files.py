@@ -60,7 +60,7 @@ async def download_file(file_id: str):
 @router.get("/{file_id}/content")
 async def get_file_content(file_id: str):
     """Get text content of a file (for text-based files only)."""
-    text = file_manager.read_text(file_id)
+    text = await file_manager.read_text(file_id)
     if text is None:
         raise HTTPException(status_code=400, detail="File is not text-readable or not found")
     record = file_manager.get(file_id)
@@ -69,6 +69,6 @@ async def get_file_content(file_id: str):
 
 @router.delete("/{file_id}")
 async def delete_file(file_id: str):
-    if not file_manager.delete(file_id):
+    if not await file_manager.delete(file_id):
         raise HTTPException(status_code=404, detail="File not found")
     return {"deleted": True}

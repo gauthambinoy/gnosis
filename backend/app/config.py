@@ -37,6 +37,29 @@ class Settings(BaseSettings):
     # Rate limiting
     rate_limit_per_minute: int = 100
 
+    # SSO
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    github_client_id: str = ""
+    github_client_secret: str = ""
+
+    # AWS
+    aws_region: str = "us-east-1"
+    aws_access_key_id: str = ""  # Empty = use IAM role (recommended on ECS)
+    aws_secret_access_key: str = ""
+    s3_upload_bucket: str = ""
+    s3_export_bucket: str = ""
+    sqs_execution_queue_url: str = ""
+    sqs_webhook_queue_url: str = ""
+    ses_sender_email: str = ""
+    dynamodb_execution_table: str = ""
+    dynamodb_sessions_table: str = ""
+    cognito_user_pool_id: str = ""
+    cognito_client_id: str = ""
+
+    # Sentry
+    sentry_dsn: str = ""
+
     # Performance
     cache_ttl_seconds: int = 300
     max_cache_size: int = 1000

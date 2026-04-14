@@ -18,6 +18,7 @@ from app.core.task_worker import task_worker
 from app.core.database import engine
 from app.core.metrics import MetricsMiddleware, metrics_endpoint
 from app.api import health as health_router_mod
+from app.api import aws_status
 import app.core.database as _db_mod
 
 settings = get_settings()
@@ -180,6 +181,8 @@ app.include_router(billing.router)
 app.include_router(collaboration.router)
 app.include_router(knowledge_graph.router)
 app.include_router(sso.router)
+
+app.include_router(aws_status.router)
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
