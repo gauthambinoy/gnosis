@@ -1,0 +1,32 @@
+# =============================================================================
+# Gnosis — Terraform Variables Example
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values.
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# NEVER commit terraform.tfvars — it may contain secrets.
+# =============================================================================
+
+region       = "us-east-1"
+environment  = "dev"
+project_name = "gnosis"
+
+# --- Database (RDS) ---------------------------------------------------------
+db_instance_class = "db.t3.micro"
+db_name           = "gnosis"
+db_username       = "gnosis_admin"
+
+# --- Redis (ElastiCache) ----------------------------------------------------
+redis_node_type = "cache.t3.micro"
+
+# --- ECS Resources ----------------------------------------------------------
+backend_cpu     = 512
+backend_memory  = 1024
+frontend_cpu    = 256
+frontend_memory = 512
+
+# --- Domain (leave empty for HTTP-only dev setup) ---------------------------
+# domain_name = "gnosis.example.com"
+
+# --- Secrets (use env vars or a secrets tool — do NOT paste real keys here) --
+# openrouter_api_key = ""

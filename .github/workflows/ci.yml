@@ -21,11 +21,19 @@ jobs:
           cd backend
           pip install -r requirements.txt
 
-      - name: Lint
-        run: cd backend && python -m py_compile app/main.py
+      - name: Lint (compile check)
+        run: |
+          cd backend
+          python -m py_compile app/main.py
+
+      - name: Lint (ruff)
+        run: |
+          cd backend
+          pip install -q ruff
+          ruff check . || true
 
       - name: Test
-        run: cd backend && pytest tests/ -v --tb=short || true
+        run: cd backend && pytest tests/ -v --tb=short
 
       - name: Import check
         run: |

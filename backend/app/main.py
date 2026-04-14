@@ -4,11 +4,14 @@ from contextlib import asynccontextmanager
 import asyncio
 
 from app.config import get_settings
-from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers, replay, marketplace, export_import, prompts, versions, rag, sso, collaboration, knowledge_graph, workspaces, billing
+from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers, replay, marketplace, export_import, prompts, versions, rag, sso, collaboration, knowledge_graph, workspaces, billing, rpa, factory
+from app.api import security_dashboard, system_control, predictions, realworld
+from app.api import swarm as swarm_api, auto_api as auto_api_router, dreams
 from app.ws import nerve_center, minds_eye
 from app.ws.routes import router as ws_execution_router
 from app.core.event_wiring import setup_event_wiring
 from app.core.security import SecurityMiddleware
+from app.core.security_hardened import UltraSecurityMiddleware
 from app.core.versioning import APIVersionMiddleware
 from app.core.logger import setup_logging, get_logger
 from app.core.error_handlers import register_error_handlers
@@ -141,7 +144,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Security middleware
+# Security middleware (hardened layer + original)
+app.add_middleware(UltraSecurityMiddleware, settings=settings)
 app.add_middleware(SecurityMiddleware, rate_limit=100)
 
 # API versioning middleware
@@ -182,7 +186,23 @@ app.include_router(collaboration.router)
 app.include_router(knowledge_graph.router)
 app.include_router(sso.router)
 
+app.include_router(rpa.router)
+
+app.include_router(factory.router)
+
 app.include_router(aws_status.router)
+
+app.include_router(security_dashboard.router)
+
+app.include_router(dreams.router)
+
+app.include_router(system_control.router, prefix=f"{settings.api_prefix}/system-control", tags=["system-control"])
+
+app.include_router(predictions.router, tags=["predictions"])
+app.include_router(realworld.router, tags=["realworld"])
+
+app.include_router(swarm_api.router)
+app.include_router(auto_api_router.router)
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
