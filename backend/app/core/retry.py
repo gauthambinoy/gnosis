@@ -1,4 +1,5 @@
 import asyncio
+import random
 import uuid
 from datetime import datetime, timezone
 
@@ -55,7 +56,7 @@ async def with_retry(
         except Exception as e:
             last_error = e
             if attempt < max_retries - 1:
-                wait = delay * (backoff ** attempt)
+                wait = delay * (backoff ** attempt) * random.uniform(0.8, 1.2)
                 logger.warning(f"Retry {attempt+1}/{max_retries} for {task_name}: {e}, waiting {wait}s")
                 await asyncio.sleep(wait)
 

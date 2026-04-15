@@ -12,6 +12,7 @@ import json
 from typing import Optional
 from dataclasses import dataclass, field
 from app.config import get_settings
+from app.core.retry import with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -221,6 +222,14 @@ class LLMGateway:
                 cost_estimate=0,
             )
 
+    async def _post_and_parse(self, session, url, headers, payload) -> dict:
+        """Make an aiohttp POST and return parsed JSON, suitable for with_retry."""
+        async with session.post(url, headers=headers, json=payload) as resp:
+            if resp.status != 200:
+                error_text = await resp.text()
+                raise Exception(f"API returned {resp.status}: {error_text[:200]}")
+            return await resp.json()
+
     async def _call_openai_compatible(
         self,
         api_key: str,
@@ -248,32 +257,35 @@ class LLMGateway:
             "temperature": req.temperature,
         }
 
-        async with session.post(
-            f"{base_url}/chat/completions", json=payload, headers=headers
-        ) as resp:
-            if resp.status != 200:
-                error_text = await resp.text()
-                raise Exception(f"API returned {resp.status}: {error_text[:200]}")
+        data = await with_retry(
+            self._post_and_parse,
+            session,
+            f"{base_url}/chat/completions",
+            headers,
+            payload,
+            max_retries=3,
+            delay=1.0,
+            task_name=f"llm-{provider}",
+        )
 
-            data = await resp.json()
-            choice = data["choices"][0]["message"]["content"]
-            usage = data.get("usage", {})
-            prompt_tokens = usage.get("prompt_tokens", 0)
-            completion_tokens = usage.get("completion_tokens", 0)
+        choice = data["choices"][0]["message"]["content"]
+        usage = data.get("usage", {})
+        prompt_tokens = usage.get("prompt_tokens", 0)
+        completion_tokens = usage.get("completion_tokens", 0)
 
-            costs = self.MODEL_COSTS.get(model, (0.5, 1.5))
-            cost = (prompt_tokens * costs[0] + completion_tokens * costs[1]) / 1_000_000
+        costs = self.MODEL_COSTS.get(model, (0.5, 1.5))
+        cost = (prompt_tokens * costs[0] + completion_tokens * costs[1]) / 1_000_000
 
-            return LLMResponse(
-                content=choice,
-                model=model,
-                provider=provider,
-                tokens_used=prompt_tokens + completion_tokens,
-                tokens_prompt=prompt_tokens,
-                tokens_completion=completion_tokens,
-                latency_ms=0,  # Set by caller
-                cost_estimate=cost,
-            )
+        return LLMResponse(
+            content=choice,
+            model=model,
+            provider=provider,
+            tokens_used=prompt_tokens + completion_tokens,
+            tokens_prompt=prompt_tokens,
+            tokens_completion=completion_tokens,
+            latency_ms=0,  # Set by caller
+            cost_estimate=cost,
+        )
 
     async def _call_anthropic(
         self, api_key: str, model: str, req: LLMRequest
@@ -292,34 +304,35 @@ class LLMGateway:
             "temperature": req.temperature,
         }
 
-        async with session.post(
-            "https://api.anthropic.com/v1/messages", json=payload, headers=headers
-        ) as resp:
-            if resp.status != 200:
-                error_text = await resp.text()
-                raise Exception(
-                    f"Anthropic API returned {resp.status}: {error_text[:200]}"
-                )
+        data = await with_retry(
+            self._post_and_parse,
+            session,
+            "https://api.anthropic.com/v1/messages",
+            headers,
+            payload,
+            max_retries=3,
+            delay=1.0,
+            task_name="llm-anthropic",
+        )
 
-            data = await resp.json()
-            content = data["content"][0]["text"]
-            usage = data.get("usage", {})
-            prompt_tokens = usage.get("input_tokens", 0)
-            completion_tokens = usage.get("output_tokens", 0)
+        content = data["content"][0]["text"]
+        usage = data.get("usage", {})
+        prompt_tokens = usage.get("input_tokens", 0)
+        completion_tokens = usage.get("output_tokens", 0)
 
-            costs = self.MODEL_COSTS.get(model, (3.0, 15.0))
-            cost = (prompt_tokens * costs[0] + completion_tokens * costs[1]) / 1_000_000
+        costs = self.MODEL_COSTS.get(model, (3.0, 15.0))
+        cost = (prompt_tokens * costs[0] + completion_tokens * costs[1]) / 1_000_000
 
-            return LLMResponse(
-                content=content,
-                model=model,
-                provider="anthropic",
-                tokens_used=prompt_tokens + completion_tokens,
-                tokens_prompt=prompt_tokens,
-                tokens_completion=completion_tokens,
-                latency_ms=0,
-                cost_estimate=cost,
-            )
+        return LLMResponse(
+            content=content,
+            model=model,
+            provider="anthropic",
+            tokens_used=prompt_tokens + completion_tokens,
+            tokens_prompt=prompt_tokens,
+            tokens_completion=completion_tokens,
+            latency_ms=0,
+            cost_estimate=cost,
+        )
 
     async def list_available_models(self, provider: str = "") -> list[dict]:
         """List models available for a provider."""

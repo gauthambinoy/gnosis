@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
+import type { SystemInfo, ProcessInfo, DirectoryData, DockerData, AuditEntry } from "@/lib/types";
 
 // ─── Helpers ───
 
@@ -137,13 +138,13 @@ function FileModal({ path, onClose }: { path: string; onClose: () => void }) {
 // ─── Main Page ───
 
 export default function SystemControlPage() {
-  const [sysInfo, setSysInfo] = useState<any>(null);
-  const [processes, setProcesses] = useState<any[]>([]);
-  const [dirData, setDirData] = useState<any>(null);
+  const [sysInfo, setSysInfo] = useState<SystemInfo | null>(null);
+  const [processes, setProcesses] = useState<ProcessInfo[]>([]);
+  const [dirData, setDirData] = useState<DirectoryData | null>(null);
   const [currentPath, setCurrentPath] = useState("/app");
   const [viewingFile, setViewingFile] = useState<string | null>(null);
-  const [dockerData, setDockerData] = useState<any>(null);
-  const [auditLog, setAuditLog] = useState<any[]>([]);
+  const [dockerData, setDockerData] = useState<DockerData | null>(null);
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
   const [auditFilter, setAuditFilter] = useState("all");
 
   // Terminal state
