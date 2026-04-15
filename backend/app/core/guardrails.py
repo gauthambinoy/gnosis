@@ -1,9 +1,12 @@
 """Gnosis Guardrail Engine — pre-execution safety checks for all agent actions."""
 
+import logging
 import re
 import time
 from datetime import datetime, timezone
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class GuardrailEngine:
@@ -187,7 +190,7 @@ class GuardrailEngine:
                 passed = ops[op](field_val, compare_val)
                 return {"passed": passed, "details": f"{field}={field_val} {op} {val_str.strip()}"}
         except Exception:
-            pass
+            logger.warning("Guardrail check failed", exc_info=True)
         return None
 
 

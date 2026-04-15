@@ -1,4 +1,5 @@
 """Gnosis Orchestrator — Perceive → Reason → Decide → Act execution engine."""
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import asyncio
@@ -14,6 +15,8 @@ from app.core.execution_recorder import execution_recorder
 from app.llm.router import ModelRouter, model_router
 from app.ws.execution_stream import execution_stream
 from app.core.confidence import confidence_engine
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -240,7 +243,7 @@ class Orchestrator:
                     },
                 )
         except Exception:
-            pass  # Never let DynamoDB logging break execution
+            logger.debug("DynamoDB post-execution logging failed", exc_info=True)
 
         return result
 
@@ -510,7 +513,7 @@ class Orchestrator:
                 },
             )
         except Exception:
-            pass
+            logger.warning("Orchestrator action execution failed", exc_info=True)
 
         # Update agent metrics
         metrics = self._metrics.setdefault(agent_id, {

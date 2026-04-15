@@ -1,8 +1,11 @@
 """Redis-backed event bus for cross-service communication."""
+import logging
 import json
 import asyncio
 from typing import Callable, Awaitable
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 REDIS_CHANNEL = "gnosis:events"
 
@@ -55,7 +58,7 @@ class EventBus:
             if redis_manager.available:
                 await redis_manager.publish(REDIS_CHANNEL, json.dumps(event))
         except Exception:
-            pass  # graceful degradation
+            logger.debug("Redis publish failed, event delivered in-process only", exc_info=True)
 
         handlers = self._handlers.get(event_type, [])
         # Also notify wildcard handlers

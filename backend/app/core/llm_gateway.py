@@ -3,6 +3,7 @@ Gnosis Universal LLM Gateway
 Routes requests to any LLM provider via OpenRouter or direct APIs.
 Supports: OpenRouter (100+ models), OpenAI, Anthropic, Google, Mistral, Groq, Cohere, Together
 """
+import logging
 import aiohttp
 import asyncio
 import time
@@ -11,6 +12,8 @@ import json
 from typing import Optional
 from dataclasses import dataclass, field
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -91,7 +94,7 @@ class LLMGateway:
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
-            timeout = aiohttp.ClientTimeout(total=60, connect=10)
+            timeout = aiohttp.ClientTimeout(total=30, connect=10, sock_read=25)
             self._session = aiohttp.ClientSession(timeout=timeout)
         return self._session
 
@@ -205,7 +208,7 @@ class LLMGateway:
                     resp.latency_ms = (time.time() - start) * 1000
                     return resp
                 except Exception:
-                    pass
+                    logger.warning("LLM provider %s failed, trying fallback", provider, exc_info=True)
 
             return LLMResponse(
                 content=f"LLM Error: {str(e)}. Check your API key and try again.",
@@ -343,7 +346,7 @@ class LLMGateway:
                             for m in data.get("data", [])[:50]
                         ]
             except Exception:
-                pass
+                logger.debug("LLM cache cleanup failed", exc_info=True)
 
         config = self.PROVIDER_CONFIGS.get(provider, {})
         return [

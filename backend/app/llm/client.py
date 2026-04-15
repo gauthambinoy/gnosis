@@ -2,6 +2,7 @@
 Universal LLM Gateway — supports any provider.
 All Gnosis code calls this gateway, never providers directly.
 """
+import logging
 
 from abc import ABC, abstractmethod
 from typing import AsyncIterator
@@ -10,6 +11,8 @@ import asyncio
 import json
 import time
 import aiohttp
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -141,7 +144,7 @@ class AnthropicProvider(LLMProvider):
                                 if chunk.get("type") == "content_block_delta":
                                     yield chunk["delta"].get("text", "")
                             except (json.JSONDecodeError, KeyError):
-                                pass
+                                logger.debug("Skipped unparseable SSE chunk")
         except Exception:
             return
 
@@ -181,7 +184,7 @@ class OllamaProvider(LLMProvider):
                                 if content := chunk.get("message", {}).get("content"):
                                     yield content
                             except json.JSONDecodeError:
-                                pass
+                                logger.debug("Skipped unparseable SSE chunk")
         except Exception:
             return
 
@@ -236,7 +239,7 @@ class OpenAIProvider(LLMProvider):
                                 if content := delta.get("content"):
                                     yield content
                             except (json.JSONDecodeError, KeyError, IndexError):
-                                pass
+                                logger.debug("Skipped unparseable SSE chunk")
         except Exception:
             return
 
@@ -294,7 +297,7 @@ class GoogleProvider(LLMProvider):
                                     if t := part.get("text"):
                                         yield t
                             except (json.JSONDecodeError, KeyError, IndexError):
-                                pass
+                                logger.debug("Skipped unparseable SSE chunk")
         except Exception:
             return
 

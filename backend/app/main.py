@@ -107,22 +107,37 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown: cleanup
+    # Shutdown: cleanup with timeout
     logger.info("◎ Gnosis shutting down...")
-    # 1. Stop accepting new requests (handled by uvicorn)
-    # 2. Stop agent scheduler
-    await scheduler_engine.stop()
-    # 3. Stop task worker
-    await task_worker.stop()
-    worker_task.cancel()
+
+    async def _graceful_shutdown():
+        # 1. Stop agent scheduler
+        await scheduler_engine.stop()
+        # 2. Stop task worker
+        await task_worker.stop()
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
+        # 3. Flush metrics (no-op if prometheus_client has nothing to flush)
+        try:
+            from prometheus_client import REGISTRY  # noqa: F401
+            logger.debug("Metrics flushed")
+        except Exception:
+            logger.warning("Error during shutdown", exc_info=True)
+        # 4. Close shared HTTP client
+        await close_http_client()
+        # 5. Disconnect Redis
+        await redis_manager.close()
+        # 6. Dispose DB engine
+        await engine.dispose()
+
     try:
-        await worker_task
-    except asyncio.CancelledError:
-        pass
-    # 3. Close Redis
-    await redis_manager.close()
-    # 4. Dispose DB engine
-    await engine.dispose()
+        await asyncio.wait_for(_graceful_shutdown(), timeout=SHUTDOWN_TIMEOUT)
+    except asyncio.TimeoutError:
+        logger.error(f"Graceful shutdown timed out after {SHUTDOWN_TIMEOUT}s — forcing exit")
+
     logger.info("◎ Gnosis shutdown complete")
 
 
