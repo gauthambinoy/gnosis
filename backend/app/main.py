@@ -9,6 +9,8 @@ from app.config import get_settings
 from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers, replay, marketplace, export_import, prompts, versions, rag, sso, collaboration, knowledge_graph, workspaces, billing, rpa, factory
 from app.api import security_dashboard, system_control, predictions, realworld
 from app.api import swarm as swarm_api, auto_api as auto_api_router, dreams
+from app.api import webhooks_config, agent_clone, execution_cancel, bulk_ops, agent_health
+from app.api import agent_export, sse, onboarding
 from app.ws import nerve_center, minds_eye
 from app.ws.routes import router as ws_execution_router
 from app.core.event_wiring import setup_event_wiring
@@ -203,13 +205,16 @@ register_error_handlers(app)
 # Response compression (added before CORS so responses are compressed)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-# CORS
+# CORS (configurable via CORS_ORIGINS env var)
+from app.core.cors_config import get_cors_config as _get_cors_config
+_cors = _get_cors_config()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors["allow_origins"],
+    allow_credentials=_cors["allow_credentials"],
+    allow_methods=_cors["allow_methods"],
+    allow_headers=_cors["allow_headers"],
+    expose_headers=_cors["expose_headers"],
 )
 
 # Security middleware (hardened layer + original)
@@ -277,6 +282,13 @@ app.include_router(realworld.router, tags=["realworld"], dependencies=_rl)
 
 app.include_router(swarm_api.router, dependencies=_rl)
 app.include_router(auto_api_router.router)
+
+# New feature routers
+app.include_router(webhooks_config.router, dependencies=_rl)
+app.include_router(agent_clone.router, dependencies=_rl)
+app.include_router(execution_cancel.router, dependencies=_rl)
+app.include_router(bulk_ops.router, dependencies=_rl)
+app.include_router(agent_health.router, dependencies=_rl)
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
