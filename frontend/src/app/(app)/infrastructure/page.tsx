@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { clsx } from "clsx";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 /* ---------- Types ---------- */
 
@@ -59,8 +58,8 @@ function StatusDot({ status }: { status: string | undefined }) {
   return <span className={clsx("inline-block w-2.5 h-2.5 rounded-full shadow-lg shrink-0", color)} />;
 }
 
-function safeFetch<T>(url: string): Promise<T | null> {
-  return fetch(url)
+function safeFetch<T>(path: string): Promise<T | null> {
+  return api.get(path)
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
 }
@@ -85,10 +84,10 @@ export default function InfrastructurePage() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const [h, s, l, a] = await Promise.all([
-      safeFetch<HealthData>(`${API}/api/v1/health`),
-      safeFetch<SystemStatus>(`${API}/api/v1/system/status`),
-      safeFetch<LLMStats>(`${API}/api/v1/llm/stats`),
-      safeFetch<AWSStatus>(`${API}/api/v1/aws/status`),
+      safeFetch<HealthData>("/health"),
+      safeFetch<SystemStatus>("/system/status"),
+      safeFetch<LLMStats>("/llm/stats"),
+      safeFetch<AWSStatus>("/aws/status"),
     ]);
     setHealth(h);
     setSystem(s);
@@ -129,7 +128,7 @@ export default function InfrastructurePage() {
     setTestingLLM(true);
     setLLMTestResult(null);
     try {
-      const res = await fetch(`${API}/api/v1/llm/test`, { method: "POST" });
+      const res = await api.post("/llm/test");
       if (res.ok) {
         const data = await res.json();
         setLLMTestResult(data.message || "Connection successful ✓");

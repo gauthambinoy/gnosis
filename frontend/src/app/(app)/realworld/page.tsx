@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -47,7 +48,6 @@ interface RWStats {
   cache_entries: number;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const CONDITIONS = [">", "<", ">=", "<=", "==", "!=", "contains", "changes"];
 
 // ---------------------------------------------------------------------------
@@ -75,10 +75,10 @@ export default function RealWorldPage() {
   const fetchAll = useCallback(async () => {
     try {
       const [srcRes, trigRes, histRes, statRes] = await Promise.all([
-        fetch(`${API}/api/v1/realworld/sources`),
-        fetch(`${API}/api/v1/realworld/triggers?user_id=default`),
-        fetch(`${API}/api/v1/realworld/history?limit=50`),
-        fetch(`${API}/api/v1/realworld/stats`),
+        api.get("/realworld/sources"),
+        api.get("/realworld/triggers?user_id=default"),
+        api.get("/realworld/history?limit=50"),
+        api.get("/realworld/stats"),
       ]);
       setSources((await srcRes.json()).sources || []);
       setTriggers((await trigRes.json()).triggers || []);
@@ -103,7 +103,7 @@ export default function RealWorldPage() {
     await Promise.all(
       liveSources.map(async (s) => {
         try {
-          const res = await fetch(`${API}/api/v1/realworld/fetch/${s}?params=${defaults[s] || ""}`);
+          const res = await api.get(`/realworld/fetch/${s}?params=${defaults[s] || ""}`);
           results[s] = await res.json();
         } catch {
           results[s] = { error: "unavailable" };
@@ -131,18 +131,14 @@ export default function RealWorldPage() {
       });
     }
     try {
-      await fetch(`${API}/api/v1/realworld/triggers`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: "default",
-          source: newSource,
-          params,
-          field_path: newField,
-          condition: newCondition,
-          threshold: newThreshold,
-          action_description: newAction,
-        }),
+      await api.post("/realworld/triggers", {
+        user_id: "default",
+        source: newSource,
+        params,
+        field_path: newField,
+        condition: newCondition,
+        threshold: newThreshold,
+        action_description: newAction,
       });
       setNewSource("");
       setNewParams("");
@@ -156,14 +152,14 @@ export default function RealWorldPage() {
 
   const handleDeleteTrigger = async (id: string) => {
     try {
-      await fetch(`${API}/api/v1/realworld/triggers/${id}`, { method: "DELETE" });
+      await api.delete(`/realworld/triggers/${id}`);
       setTriggers((prev) => prev.filter((t) => t.id !== id));
     } catch { /* ignore */ }
   };
 
   const handleCheckNow = async () => {
     try {
-      await fetch(`${API}/api/v1/realworld/triggers/check`, { method: "POST" });
+      await api.post("/realworld/triggers/check");
       fetchAll();
     } catch { /* ignore */ }
   };

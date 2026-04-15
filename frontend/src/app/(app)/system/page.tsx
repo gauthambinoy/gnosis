@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const PREFIX = `${API}/api/v1/system-control`;
+import { api } from "@/lib/api";
 
 // ─── Helpers ───
 
@@ -30,10 +28,14 @@ function fmtDate(ts: number) {
 
 async function apiFetch(path: string, opts?: RequestInit) {
   try {
-    const res = await fetch(`${PREFIX}${path}`, {
-      headers: { "Content-Type": "application/json" },
-      ...opts,
-    });
+    const method = opts?.method?.toUpperCase();
+    let res: Response;
+    if (method === "POST") {
+      const body = opts?.body ? JSON.parse(opts.body as string) : undefined;
+      res = await api.post(`/system-control${path}`, body);
+    } else {
+      res = await api.get(`/system-control${path}`);
+    }
     return await res.json();
   } catch {
     return null;

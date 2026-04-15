@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 // ─── Types ───
 
@@ -122,7 +121,7 @@ export default function AutomationsPage() {
 
   const fetchWorkflows = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/v1/rpa/workflows`);
+      const res = await api.get("/rpa/workflows");
       const data = await res.json();
       setWorkflows(data.workflows || []);
     } catch {
@@ -132,7 +131,7 @@ export default function AutomationsPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/v1/rpa/stats`);
+      const res = await api.get("/rpa/stats");
       setStats(await res.json());
     } catch {
       /* ignore */
@@ -148,7 +147,7 @@ export default function AutomationsPage() {
     if (!recordingSession) return;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/api/v1/rpa/record/${recordingSession}/actions`);
+        const res = await api.get(`/rpa/record/${recordingSession}/actions`);
         const data = await res.json();
         setRecordedActions(data.actions || []);
       } catch {
@@ -162,11 +161,7 @@ export default function AutomationsPage() {
 
   const startRecording = async () => {
     try {
-      const res = await fetch(`${API}/api/v1/rpa/record/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
+      const res = await api.post("/rpa/record/start", {});
       const data = await res.json();
       setRecordingSession(data.session_id);
       setRecordedActions([]);
@@ -180,11 +175,7 @@ export default function AutomationsPage() {
   const stopRecording = async () => {
     if (!recordingSession) return;
     try {
-      const res = await fetch(`${API}/api/v1/rpa/record/${recordingSession}/stop`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "", description: "" }),
-      });
+      const res = await api.post(`/rpa/record/${recordingSession}/stop`, { name: "", description: "" });
       await res.json();
       setRecordingSession(null);
       setRecordedActions([]);
@@ -199,15 +190,11 @@ export default function AutomationsPage() {
 
   const createWorkflow = async () => {
     try {
-      await fetch(`${API}/api/v1/rpa/workflows`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newWorkflowName || "Untitled Workflow",
-          description: newWorkflowDesc,
-          start_url: newWorkflowUrl,
-          actions: [],
-        }),
+      await api.post("/rpa/workflows", {
+        name: newWorkflowName || "Untitled Workflow",
+        description: newWorkflowDesc,
+        start_url: newWorkflowUrl,
+        actions: [],
       });
       setShowCreateForm(false);
       setNewWorkflowName("");
@@ -223,11 +210,7 @@ export default function AutomationsPage() {
   const executeWorkflow = async (id: string) => {
     setExecutingId(id);
     try {
-      const res = await fetch(`${API}/api/v1/rpa/workflows/${id}/execute`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ variables: {} }),
-      });
+      const res = await api.post(`/rpa/workflows/${id}/execute`, { variables: {} });
       const result = await res.json();
       setExecutionResult(result);
       setShowExecutionViewer(true);
@@ -242,7 +225,7 @@ export default function AutomationsPage() {
 
   const duplicateWorkflow = async (id: string) => {
     try {
-      await fetch(`${API}/api/v1/rpa/workflows/${id}/duplicate`, { method: "POST" });
+      await api.post(`/rpa/workflows/${id}/duplicate`);
       fetchWorkflows();
     } catch {
       /* ignore */
@@ -251,7 +234,7 @@ export default function AutomationsPage() {
 
   const deleteWorkflow = async (id: string) => {
     try {
-      await fetch(`${API}/api/v1/rpa/workflows/${id}`, { method: "DELETE" });
+      await api.delete(`/rpa/workflows/${id}`);
       fetchWorkflows();
       fetchStats();
     } catch {
@@ -261,7 +244,7 @@ export default function AutomationsPage() {
 
   const downloadScript = async (id: string) => {
     try {
-      const res = await fetch(`${API}/api/v1/rpa/workflows/${id}/script`);
+      const res = await api.get(`/rpa/workflows/${id}/script`);
       const data = await res.json();
       setScriptContent(data.script);
       setShowScript(true);

@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { clsx } from "clsx";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface PlanInfo {
   tier: string;
@@ -87,9 +86,9 @@ export default function BillingPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch(`${API}/api/v1/billing/plans`).then((r) => r.json()),
-      fetch(`${API}/api/v1/billing/usage`).then((r) => r.json()),
-      fetch(`${API}/api/v1/billing/subscription`).then((r) => r.json()),
+      api.get("/billing/plans").then((r) => r.json()),
+      api.get("/billing/usage").then((r) => r.json()),
+      api.get("/billing/subscription").then((r) => r.json()),
     ])
       .then(([plansRes, usageRes, subRes]) => {
         setPlans(plansRes.plans || []);
@@ -103,15 +102,11 @@ export default function BillingPage() {
   async function handleUpgrade(tier: string) {
     setUpgrading(tier);
     try {
-      const res = await fetch(`${API}/api/v1/billing/subscribe`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: tier }),
-      });
+      const res = await api.post("/billing/subscribe", { plan: tier });
       const data = await res.json();
       setSubscription(data.subscription);
       // Refresh usage after plan change
-      const usageRes = await fetch(`${API}/api/v1/billing/usage`).then((r) => r.json());
+      const usageRes = await api.get("/billing/usage").then((r) => r.json());
       setUsage(usageRes.usage || null);
     } catch (e) {
       console.error("Upgrade failed:", e);

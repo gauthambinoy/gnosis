@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
+import { api } from "@/lib/api";
 
 // ── Types ───────────────────────────────────────────────────────
 interface PipelineStep {
@@ -55,13 +56,16 @@ interface PipelineStats {
 }
 
 // ── API helpers ─────────────────────────────────────────────────
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-async function api<T>(path: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-  });
+async function apiFetch<T>(path: string, opts?: { method?: string; body?: string }): Promise<T> {
+  let res: Response;
+  if (opts?.method === "DELETE") {
+    res = await api.delete(path);
+  } else if (opts?.method === "POST") {
+    const body = opts.body ? JSON.parse(opts.body) : undefined;
+    res = await api.post(path, body);
+  } else {
+    res = await api.get(path);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || "Request failed");
@@ -128,8 +132,8 @@ export default function PipelinesPage() {
     try {
       setLoading(true);
       const [pData, sData] = await Promise.all([
-        api<{ pipelines: Pipeline[] }>("/api/v1/pipelines"),
-        api<PipelineStats>("/api/v1/pipelines/stats"),
+        apiFetch<{ pipelines: Pipeline[] }>("/pipelines"),
+        apiFetch<PipelineStats>("/pipelines/stats"),
       ]);
       setPipelines(pData.pipelines);
       setStats(sData);
@@ -146,7 +150,7 @@ export default function PipelinesPage() {
     setSelectedPipeline(p);
     setExecuteResult(null);
     try {
-      const data = await api<{ runs: PipelineRun[] }>(`/api/v1/pipelines/${p.id}/runs`);
+      const data = await apiFetch<{ runs: PipelineRun[] }>(`/pipelines/${p.id}/runs`);
       setRuns(data.runs);
     } catch {
       setRuns([]);
@@ -156,7 +160,7 @@ export default function PipelinesPage() {
   const handleCreate = async () => {
     if (!newName.trim()) return;
     try {
-      const pipeline = await api<Pipeline>("/api/v1/pipelines", {
+      const pipeline = await apiFetch<Pipeline>("/pipelines", {
         method: "POST",
         body: JSON.stringify({ name: newName, description: newDesc, steps: newSteps }),
       });
@@ -173,7 +177,7 @@ export default function PipelinesPage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await api(`/api/v1/pipelines/${id}`, { method: "DELETE" });
+      await apiFetch(`/pipelines/${id}`, { method: "DELETE" });
       if (selectedPipeline?.id === id) setSelectedPipeline(null);
       await fetchPipelines();
     } catch (e) {
@@ -184,11 +188,11 @@ export default function PipelinesPage() {
   const handleAddStep = async () => {
     if (!selectedPipeline || !addStepAgentId.trim()) return;
     try {
-      await api(`/api/v1/pipelines/${selectedPipeline.id}/steps`, {
+      await apiFetch(`/pipelines/${selectedPipeline.id}/steps`, {
         method: "POST",
         body: JSON.stringify({ agent_id: addStepAgentId, name: addStepName || "New Step" }),
       });
-      const updated = await api<Pipeline>(`/api/v1/pipelines/${selectedPipeline.id}`);
+      const updated = await apiFetch<Pipeline>(`/pipelines/${selectedPipeline.id}`);
       setSelectedPipeline(updated);
       setAddStepAgentId("");
       setAddStepName("");
@@ -201,8 +205,8 @@ export default function PipelinesPage() {
   const handleRemoveStep = async (stepId: string) => {
     if (!selectedPipeline) return;
     try {
-      await api(`/api/v1/pipelines/${selectedPipeline.id}/steps/${stepId}`, { method: "DELETE" });
-      const updated = await api<Pipeline>(`/api/v1/pipelines/${selectedPipeline.id}`);
+      await apiFetch(`/pipelines/${selectedPipeline.id}/steps/${stepId}`, { method: "DELETE" });
+      const updated = await apiFetch<Pipeline>(`/pipelines/${selectedPipeline.id}`);
       setSelectedPipeline(updated);
       await fetchPipelines();
     } catch (e) {
@@ -216,12 +220,12 @@ export default function PipelinesPage() {
     setExecuteResult(null);
     try {
       const inputData = JSON.parse(executeInput);
-      const run = await api<PipelineRun>(`/api/v1/pipelines/${selectedPipeline.id}/execute`, {
+      const run = await apiFetch<PipelineRun>(`/pipelines/${selectedPipeline.id}/execute`, {
         method: "POST",
         body: JSON.stringify({ input_data: inputData }),
       });
       setExecuteResult(run);
-      const data = await api<{ runs: PipelineRun[] }>(`/api/v1/pipelines/${selectedPipeline.id}/runs`);
+      const data = await apiFetch<{ runs: PipelineRun[] }>(`/pipelines/${selectedPipeline.id}/runs`);
       setRuns(data.runs);
       await fetchPipelines();
     } catch (e) {

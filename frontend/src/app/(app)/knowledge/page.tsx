@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface GraphNode {
   id: string;
@@ -65,8 +64,8 @@ export default function KnowledgePage() {
   const fetchGraph = useCallback(async () => {
     try {
       const [graphRes, statsRes] = await Promise.all([
-        fetch(`${API}/api/v1/knowledge-graph/graph`),
-        fetch(`${API}/api/v1/knowledge-graph/stats`),
+        api.get("/knowledge-graph/graph"),
+        api.get("/knowledge-graph/stats"),
       ]);
       const graphData = await graphRes.json();
       const statsData = await statsRes.json();
@@ -177,8 +176,8 @@ export default function KnowledgePage() {
       return;
     }
     try {
-      const res = await fetch(
-        `${API}/api/v1/knowledge-graph/entities/search?query=${encodeURIComponent(searchQuery)}`
+      const res = await api.get(
+        `/knowledge-graph/entities/search?query=${encodeURIComponent(searchQuery)}`
       );
       const data = await res.json();
       setSearchResults(data.entities || []);
@@ -191,11 +190,7 @@ export default function KnowledgePage() {
     if (!extractText.trim()) return;
     setExtracting(true);
     try {
-      await fetch(`${API}/api/v1/knowledge-graph/extract`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: extractText }),
-      });
+      await api.post("/knowledge-graph/extract", { text: extractText });
       setExtractText("");
       await fetchGraph();
     } catch {
