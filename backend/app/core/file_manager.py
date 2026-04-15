@@ -18,7 +18,13 @@ ALLOWED_EXTENSIONS = {
     ".pdf", ".doc", ".docx", ".xls", ".xlsx",
     ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp",
     ".py", ".js", ".ts", ".html", ".css",
-    ".log", ".env",
+}
+
+# Filenames that must never be uploaded regardless of extension
+DENIED_FILENAMES = {
+    ".env", ".env.local", ".env.production", ".env.staging", ".env.development",
+    ".htpasswd", ".htaccess", ".npmrc", ".pypirc", ".netrc",
+    "id_rsa", "id_ed25519", "id_dsa", ".pgpass",
 }
 
 
@@ -57,6 +63,11 @@ class FileManager:
         ext = Path(original_name).suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
             raise ValueError(f"File type not allowed: {ext}")
+
+        # Block sensitive filenames regardless of extension
+        base_name = Path(original_name).name.lower()
+        if base_name in DENIED_FILENAMES or base_name.startswith(".env"):
+            raise ValueError(f"Filename not allowed for security reasons: {base_name}")
         
         file_id = str(uuid.uuid4())
         filename = f"{file_id}{ext}"

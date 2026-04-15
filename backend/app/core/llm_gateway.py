@@ -113,7 +113,7 @@ class LLMGateway:
         return config["models"].get(model or "default", config["models"]["default"])
 
     def _cache_key(self, req: LLMRequest) -> str:
-        raw = f"{req.prompt}:{req.system_prompt}:{req.model}:{req.temperature}"
+        raw = f"{req.prompt}:{req.system_prompt}:{req.model}:{round(req.temperature, 2)}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
     def _check_cache(self, key: str) -> Optional[LLMResponse]:

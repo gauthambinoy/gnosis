@@ -1,5 +1,6 @@
 """Gmail connector — UAP compliant, real Gmail API v1 integration."""
 import base64
+import logging
 import time
 from email.mime.text import MIMEText
 
@@ -9,6 +10,9 @@ from app.integrations.base import BaseConnector, ActionDefinition, ActionResult
 from app.integrations.oauth import oauth_manager
 
 GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
+logger = logging.getLogger(__name__)
+
+_TIMEOUT = aiohttp.ClientTimeout(total=15, connect=5)
 
 
 def _parse_headers(headers: list[dict]) -> dict:
@@ -52,6 +56,17 @@ def _parse_message(raw: dict) -> dict:
 class GmailConnector(BaseConnector):
     def __init__(self, credentials: dict | None = None):
         self.credentials = credentials or {}
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(timeout=_TIMEOUT)
+        return self._session
+
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
 
     def get_actions(self) -> list[ActionDefinition]:
         return [
@@ -107,27 +122,27 @@ class GmailConnector(BaseConnector):
         if query:
             params["q"] = query
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{GMAIL_API}/messages", headers=headers, params=params) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.get(f"{GMAIL_API}/messages", headers=headers, params=params) as resp:
+            data = await resp.json()
 
-            messages = data.get("messages", [])
-            results = []
-            for msg_stub in messages:
-                async with session.get(
-                    f"{GMAIL_API}/messages/{msg_stub['id']}", headers=headers, params={"format": "full"}
-                ) as resp2:
-                    raw = await resp2.json()
-                results.append(_parse_message(raw))
+        messages = data.get("messages", [])
+        results = []
+        for msg_stub in messages:
+            async with session.get(
+                f"{GMAIL_API}/messages/{msg_stub['id']}", headers=headers, params={"format": "full"}
+            ) as resp2:
+                raw = await resp2.json()
+            results.append(_parse_message(raw))
         return results
 
     async def get_message(self, user_id: str, message_id: str) -> dict:
         headers = await self._get_headers(user_id)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{GMAIL_API}/messages/{message_id}", headers=headers, params={"format": "full"}
-            ) as resp:
-                raw = await resp.json()
+        session = await self._get_session()
+        async with session.get(
+            f"{GMAIL_API}/messages/{message_id}", headers=headers, params={"format": "full"}
+        ) as resp:
+            raw = await resp.json()
         return _parse_message(raw)
 
     async def send_message(self, user_id: str, to: str, subject: str, body: str) -> dict:
@@ -137,13 +152,13 @@ class GmailConnector(BaseConnector):
         mime["subject"] = subject
         raw_b64 = base64.urlsafe_b64encode(mime.as_bytes()).decode("ascii")
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{GMAIL_API}/messages/send",
-                headers={**headers, "Content-Type": "application/json"},
-                json={"raw": raw_b64},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.post(
+            f"{GMAIL_API}/messages/send",
+            headers={**headers, "Content-Type": "application/json"},
+            json={"raw": raw_b64},
+        ) as resp:
+            data = await resp.json()
         return {"id": data.get("id"), "threadId": data.get("threadId")}
 
     async def reply_message(self, user_id: str, message_id: str, body: str) -> dict:
@@ -156,13 +171,13 @@ class GmailConnector(BaseConnector):
         mime["In-Reply-To"] = original.get("id", "")
         raw_b64 = base64.urlsafe_b64encode(mime.as_bytes()).decode("ascii")
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{GMAIL_API}/messages/send",
-                headers={**headers, "Content-Type": "application/json"},
-                json={"raw": raw_b64, "threadId": original.get("threadId")},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.post(
+            f"{GMAIL_API}/messages/send",
+            headers={**headers, "Content-Type": "application/json"},
+            json={"raw": raw_b64, "threadId": original.get("threadId")},
+        ) as resp:
+            data = await resp.json()
         return {"id": data.get("id"), "threadId": data.get("threadId")}
 
     async def search_messages(self, user_id: str, query: str) -> list[dict]:
@@ -176,13 +191,13 @@ class GmailConnector(BaseConnector):
             "addLabelIds": add or [],
             "removeLabelIds": remove or [],
         }
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{GMAIL_API}/messages/{message_id}/modify",
-                headers={**headers, "Content-Type": "application/json"},
-                json=payload,
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.post(
+            f"{GMAIL_API}/messages/{message_id}/modify",
+            headers={**headers, "Content-Type": "application/json"},
+            json=payload,
+        ) as resp:
+            data = await resp.json()
         return {"id": data.get("id"), "labelIds": data.get("labelIds", [])}
 
     # ------------------------------------------------------------------

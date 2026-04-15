@@ -1,4 +1,5 @@
 """Slack connector — UAP compliant, real Slack Web API integration."""
+import logging
 import time
 
 import aiohttp
@@ -7,11 +8,26 @@ from app.integrations.base import BaseConnector, ActionDefinition, ActionResult
 from app.integrations.oauth import oauth_manager
 
 SLACK_API = "https://slack.com/api"
+logger = logging.getLogger(__name__)
+
+# Shared session timeout
+_TIMEOUT = aiohttp.ClientTimeout(total=15, connect=5)
 
 
 class SlackConnector(BaseConnector):
     def __init__(self, credentials: dict | None = None):
         self.credentials = credentials or {}
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(timeout=_TIMEOUT)
+        return self._session
+
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
 
     def get_actions(self) -> list[ActionDefinition]:
         return [
@@ -63,22 +79,22 @@ class SlackConnector(BaseConnector):
         if thread_ts:
             payload["thread_ts"] = thread_ts
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(f"{SLACK_API}/chat.postMessage", headers=headers, json=payload) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.post(f"{SLACK_API}/chat.postMessage", headers=headers, json=payload) as resp:
+            data = await resp.json()
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         return {"ts": data.get("ts"), "channel": data.get("channel")}
 
     async def list_channels(self, user_id: str) -> list[dict]:
         headers = await self._get_headers(user_id)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{SLACK_API}/conversations.list",
-                headers=headers,
-                params={"types": "public_channel,private_channel", "limit": 200},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.get(
+            f"{SLACK_API}/conversations.list",
+            headers=headers,
+            params={"types": "public_channel,private_channel", "limit": 200},
+        ) as resp:
+            data = await resp.json()
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         return [
@@ -90,13 +106,13 @@ class SlackConnector(BaseConnector):
         self, user_id: str, channel: str, limit: int = 20
     ) -> list[dict]:
         headers = await self._get_headers(user_id)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{SLACK_API}/conversations.history",
-                headers=headers,
-                params={"channel": channel, "limit": limit},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.get(
+            f"{SLACK_API}/conversations.history",
+            headers=headers,
+            params={"channel": channel, "limit": limit},
+        ) as resp:
+            data = await resp.json()
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         return [
@@ -108,26 +124,26 @@ class SlackConnector(BaseConnector):
         self, user_id: str, channel: str, timestamp: str, emoji: str
     ) -> dict:
         headers = await self._get_headers(user_id)
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{SLACK_API}/reactions.add",
-                headers=headers,
-                json={"channel": channel, "timestamp": timestamp, "name": emoji},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.post(
+            f"{SLACK_API}/reactions.add",
+            headers=headers,
+            json={"channel": channel, "timestamp": timestamp, "name": emoji},
+        ) as resp:
+            data = await resp.json()
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         return {"ok": True}
 
     async def search_messages(self, user_id: str, query: str) -> list[dict]:
         headers = await self._get_headers(user_id)
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{SLACK_API}/search.messages",
-                headers=headers,
-                params={"query": query, "count": 20},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.get(
+            f"{SLACK_API}/search.messages",
+            headers=headers,
+            params={"query": query, "count": 20},
+        ) as resp:
+            data = await resp.json()
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         raw_matches = data.get("messages", {}).get("matches", [])

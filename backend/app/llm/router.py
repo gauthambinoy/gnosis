@@ -179,25 +179,45 @@ class ModelRouter:
     # ------------------------------------------------------------------
     @staticmethod
     def classify_complexity(trigger_data: dict) -> str:
-        """Return 'reflex' / 'classify' / 'standard' / 'deep' based on keywords."""
+        """Return 'reflex' / 'classify' / 'standard' / 'deep' based on keywords and text length."""
         text = " ".join(str(v) for v in trigger_data.values()).lower()
-
-        if any(kw in text for kw in DEEP_KEYWORDS):
-            return "deep"
-        if any(kw in text for kw in STANDARD_KEYWORDS):
-            return "standard"
-        if any(kw in text for kw in CLASSIFY_KEYWORDS):
-            return "classify"
-        if any(kw in text for kw in REFLEX_KEYWORDS):
-            return "reflex"
-
-        # Fallback: length heuristic
         word_count = len(text.split())
-        if word_count < 10:
-            return "classify"
-        elif word_count < 50:
-            return "standard"
-        return "deep"
+
+        # Score-based classification: accumulate evidence for each tier
+        deep_score = sum(1 for kw in DEEP_KEYWORDS if kw in text)
+        standard_score = sum(1 for kw in STANDARD_KEYWORDS if kw in text)
+        classify_score = sum(1 for kw in CLASSIFY_KEYWORDS if kw in text)
+        reflex_score = sum(1 for kw in REFLEX_KEYWORDS if kw in text)
+
+        # Length contributes to complexity
+        if word_count > 100:
+            deep_score += 2
+        elif word_count > 50:
+            deep_score += 1
+            standard_score += 1
+        elif word_count > 20:
+            standard_score += 1
+
+        # Pick highest score, bias towards higher tiers on ties
+        scores = [
+            ("deep", deep_score),
+            ("standard", standard_score),
+            ("classify", classify_score),
+            ("reflex", reflex_score),
+        ]
+        best = max(scores, key=lambda x: x[1])
+
+        if best[1] == 0:
+            # No keyword matches — use pure length heuristic
+            if word_count < 5:
+                return "reflex"
+            elif word_count < 15:
+                return "classify"
+            elif word_count < 50:
+                return "standard"
+            return "deep"
+
+        return best[0]
 
     def _classify_tier_from_messages(self, messages: list[dict]) -> str:
         """Internal: map messages to a tier (used when no force_tier)."""
@@ -248,7 +268,7 @@ class ModelRouter:
         tier = force_tier or self._classify_tier_from_messages(messages)
 
         # L0: Check cache first (in-memory + Redis)
-        cached = await self.cache.get_with_redis(messages, tier)
+        cached = await self.cache.get_with_redis(messages, tier, model=tier)
         if cached and not force_tier:
             yield cached["content"]
             return
@@ -287,7 +307,7 @@ class ModelRouter:
                 "content": full_response,
                 "tier": tier,
                 "latency_ms": latency_ms,
-            }, tier)
+            }, tier, model=tier)
 
         # Track token usage
         self._cost_tracker["requests"] += 1

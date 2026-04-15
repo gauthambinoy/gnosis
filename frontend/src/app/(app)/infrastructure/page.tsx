@@ -66,7 +66,7 @@ function safeFetch<T>(path: string): Promise<T | null> {
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
-  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.4, ease: [0.4, 0, 0.2, 1] } }),
+  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.07, duration: 0.4, ease: [0.4, 0, 0.2, 1] as [number, number, number, number] } }),
 };
 
 /* ---------- Component ---------- */

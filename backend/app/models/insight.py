@@ -12,7 +12,7 @@ class Insight(Base, TimestampMixin):
     insight_type = Column(String(50), nullable=False)  # anomaly, trend, suggestion, optimization
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=False)
-    severity = Column(String(20), default="info")  # info, warning, critical
+    severity = Column(String(20), default="info", index=True)  # info, warning, critical
 
     data = Column(JSON, default=dict)
     suggested_action = Column(Text, nullable=True)

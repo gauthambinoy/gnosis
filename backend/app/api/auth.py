@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,7 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 _users: dict[str, dict] = {}
 _users_by_email: dict[str, str] = {}
+_users_lock = asyncio.Lock()
 
 
 def _use_db() -> bool:
@@ -70,14 +72,15 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         return _token_response(user.id, user.email, user.full_name)
 
     # Fallback: in-memory
-    if data.email in _users_by_email:
-        raise HTTPException(status_code=400, detail="Email already registered")
-    user_id = str(uuid.uuid4())
-    _users[user_id] = {
-        "id": user_id, "email": data.email, "full_name": data.full_name,
-        "hashed_password": hash_password(data.password),
-    }
-    _users_by_email[data.email] = user_id
+    async with _users_lock:
+        if data.email in _users_by_email:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        user_id = str(uuid.uuid4())
+        _users[user_id] = {
+            "id": user_id, "email": data.email, "full_name": data.full_name,
+            "hashed_password": hash_password(data.password),
+        }
+        _users_by_email[data.email] = user_id
     return _token_response(user_id, data.email, data.full_name)
 
 
@@ -91,10 +94,11 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         return _token_response(user.id, user.email, user.full_name)
 
     # Fallback
-    uid = _users_by_email.get(data.email)
-    if not uid:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    u = _users[uid]
+    async with _users_lock:
+        uid = _users_by_email.get(data.email)
+        if not uid:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+        u = _users[uid]
     if not verify_password(data.password, u["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     return _token_response(uid, u["email"], u["full_name"])

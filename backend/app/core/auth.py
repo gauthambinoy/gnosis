@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
+import asyncio
 import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -14,8 +15,18 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
+async def hash_password_async(password: str) -> str:
+    """Non-blocking password hashing for use in async contexts."""
+    return await asyncio.to_thread(hash_password, password)
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+
+
+async def verify_password_async(plain_password: str, hashed_password: str) -> bool:
+    """Non-blocking password verification for use in async contexts."""
+    return await asyncio.to_thread(verify_password, plain_password, hashed_password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

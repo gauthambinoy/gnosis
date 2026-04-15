@@ -1,5 +1,6 @@
 import os
 import base64
+import hashlib
 from cryptography.fernet import Fernet
 from app.config import get_settings
 
@@ -8,8 +9,14 @@ class EncryptionService:
     
     def __init__(self):
         settings = get_settings()
-        # Derive Fernet key from secret_key
-        key = base64.urlsafe_b64encode(settings.secret_key.encode()[:32].ljust(32, b'\0'))
+        # Derive Fernet key using PBKDF2 — stable across key lengths
+        key_material = hashlib.pbkdf2_hmac(
+            'sha256',
+            settings.secret_key.encode(),
+            salt=b'gnosis-encryption-v1',
+            iterations=100_000,
+        )
+        key = base64.urlsafe_b64encode(key_material)
         self._fernet = Fernet(key)
     
     def encrypt(self, plaintext: str) -> str:

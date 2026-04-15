@@ -1,16 +1,12 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from pydantic import BaseModel
+
+from app.schemas.execute import ExecuteRequest, ExecutionResponse
 
 router = APIRouter()
 
 
-class ExecuteRequest(BaseModel):
-    agent_id: str
-    trigger_type: str = "manual"
-    trigger_data: dict = {}
-
-
-@router.post("/trigger")
+@router.post("/trigger", response_model=ExecutionResponse)
 async def trigger_execution(data: ExecuteRequest):
     """Trigger an agent execution."""
     # Placeholder — orchestrator in Phase 2
