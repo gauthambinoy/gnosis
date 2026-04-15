@@ -1,4 +1,5 @@
 """Gnosis Learning Engine — 3-loop self-learning system."""
+import logging
 import uuid
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -7,6 +8,8 @@ from typing import Any
 from app.core.memory_engine import memory_engine, MemoryEntry
 from app.core.embeddings import embedding_service
 from app.core.event_bus import event_bus, Events
+
+logger = logging.getLogger(__name__)
 
 
 class LearningEngine:
@@ -259,7 +262,7 @@ class LearningEngine:
                     store.remove(mem.id)
                     pruned += 1
                 except Exception:
-                    pass
+                    logger.warning("Learning pattern extraction failed", exc_info=True)
 
         # Strengthen procedural memories that have been validated
         procedural = [m for m in all_memories if m.tier == "procedural"]

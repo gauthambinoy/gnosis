@@ -3,6 +3,7 @@ Gnosis System Control — Secure OS/System Management
 Provides authorized admin access to server management.
 All operations require admin auth + are fully audited.
 """
+import logging
 import asyncio
 import os
 import platform
@@ -11,6 +12,8 @@ import time
 import uuid
 from dataclasses import dataclass, field, asdict
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # Try importing psutil for system metrics
 try:
@@ -125,7 +128,7 @@ class SystemControlEngine:
                 )
 
             except Exception:
-                pass
+                logger.warning("System control operation failed", exc_info=True)
         else:
             # Fallback without psutil
             try:
@@ -137,7 +140,7 @@ class SystemControlEngine:
                     "percent": round(disk.used / disk.total * 100, 1),
                 }
             except Exception:
-                pass
+                logger.warning("System control operation failed", exc_info=True)
 
         return info
 

@@ -1,10 +1,13 @@
 """Model Router — routes requests to the right tier/provider based on complexity."""
+import logging
 import time
 import hashlib
 import json
 from collections import OrderedDict
 from typing import AsyncIterator
 from app.llm.client import gateway, LLMResponse
+
+logger = logging.getLogger(__name__)
 
 REDIS_CACHE_TTL = 3600  # 1 hour
 
@@ -22,12 +25,12 @@ class ResponseCache:
         self._misses = 0
 
     @staticmethod
-    def _key(messages: list[dict], tier: str = "") -> str:
-        content = json.dumps({"tier": tier, "messages": messages}, sort_keys=True)
+    def _key(messages: list[dict], tier: str = "", model: str = "") -> str:
+        content = json.dumps({"tier": tier, "model": model, "messages": messages}, sort_keys=True)
         return hashlib.sha256(content.encode()).hexdigest()
 
-    def get(self, messages: list[dict], tier: str = "") -> dict | None:
-        key = self._key(messages, tier)
+    def get(self, messages: list[dict], tier: str = "", model: str = "") -> dict | None:
+        key = self._key(messages, tier, model)
         if key in self._cache:
             self._hits += 1
             self._cache.move_to_end(key)
@@ -35,15 +38,15 @@ class ResponseCache:
         self._misses += 1
         return None
 
-    async def get_with_redis(self, messages: list[dict], tier: str = "") -> dict | None:
+    async def get_with_redis(self, messages: list[dict], tier: str = "", model: str = "") -> dict | None:
         """Check in-memory first, then Redis."""
-        mem = self.get(messages, tier)
+        mem = self.get(messages, tier, model)
         if mem is not None:
             return mem
         try:
             from app.core.redis_client import redis_manager
             if redis_manager.available:
-                key = self._key(messages, tier)
+                key = self._key(messages, tier, model)
                 data = await redis_manager.get(f"llm_cache:{key}")
                 if data is not None:
                     self._hits += 1
@@ -53,7 +56,7 @@ class ResponseCache:
                     self._set_memory(key, response)
                     return response
         except Exception:
-            pass
+            logger.debug("Redis cache read failed", exc_info=True)
         return None
 
     def _set_memory(self, key: str, response: dict):
@@ -65,13 +68,13 @@ class ResponseCache:
             self._cache.popitem(last=False)
         self._cache[key] = response
 
-    def set(self, messages: list[dict], response: dict, tier: str = ""):
-        key = self._key(messages, tier)
+    def set(self, messages: list[dict], response: dict, tier: str = "", model: str = ""):
+        key = self._key(messages, tier, model)
         self._set_memory(key, response)
 
-    async def set_with_redis(self, messages: list[dict], response: dict, tier: str = ""):
+    async def set_with_redis(self, messages: list[dict], response: dict, tier: str = "", model: str = ""):
         """Write to both in-memory and Redis."""
-        key = self._key(messages, tier)
+        key = self._key(messages, tier, model)
         self._set_memory(key, response)
         try:
             from app.core.redis_client import redis_manager
@@ -82,7 +85,7 @@ class ResponseCache:
                     ttl=REDIS_CACHE_TTL,
                 )
         except Exception:
-            pass
+            logger.debug("Redis cache write failed", exc_info=True)
 
     @property
     def hit_rate(self) -> float:
@@ -224,7 +227,7 @@ class ModelRouter:
                     model=cfg.get("model", ""),
                 )
             except Exception:
-                pass
+                logger.warning("Failed to resolve model tier", exc_info=True)
 
     # ------------------------------------------------------------------
     # Token estimation

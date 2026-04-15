@@ -5,6 +5,7 @@ Agents that react to real-world events: weather, stocks, news, time, location.
 
 from __future__ import annotations
 
+import logging
 import uuid
 import asyncio
 import time
@@ -15,6 +16,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -263,7 +266,7 @@ class RealWorldEngine:
                     except (ValueError, TypeError):
                         did_fire = cmp_fn(value, trigger.threshold)
                 except Exception:
-                    pass
+                    logger.warning("Real-world event processing failed", exc_info=True)
 
             trigger.last_value = value
 
