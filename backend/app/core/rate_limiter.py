@@ -58,3 +58,32 @@ class RateLimiter:
         }
 
 rate_limiter = RateLimiter()
+
+
+async def require_rate_limit(request: Request):
+    """FastAPI dependency for rate limiting. Apply to routers via dependencies=[Depends(require_rate_limit)]."""
+    user_id = None
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        try:
+            from app.core.auth import decode_token
+            payload = decode_token(auth_header.split(" ")[1])
+            user_id = payload.get("sub")
+        except Exception:
+            pass
+
+    if user_id:
+        result = rate_limiter.check_user(user_id)
+    else:
+        client_ip = request.client.host if request.client else "unknown"
+        result = rate_limiter.check_ip(client_ip)
+
+    if not result["allowed"]:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded. Try again in {result['reset_in']}s",
+            headers={"Retry-After": str(int(result["reset_in"])), "X-RateLimit-Remaining": "0"},
+        )
+
+    request.state.rate_limit_remaining = result["remaining"]
+    request.state.rate_limit_limit = result["limit"]

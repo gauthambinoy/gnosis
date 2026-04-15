@@ -4,6 +4,7 @@ import uuid
 import hashlib
 import mimetypes
 import logging
+import filetype
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, Optional, List
@@ -69,11 +70,28 @@ class FileManager:
         if base_name in DENIED_FILENAMES or base_name.startswith(".env"):
             raise ValueError(f"Filename not allowed for security reasons: {base_name}")
         
+        # Validate content type via magic bytes (not just extension)
+        kind = filetype.guess(content)
+        if kind is not None:
+            mime_type = kind.mime
+            # Verify the detected type matches the claimed extension
+            detected_ext = f".{kind.extension}"
+            if detected_ext != ext:
+                # Allow some known aliases (e.g., .jpg/.jpeg)
+                EXTENSION_ALIASES = {
+                    ".jpg": ".jpeg", ".jpeg": ".jpg",
+                    ".yml": ".yaml", ".yaml": ".yml",
+                }
+                if EXTENSION_ALIASES.get(ext) != detected_ext and EXTENSION_ALIASES.get(detected_ext) != ext:
+                    logger.warning(f"MIME mismatch: claimed={ext}, detected={detected_ext} for {original_name}")
+        
         file_id = str(uuid.uuid4())
         filename = f"{file_id}{ext}"
         
         checksum = hashlib.sha256(content).hexdigest()
-        mime_type = mimetypes.guess_type(original_name)[0] or "application/octet-stream"
+        # Prefer magic-byte detection, fall back to extension-based guess
+        detected = filetype.guess(content)
+        mime_type = detected.mime if detected else (mimetypes.guess_type(original_name)[0] or "application/octet-stream")
         
         # Try S3 first, fall back to local storage
         s3_uri = None

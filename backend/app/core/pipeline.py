@@ -88,6 +88,16 @@ class PipelineEngine:
         """Set the agent execution function."""
         self._execute_agent_fn = fn
     
+    def _validate_agent_id(self, agent_id: str) -> bool:
+        """Validate that an agent_id refers to an existing agent."""
+        try:
+            from app.core.marketplace import marketplace_engine
+            agent = marketplace_engine.get_agent(agent_id)
+            return agent is not None
+        except Exception:
+            # If we can't check, allow it (don't block pipeline creation)
+            return True
+    
     # ── CRUD ─────────────────────────────────────────────────────
     
     def create_pipeline(self, name: str, description: str = "", steps: list = None, created_by: str = None) -> Pipeline:
@@ -99,9 +109,12 @@ class PipelineEngine:
         )
         if steps:
             for i, step_data in enumerate(steps):
+                agent_id = step_data["agent_id"]
+                if not self._validate_agent_id(agent_id):
+                    raise ValueError(f"Pipeline step references non-existent agent: {agent_id}")
                 step = PipelineStep(
                     id=str(uuid.uuid4()),
-                    agent_id=step_data["agent_id"],
+                    agent_id=agent_id,
                     name=step_data.get("name", f"Step {i+1}"),
                     order=i,
                     transform_input=step_data.get("transform_input"),
@@ -137,6 +150,8 @@ class PipelineEngine:
         pipeline = self._pipelines.get(pipeline_id)
         if not pipeline:
             return None
+        if not self._validate_agent_id(agent_id):
+            raise ValueError(f"Pipeline step references non-existent agent: {agent_id}")
         step = PipelineStep(
             id=str(uuid.uuid4()),
             agent_id=agent_id,

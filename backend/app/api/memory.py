@@ -1,4 +1,5 @@
 import uuid
+import asyncio
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,8 +7,10 @@ from dataclasses import asdict
 
 from app.core.memory_engine import memory_engine
 from app.core.database import get_db
+from app.core.logger import get_logger
 from app.models.memory import Memory, MemoryTier
 
+logger = get_logger(__name__)
 router = APIRouter()
 
 
@@ -97,3 +100,25 @@ async def get_memory_stats(agent_id: str, db: AsyncSession = Depends(get_db)):
         vector_stats["db_total"] = sum(db_counts.values())
 
     return vector_stats
+
+
+@router.post("/decay")
+async def trigger_memory_decay(agent_id: str | None = None):
+    """Manually trigger memory decay cycle.
+    
+    If agent_id is provided, decays only that agent's memories.
+    Otherwise, decays all agents' memories.
+    """
+    import asyncio
+    from app.tasks.memory_decay import decay_agent_memories, run_decay_cycle
+    
+    try:
+        if agent_id:
+            stats = await asyncio.to_thread(decay_agent_memories, memory_engine, agent_id)
+            return {"status": "success", "agent_id": agent_id, "stats": stats}
+        else:
+            stats = await asyncio.to_thread(run_decay_cycle, memory_engine)
+            return {"status": "success", "stats": stats}
+    except Exception as e:
+        logger.error(f"Memory decay error: {e}", exc_info=True)
+        return {"status": "error", "error": str(e)}

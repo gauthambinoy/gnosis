@@ -17,13 +17,16 @@ from app.core.security_hardened import UltraSecurityMiddleware
 from app.core.versioning import APIVersionMiddleware
 from app.core.logger import setup_logging, get_logger
 from app.core.error_handlers import register_error_handlers
+from app.core.rate_limiter import require_rate_limit
 from app.middleware.request_id import RequestIDMiddleware
+from app.middleware.body_limit import RequestBodyLimitMiddleware
 from app.core.redis_client import redis_manager
 from app.core.scheduler import scheduler_engine
 from app.core.task_worker import task_worker
 from app.core.database import engine
 from app.core.metrics import MetricsMiddleware, metrics_endpoint
 from app.core.http_client import init_http_client, close_http_client
+from fastapi import Depends
 from app.api import health as health_router_mod
 from app.api import aws_status
 import app.core.database as _db_mod
@@ -72,6 +75,16 @@ async def _trust_evaluation():
         await te.evaluate("system", {})
     except Exception as e:
         logger.warning(f"trust-evaluation: {e}")
+
+
+async def _memory_decay():
+    """Periodic task: decay memory strength for all agents."""
+    try:
+        from app.core.memory_engine import memory_engine
+        from app.tasks.memory_decay import run_decay_cycle
+        await asyncio.to_thread(run_decay_cycle, memory_engine)
+    except Exception as e:
+        logger.warning(f"memory-decay: {e}")
 
 
 SHUTDOWN_TIMEOUT = 30
@@ -133,6 +146,7 @@ async def lifespan(app: FastAPI):
     task_worker.register("pattern-learning", _pattern_learning, 7200)
     task_worker.register("oracle-analysis", _oracle_analysis, 1800)
     task_worker.register("trust-evaluation", _trust_evaluation, 3600)
+    task_worker.register("memory-decay", _memory_decay, 300)  # Run every 5 minutes
 
     # Start task worker in background
     worker_task = asyncio.create_task(task_worker.start())
@@ -202,25 +216,31 @@ app.add_middleware(
 app.add_middleware(UltraSecurityMiddleware, settings=settings)
 app.add_middleware(SecurityMiddleware, rate_limit=100)
 
+# Request body size limit (10MB default)
+app.add_middleware(RequestBodyLimitMiddleware, max_body_size=10 * 1024 * 1024)
+
 # API versioning middleware
 app.add_middleware(APIVersionMiddleware)
 
+# Rate-limited dependencies for high-traffic routers
+_rl = [Depends(require_rate_limit)]
+
 # REST API routes
 app.include_router(auth.router, prefix=f"{settings.api_prefix}/auth", tags=["auth"])
-app.include_router(agents.router, prefix=f"{settings.api_prefix}/agents", tags=["agents"])
-app.include_router(awakening.router, prefix=f"{settings.api_prefix}/awaken", tags=["awakening"])
-app.include_router(execute.router, prefix=f"{settings.api_prefix}/execute", tags=["execute"])
-app.include_router(integrations.router, prefix=f"{settings.api_prefix}/integrations", tags=["integrations"])
-app.include_router(memory.router, prefix=f"{settings.api_prefix}/memory", tags=["memory"])
-app.include_router(oracle.router, prefix=f"{settings.api_prefix}/oracle", tags=["oracle"])
-app.include_router(standup.router, prefix=f"{settings.api_prefix}/standup", tags=["standup"])
+app.include_router(agents.router, prefix=f"{settings.api_prefix}/agents", tags=["agents"], dependencies=_rl)
+app.include_router(awakening.router, prefix=f"{settings.api_prefix}/awaken", tags=["awakening"], dependencies=_rl)
+app.include_router(execute.router, prefix=f"{settings.api_prefix}/execute", tags=["execute"], dependencies=_rl)
+app.include_router(integrations.router, prefix=f"{settings.api_prefix}/integrations", tags=["integrations"], dependencies=_rl)
+app.include_router(memory.router, prefix=f"{settings.api_prefix}/memory", tags=["memory"], dependencies=_rl)
+app.include_router(oracle.router, prefix=f"{settings.api_prefix}/oracle", tags=["oracle"], dependencies=_rl)
+app.include_router(standup.router, prefix=f"{settings.api_prefix}/standup", tags=["standup"], dependencies=_rl)
 
 app.include_router(templates.router, prefix=f"{settings.api_prefix}/templates", tags=["templates"])
 app.include_router(events.router, prefix=f"{settings.api_prefix}/events", tags=["events"])
-app.include_router(llm.router, prefix=f"{settings.api_prefix}/llm", tags=["llm"])
+app.include_router(llm.router, prefix=f"{settings.api_prefix}/llm", tags=["llm"], dependencies=_rl)
 app.include_router(system.router, prefix=f"{settings.api_prefix}/system", tags=["system"])
-app.include_router(schedules.router)
-app.include_router(pipelines.router)
+app.include_router(schedules.router, dependencies=_rl)
+app.include_router(pipelines.router, dependencies=_rl)
 
 app.include_router(files.router)
 app.include_router(webhook_triggers.router)
@@ -236,26 +256,26 @@ app.include_router(rag.router)
 app.include_router(workspaces.router)
 app.include_router(billing.router)
 
-app.include_router(collaboration.router)
-app.include_router(knowledge_graph.router)
+app.include_router(collaboration.router, dependencies=_rl)
+app.include_router(knowledge_graph.router, dependencies=_rl)
 app.include_router(sso.router)
 
-app.include_router(rpa.router)
+app.include_router(rpa.router, dependencies=_rl)
 
-app.include_router(factory.router)
+app.include_router(factory.router, dependencies=_rl)
 
 app.include_router(aws_status.router)
 
 app.include_router(security_dashboard.router)
 
-app.include_router(dreams.router)
+app.include_router(dreams.router, dependencies=_rl)
 
 app.include_router(system_control.router, prefix=f"{settings.api_prefix}/system-control", tags=["system-control"])
 
-app.include_router(predictions.router, tags=["predictions"])
-app.include_router(realworld.router, tags=["realworld"])
+app.include_router(predictions.router, tags=["predictions"], dependencies=_rl)
+app.include_router(realworld.router, tags=["realworld"], dependencies=_rl)
 
-app.include_router(swarm_api.router)
+app.include_router(swarm_api.router, dependencies=_rl)
 app.include_router(auto_api_router.router)
 
 # WebSocket routes

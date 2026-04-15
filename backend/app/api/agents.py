@@ -9,6 +9,7 @@ from sqlalchemy import select, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.event_bus import event_bus, Events
+from app.core.guardrails import guardrail_engine
 from app.core.database import get_db
 from app.core.auth import get_current_user_id
 from app.core.version_manager import version_manager
@@ -275,6 +276,23 @@ async def trigger_execution(
 ):
     if trigger_data is None:
         trigger_data = {}
+
+    # Guardrail pre-execution check
+    guardrail_result = await guardrail_engine.check(
+        agent_id=str(agent_id),
+        action={"type": "execute", "data": trigger_data},
+        context={"user_id": user_id},
+    )
+    if not guardrail_result.get("passed", True):
+        violations = guardrail_result.get("violations", [])
+        blocking = [v for v in violations if v.get("severity") == "block"]
+        if blocking:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Guardrail violation: {blocking[0].get('description', 'Blocked by safety check')}",
+            )
+    for w in guardrail_result.get("warnings", []):
+        logger.warning("Guardrail warning for agent %s: %s", agent_id, w.get("description"))
 
     if _use_db():
         agent = await _get_owned_agent(agent_id, user_id, db)
