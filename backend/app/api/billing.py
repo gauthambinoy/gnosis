@@ -1,12 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from dataclasses import asdict
 
 from app.core.billing import billing_engine, PlanTier
+from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
-
-DEMO_USER_ID = "demo-user"
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
@@ -28,35 +27,35 @@ async def list_plans():
 
 
 @router.get("/subscription")
-async def get_subscription():
-    sub = billing_engine.get_or_create_subscription(DEMO_USER_ID)
+async def get_subscription(user_id: str = Depends(get_current_user_id)):
+    sub = billing_engine.get_or_create_subscription(user_id)
     return {"subscription": asdict(sub)}
 
 
 @router.post("/subscribe")
-async def subscribe(body: SubscribeRequest):
+async def subscribe(body: SubscribeRequest, user_id: str = Depends(get_current_user_id)):
     try:
         plan = PlanTier(body.plan)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid plan: {body.plan}")
-    sub = billing_engine.upgrade_plan(DEMO_USER_ID, plan)
+    sub = billing_engine.upgrade_plan(user_id, plan)
     return {"subscription": asdict(sub)}
 
 
 @router.get("/usage")
-async def get_usage():
-    return {"usage": billing_engine.get_usage_summary(DEMO_USER_ID)}
+async def get_usage(user_id: str = Depends(get_current_user_id)):
+    return {"usage": billing_engine.get_usage_summary(user_id)}
 
 
 @router.post("/usage/record")
-async def record_usage(body: RecordUsageRequest):
-    billing_engine.record_usage(DEMO_USER_ID, body.metric, body.value)
+async def record_usage(body: RecordUsageRequest, user_id: str = Depends(get_current_user_id)):
+    billing_engine.record_usage(user_id, body.metric, body.value)
     return {"recorded": True, "metric": body.metric, "value": body.value}
 
 
 @router.get("/quota/{metric}")
-async def check_quota(metric: str):
-    return {"quota": billing_engine.check_quota(DEMO_USER_ID, metric)}
+async def check_quota(metric: str, user_id: str = Depends(get_current_user_id)):
+    return {"quota": billing_engine.check_quota(user_id, metric)}
 
 
 @router.get("/stats")

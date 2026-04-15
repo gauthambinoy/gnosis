@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/lib/api";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -36,8 +37,6 @@ interface Stats {
   accuracy_estimate: number;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -51,9 +50,9 @@ export default function PredictionsPage() {
   const fetchAll = useCallback(async () => {
     try {
       const [predRes, patRes, statRes] = await Promise.all([
-        fetch(`${API}/api/v1/predictions?user_id=default`),
-        fetch(`${API}/api/v1/predictions/patterns?user_id=default`),
-        fetch(`${API}/api/v1/predictions/stats?user_id=default`),
+        api.get("/predictions"),
+        api.get("/predictions/patterns"),
+        api.get("/predictions/stats"),
       ]);
       const predData = await predRes.json();
       const patData = await patRes.json();
@@ -74,14 +73,14 @@ export default function PredictionsPage() {
 
   const handleAccept = async (id: string) => {
     try {
-      await fetch(`${API}/api/v1/predictions/accept/${id}`, { method: "POST" });
+      await api.post(`/predictions/accept/${id}`);
       setPredictions((prev) => prev.map((p) => (p.id === id ? { ...p, status: "accepted" } : p)));
     } catch { /* ignore */ }
   };
 
   const handleDismiss = async (id: string) => {
     try {
-      await fetch(`${API}/api/v1/predictions/dismiss/${id}`, { method: "POST" });
+      await api.post(`/predictions/dismiss/${id}`);
       setPredictions((prev) => prev.map((p) => (p.id === id ? { ...p, status: "dismissed" } : p)));
     } catch { /* ignore */ }
   };

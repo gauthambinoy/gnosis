@@ -1,5 +1,13 @@
+import logging
+import warnings
+
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
+
+_INSECURE_DEFAULT_KEY = "gnosis-secret-key-change-in-production-minimum-32-chars"
 
 
 class Settings(BaseSettings):
@@ -17,10 +25,30 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # Auth
-    secret_key: str = "gnosis-secret-key-change-in-production-minimum-32-chars"
+    secret_key: str = _INSECURE_DEFAULT_KEY
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 30
+
+    @model_validator(mode="after")
+    def _validate_secret_key(self) -> "Settings":
+        if self.secret_key == _INSECURE_DEFAULT_KEY:
+            if not self.debug:
+                raise ValueError(
+                    "FATAL: SECRET_KEY is set to the insecure default. "
+                    "Set a strong SECRET_KEY in your .env file (generate with: openssl rand -hex 32). "
+                    "Set DEBUG=true to bypass this check in development."
+                )
+            warnings.warn(
+                "SECRET_KEY is the insecure default — acceptable only in DEBUG mode. "
+                "Never deploy to production without a real secret key.",
+                stacklevel=2,
+            )
+        elif len(self.secret_key) < 32:
+            raise ValueError(
+                "SECRET_KEY must be at least 32 characters long for security."
+            )
+        return self
 
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]

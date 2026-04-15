@@ -317,10 +317,12 @@ class AgentFactory:
         return plan
 
     def _build_system_prompt(self, user_input: str, intent: str, entities: dict) -> str:
-        """Build an optimized system prompt for the agent."""
-        base = f"""You are a Gnosis AI agent specialized in: {INTENT_TEMPLATES.get(intent, {}).get('description', 'general automation')}.
+        """Build an optimized system prompt for the agent with injection protection."""
+        from app.core.input_sanitizer import build_safe_system_prompt, detect_injection
 
-Your task: {user_input}
+        desc = INTENT_TEMPLATES.get(intent, {}).get('description', 'general automation')
+
+        base_instructions = f"""You are a Gnosis AI agent specialized in: {desc}.
 
 Guidelines:
 - Be precise and actionable in your responses
@@ -329,11 +331,19 @@ Guidelines:
 - Track your progress and report completion status"""
 
         if entities.get("urls"):
-            base += f"\n- Target URLs: {', '.join(entities['urls'])}"
+            base_instructions += f"\n- Target URLs: {', '.join(entities['urls'])}"
         if entities.get("emails"):
-            base += f"\n- Notification emails: {', '.join(entities['emails'])}"
+            base_instructions += f"\n- Notification emails: {', '.join(entities['emails'])}"
 
-        return base
+        # Log potential injection attempts (advisory, does not block)
+        injection_warning = detect_injection(user_input)
+        if injection_warning:
+            import logging
+            logging.getLogger("gnosis.security").warning(
+                "Prompt injection attempt in agent factory: %s", injection_warning
+            )
+
+        return build_safe_system_prompt(base_instructions, user_input)
 
     def _estimate_runs(self, cron: str) -> int:
         """Rough estimate of monthly runs from a cron expression."""

@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 import asyncio
+import signal
 
 from app.config import get_settings
 from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers, replay, marketplace, export_import, prompts, versions, rag, sso, collaboration, knowledge_graph, workspaces, billing, rpa, factory
@@ -21,6 +23,7 @@ from app.core.scheduler import scheduler_engine
 from app.core.task_worker import task_worker
 from app.core.database import engine
 from app.core.metrics import MetricsMiddleware, metrics_endpoint
+from app.core.http_client import init_http_client, close_http_client
 from app.api import health as health_router_mod
 from app.api import aws_status
 import app.core.database as _db_mod
@@ -71,13 +74,45 @@ async def _trust_evaluation():
         logger.warning(f"trust-evaluation: {e}")
 
 
+SHUTDOWN_TIMEOUT = 30
+
+_shutdown_event: asyncio.Event | None = None
+
+
+def _install_signal_handlers(loop: asyncio.AbstractEventLoop, shutdown_ev: asyncio.Event):
+    """Register SIGTERM/SIGINT handlers that trigger graceful shutdown."""
+    def _signal_handler(sig, _frame=None):
+        logger.info(f"Received signal {sig.name}, triggering graceful shutdown")
+        shutdown_ev.set()
+
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(sig, _signal_handler, sig)
+        except (NotImplementedError, RuntimeError):
+            # Windows or non-main thread – fall back to signal.signal
+            try:
+                signal.signal(sig, lambda s, f: _signal_handler(signal.Signals(s)))
+            except (OSError, ValueError):
+                pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _shutdown_event
+    _shutdown_event = asyncio.Event()
+
+    # Install signal handlers for graceful shutdown
+    loop = asyncio.get_running_loop()
+    _install_signal_handlers(loop, _shutdown_event)
+
     # Startup: initialize connections
     logger.info("◎ Gnosis starting up...")
 
     # Connect Redis (graceful — never crashes)
     await redis_manager.connect()
+
+    # Shared HTTP client
+    await init_http_client()
 
     # Try to connect to DB, warn if unavailable (don't crash — allow demo mode)
     try:
@@ -150,6 +185,9 @@ app = FastAPI(
 
 # Register global error handlers
 register_error_handlers(app)
+
+# Response compression (added before CORS so responses are compressed)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # CORS
 app.add_middleware(
@@ -228,6 +266,10 @@ app.include_router(ws_execution_router, tags=["ws"])
 
 # Prometheus metrics
 app.add_middleware(MetricsMiddleware)
+
+# Request-ID tracing (added last so it wraps everything — runs first)
+app.add_middleware(RequestIDMiddleware)
+
 app.add_route("/metrics", metrics_endpoint)
 
 # Health check routes (replaces inline /health)

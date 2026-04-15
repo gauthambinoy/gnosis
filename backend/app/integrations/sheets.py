@@ -1,4 +1,5 @@
 """Google Sheets connector — UAP compliant, real Sheets API v4 integration."""
+import logging
 import time
 from urllib.parse import quote
 
@@ -8,11 +9,25 @@ from app.integrations.base import BaseConnector, ActionDefinition, ActionResult
 from app.integrations.oauth import oauth_manager
 
 SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets"
+logger = logging.getLogger(__name__)
+
+_TIMEOUT = aiohttp.ClientTimeout(total=15, connect=5)
 
 
 class SheetsConnector(BaseConnector):
     def __init__(self, credentials: dict | None = None):
         self.credentials = credentials or {}
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(timeout=_TIMEOUT)
+        return self._session
+
+    async def close(self):
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
 
     def get_actions(self) -> list[ActionDefinition]:
         return [
@@ -59,9 +74,9 @@ class SheetsConnector(BaseConnector):
     async def read_range(self, user_id: str, spreadsheet_id: str, range_: str) -> list[list]:
         headers = await self._get_headers(user_id)
         url = f"{SHEETS_API}/{spreadsheet_id}/values/{quote(range_)}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.get(url, headers=headers) as resp:
+            data = await resp.json()
         return data.get("values", [])
 
     async def write_range(
@@ -70,12 +85,12 @@ class SheetsConnector(BaseConnector):
         headers = await self._get_headers(user_id)
         url = f"{SHEETS_API}/{spreadsheet_id}/values/{quote(range_)}"
         params = {"valueInputOption": "USER_ENTERED"}
-        async with aiohttp.ClientSession() as session:
-            async with session.put(
-                url, headers={**headers, "Content-Type": "application/json"},
-                params=params, json={"range": range_, "majorDimension": "ROWS", "values": values},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.put(
+            url, headers={**headers, "Content-Type": "application/json"},
+            params=params, json={"range": range_, "majorDimension": "ROWS", "values": values},
+        ) as resp:
+            data = await resp.json()
         return {
             "updatedRange": data.get("updatedRange"),
             "updatedRows": data.get("updatedRows"),
@@ -88,12 +103,12 @@ class SheetsConnector(BaseConnector):
         headers = await self._get_headers(user_id)
         url = f"{SHEETS_API}/{spreadsheet_id}/values/{quote(range_)}:append"
         params = {"valueInputOption": "USER_ENTERED", "insertDataOption": "INSERT_ROWS"}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                url, headers={**headers, "Content-Type": "application/json"},
-                params=params, json={"majorDimension": "ROWS", "values": rows},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.post(
+            url, headers={**headers, "Content-Type": "application/json"},
+            params=params, json={"majorDimension": "ROWS", "values": rows},
+        ) as resp:
+            data = await resp.json()
         updates = data.get("updates", {})
         return {
             "updatedRange": updates.get("updatedRange"),
@@ -106,10 +121,9 @@ class SheetsConnector(BaseConnector):
     ) -> list[dict]:
         """Read entire spreadsheet and search for matching cells."""
         headers = await self._get_headers(user_id)
-        # First get all sheet names
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f"{SHEETS_API}/{spreadsheet_id}", headers=headers) as resp:
-                meta = await resp.json()
+        session = await self._get_session()
+        async with session.get(f"{SHEETS_API}/{spreadsheet_id}", headers=headers) as resp:
+            meta = await resp.json()
 
         sheets = [s["properties"]["title"] for s in meta.get("sheets", [])]
         matches: list[dict] = []
@@ -130,13 +144,13 @@ class SheetsConnector(BaseConnector):
 
     async def create_spreadsheet(self, user_id: str, title: str) -> dict:
         headers = await self._get_headers(user_id)
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                SHEETS_API,
-                headers={**headers, "Content-Type": "application/json"},
-                json={"properties": {"title": title}},
-            ) as resp:
-                data = await resp.json()
+        session = await self._get_session()
+        async with session.post(
+            SHEETS_API,
+            headers={**headers, "Content-Type": "application/json"},
+            json={"properties": {"title": title}},
+        ) as resp:
+            data = await resp.json()
         return {
             "spreadsheetId": data.get("spreadsheetId"),
             "spreadsheetUrl": data.get("spreadsheetUrl"),

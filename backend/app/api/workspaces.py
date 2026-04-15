@@ -1,14 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from dataclasses import asdict
 
 from app.core.workspace import workspace_engine, Role
+from app.core.auth import get_current_user_id
 
 router = APIRouter(prefix="/api/v1/workspaces", tags=["workspaces"])
-
-DEMO_USER_ID = "demo-user"
-DEMO_USER_EMAIL = "demo@gnosis.ai"
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
@@ -36,19 +34,19 @@ class UpdateRoleRequest(BaseModel):
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("")
-async def create_workspace(body: CreateWorkspaceRequest):
+async def create_workspace(body: CreateWorkspaceRequest, user_id: str = Depends(get_current_user_id)):
     ws = workspace_engine.create(
         name=body.name,
-        owner_id=DEMO_USER_ID,
-        owner_email=DEMO_USER_EMAIL,
+        owner_id=user_id,
+        owner_email=f"{user_id}@gnosis.ai",
         description=body.description,
     )
     return {"workspace": asdict(ws)}
 
 
 @router.get("")
-async def list_workspaces():
-    workspaces = workspace_engine.list_user_workspaces(DEMO_USER_ID)
+async def list_workspaces(user_id: str = Depends(get_current_user_id)):
+    workspaces = workspace_engine.list_user_workspaces(user_id)
     return {"workspaces": [asdict(ws) for ws in workspaces]}
 
 
@@ -84,39 +82,39 @@ async def delete_workspace(workspace_id: str):
 
 
 @router.post("/{workspace_id}/invite")
-async def invite_member(workspace_id: str, body: InviteMemberRequest):
+async def invite_member(workspace_id: str, body: InviteMemberRequest, user_id: str = Depends(get_current_user_id)):
     try:
         role = Role(body.role)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid role: {body.role}")
-    invite = workspace_engine.invite_member(workspace_id, body.email, role, invited_by=DEMO_USER_ID)
+    invite = workspace_engine.invite_member(workspace_id, body.email, role, invited_by=user_id)
     if not invite:
         raise HTTPException(status_code=404, detail="Workspace not found")
     return {"invite": asdict(invite)}
 
 
 @router.post("/invites/{invite_id}/accept")
-async def accept_invite(invite_id: str):
-    ws = workspace_engine.accept_invite(invite_id, user_id=DEMO_USER_ID)
+async def accept_invite(invite_id: str, user_id: str = Depends(get_current_user_id)):
+    ws = workspace_engine.accept_invite(invite_id, user_id=user_id)
     if not ws:
         raise HTTPException(status_code=404, detail="Invite not found or already used")
     return {"workspace": asdict(ws)}
 
 
-@router.delete("/{workspace_id}/members/{user_id}")
-async def remove_member(workspace_id: str, user_id: str):
-    if not workspace_engine.remove_member(workspace_id, user_id):
+@router.delete("/{workspace_id}/members/{member_user_id}")
+async def remove_member(workspace_id: str, member_user_id: str):
+    if not workspace_engine.remove_member(workspace_id, member_user_id):
         raise HTTPException(status_code=404, detail="Workspace or member not found")
     return {"removed": True}
 
 
-@router.patch("/{workspace_id}/members/{user_id}/role")
-async def update_member_role(workspace_id: str, user_id: str, body: UpdateRoleRequest):
+@router.patch("/{workspace_id}/members/{member_user_id}/role")
+async def update_member_role(workspace_id: str, member_user_id: str, body: UpdateRoleRequest):
     try:
         role = Role(body.role)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid role: {body.role}")
-    if not workspace_engine.update_member_role(workspace_id, user_id, role):
+    if not workspace_engine.update_member_role(workspace_id, member_user_id, role):
         raise HTTPException(status_code=404, detail="Workspace or member not found")
     return {"updated": True}
 

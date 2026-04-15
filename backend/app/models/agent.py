@@ -31,7 +31,7 @@ class Agent(Base, TimestampMixin):
     guardrails = Column(JSON, default=list)
 
     # Status & Trust
-    status = Column(SAEnum(AgentStatus), default=AgentStatus.idle, nullable=False)
+    status = Column(SAEnum(AgentStatus), default=AgentStatus.idle, nullable=False, index=True)
     trust_level = Column(Integer, default=0)  # 0=Observer, 1=Apprentice, 2=Associate, 3=Autonomous
 
     # Performance metrics (real-time updated)
@@ -49,7 +49,7 @@ class Agent(Base, TimestampMixin):
     last_learned_at = Column(String, nullable=True)
     memory_count = Column(Integer, default=0)
 
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True, index=True)
 
     owner = relationship("User", back_populates="agents")
     executions = relationship("Execution", back_populates="agent", cascade="all, delete-orphan")
