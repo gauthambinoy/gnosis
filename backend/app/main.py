@@ -192,10 +192,15 @@ async def lifespan(app: FastAPI):
     logger.info("◎ Gnosis shutdown complete")
 
 
+from app.core.api_docs import get_openapi_config as _get_docs_config
+_docs_config = _get_docs_config()
 app = FastAPI(
-    title=settings.app_name,
-    description="The Knowledge That Works — AI Agent Platform",
-    version=settings.app_version,
+    title=_docs_config["title"],
+    description=_docs_config["description"],
+    version=_docs_config["version"],
+    openapi_tags=_docs_config["openapi_tags"],
+    docs_url=_docs_config["docs_url"],
+    redoc_url=_docs_config["redoc_url"],
     lifespan=lifespan,
 )
 
@@ -289,6 +294,9 @@ app.include_router(agent_clone.router, dependencies=_rl)
 app.include_router(execution_cancel.router, dependencies=_rl)
 app.include_router(bulk_ops.router, dependencies=_rl)
 app.include_router(agent_health.router, dependencies=_rl)
+app.include_router(agent_export.router, dependencies=_rl)
+app.include_router(sse.router, dependencies=_rl)
+app.include_router(onboarding.router, dependencies=_rl)
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
