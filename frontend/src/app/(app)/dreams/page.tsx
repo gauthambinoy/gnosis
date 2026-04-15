@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/lib/api";
 
 // ─── Types ───
 interface DreamScenario {
@@ -53,8 +54,6 @@ interface DreamStats {
   agents_with_dreams: number;
   total_performance_records: number;
 }
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const DREAM_PHASES = [
   { key: "replay", label: "Memory Replay", icon: "🔄", color: "text-blue-400" },
@@ -301,7 +300,7 @@ export default function DreamsPage() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/v1/dreams/${selectedAgent}/status`);
+      const res = await api.get(`/dreams/${selectedAgent}/status`);
       if (res.ok) {
         const data = await res.json();
         setIsDreaming(data.is_dreaming);
@@ -313,7 +312,7 @@ export default function DreamsPage() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/v1/dreams/${selectedAgent}/sessions`);
+      const res = await api.get(`/dreams/${selectedAgent}/sessions`);
       if (res.ok) {
         const data = await res.json();
         setSessions(data.sessions || []);
@@ -325,7 +324,7 @@ export default function DreamsPage() {
 
   const fetchEvolutions = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/v1/dreams/${selectedAgent}/evolutions`);
+      const res = await api.get(`/dreams/${selectedAgent}/evolutions`);
       if (res.ok) {
         const data = await res.json();
         setEvolutions(data.evolutions || []);
@@ -337,7 +336,7 @@ export default function DreamsPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/api/v1/dreams/stats/overview`);
+      const res = await api.get("/dreams/stats/overview");
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -358,13 +357,9 @@ export default function DreamsPage() {
     setError("");
     setIsDreaming(true);
     try {
-      const res = await fetch(`${API}/api/v1/dreams/${selectedAgent}/start`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          max_scenarios: 5,
-          agent_data: { system_prompt: "You are a helpful AI assistant for the Gnosis platform." },
-        }),
+      const res = await api.post(`/dreams/${selectedAgent}/start`, {
+        max_scenarios: 5,
+        agent_data: { system_prompt: "You are a helpful AI assistant for the Gnosis platform." },
       });
       if (!res.ok) {
         const data = await res.json();
@@ -385,11 +380,7 @@ export default function DreamsPage() {
 
   const handleAcceptEvolution = async (evolutionId: string) => {
     try {
-      await fetch(`${API}/api/v1/dreams/${selectedAgent}/evolve/accept`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evolution_id: evolutionId }),
-      });
+      await api.post(`/dreams/${selectedAgent}/evolve/accept`, { evolution_id: evolutionId });
       await fetchEvolutions();
     } catch {
       /* ignore */
@@ -398,11 +389,7 @@ export default function DreamsPage() {
 
   const handleRejectEvolution = async (evolutionId: string) => {
     try {
-      await fetch(`${API}/api/v1/dreams/${selectedAgent}/evolve/reject`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ evolution_id: evolutionId }),
-      });
+      await api.post(`/dreams/${selectedAgent}/evolve/reject`, { evolution_id: evolutionId });
       await fetchEvolutions();
     } catch {
       /* ignore */

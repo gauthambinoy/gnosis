@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { api } from "@/lib/api";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Schedule {
@@ -24,8 +25,6 @@ interface Stats {
   total: number;
   by_status: Record<string, number>;
 }
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 const PRESETS = [
   { label: "Every 5 min", value: "every:5m" },
@@ -70,8 +69,8 @@ export default function SchedulesPage() {
   const fetchSchedules = useCallback(async () => {
     try {
       const [listRes, statsRes] = await Promise.all([
-        fetch(`${API}/api/v1/schedules`),
-        fetch(`${API}/api/v1/schedules/stats/overview`),
+        api.get("/schedules"),
+        api.get("/schedules/stats/overview"),
       ]);
       if (listRes.ok) {
         const data = await listRes.json();
@@ -102,11 +101,7 @@ export default function SchedulesPage() {
     };
     if (form.max_runs) body.max_runs = Number(form.max_runs);
 
-    const res = await fetch(`${API}/api/v1/schedules`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const res = await api.post("/schedules", body);
     if (res.ok) {
       setShowCreate(false);
       setForm({ agent_id: "", name: "", cron_expression: "", max_runs: "" });
@@ -115,12 +110,11 @@ export default function SchedulesPage() {
   }
 
   async function handleAction(id: string, action: "pause" | "resume" | "delete") {
-    const method = action === "delete" ? "DELETE" : "POST";
-    const url =
-      action === "delete"
-        ? `${API}/api/v1/schedules/${id}`
-        : `${API}/api/v1/schedules/${id}/${action}`;
-    await fetch(url, { method });
+    if (action === "delete") {
+      await api.delete(`/schedules/${id}`);
+    } else {
+      await api.post(`/schedules/${id}/${action}`);
+    }
     fetchSchedules();
   }
 

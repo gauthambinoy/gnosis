@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface Room {
   id: string;
@@ -71,11 +70,11 @@ export default function CollaborationPage() {
   const fetchRooms = useCallback(async () => {
     try {
       const url = filterStatus
-        ? `${API}/api/v1/collaboration/rooms?status=${filterStatus}`
-        : `${API}/api/v1/collaboration/rooms`;
+        ? `/collaboration/rooms?status=${filterStatus}`
+        : `/collaboration/rooms`;
       const [roomsRes, statsRes] = await Promise.all([
-        fetch(url),
-        fetch(`${API}/api/v1/collaboration/stats`),
+        api.get(url),
+        api.get("/collaboration/stats"),
       ]);
       const roomsData = await roomsRes.json();
       const statsData = await statsRes.json();
@@ -92,7 +91,7 @@ export default function CollaborationPage() {
 
   const openRoom = async (roomId: string) => {
     try {
-      const res = await fetch(`${API}/api/v1/collaboration/rooms/${roomId}`);
+      const res = await api.get(`/collaboration/rooms/${roomId}`);
       const data = await res.json();
       setSelectedRoom(data);
     } catch {
@@ -109,16 +108,12 @@ export default function CollaborationPage() {
       agentIds.forEach((id, i) => {
         agentNames[id] = `Agent-${i + 1}`;
       });
-      await fetch(`${API}/api/v1/collaboration/rooms`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newRoom.name,
-          topic: newRoom.topic,
-          agent_ids: agentIds,
-          agent_names: agentNames,
-          max_rounds: newRoom.max_rounds,
-        }),
+      await api.post("/collaboration/rooms", {
+        name: newRoom.name,
+        topic: newRoom.topic,
+        agent_ids: agentIds,
+        agent_names: agentNames,
+        max_rounds: newRoom.max_rounds,
       });
       setNewRoom({ name: "", topic: "", agent_ids: "", max_rounds: 5 });
       setShowCreate(false);
@@ -132,7 +127,7 @@ export default function CollaborationPage() {
   const runDiscussion = async (roomId: string) => {
     setLoading(true);
     try {
-      await fetch(`${API}/api/v1/collaboration/rooms/${roomId}/discuss`, { method: "POST" });
+      await api.post(`/collaboration/rooms/${roomId}/discuss`);
       await openRoom(roomId);
       await fetchRooms();
     } catch {
@@ -143,7 +138,7 @@ export default function CollaborationPage() {
 
   const archiveRoom = async (roomId: string) => {
     try {
-      await fetch(`${API}/api/v1/collaboration/rooms/${roomId}/archive`, { method: "POST" });
+      await api.post(`/collaboration/rooms/${roomId}/archive`);
       setSelectedRoom(null);
       await fetchRooms();
     } catch {

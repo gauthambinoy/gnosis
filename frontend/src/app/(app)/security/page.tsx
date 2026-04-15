@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
+import { api } from "@/lib/api";
 
 /* ─── Types ─── */
 interface Finding {
@@ -41,29 +42,6 @@ interface SecurityStats {
     blocked_list: string[];
   };
   recent_threats: ThreatEntry[];
-}
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
-
-function getHeaders(): HeadersInit {
-  let token: string | null = null;
-  try {
-    const raw = localStorage.getItem("auth-storage");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      token = parsed?.state?.accessToken || null;
-    }
-  } catch {}
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
-async function apiFetch(path: string, opts: RequestInit = {}) {
-  const res = await fetch(`${API}${path}`, { ...opts, headers: { ...getHeaders(), ...opts.headers } });
-  if (!res.ok) throw new Error(`${res.status}`);
-  return res.json();
 }
 
 /* ─── Severity Badge ─── */
@@ -142,7 +120,8 @@ export default function SecurityPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const data = await apiFetch("/security/stats");
+      const res = await api.get("/security/stats");
+      const data = await res.json();
       setStats(data);
       setLastRefresh(new Date());
     } catch {
@@ -153,7 +132,8 @@ export default function SecurityPage() {
   const runScan = useCallback(async () => {
     setScanning(true);
     try {
-      const data = await apiFetch("/security/scan", { method: "POST" });
+      const res = await api.post("/security/scan");
+      const data = await res.json();
       setScan(data);
     } catch (e) {
       setError("Scan failed — is the backend running?");
@@ -165,10 +145,7 @@ export default function SecurityPage() {
   const handleBlockIp = useCallback(async () => {
     if (!blockIp.trim()) return;
     try {
-      await apiFetch("/security/block-ip", {
-        method: "POST",
-        body: JSON.stringify({ ip: blockIp.trim(), duration: 3600 }),
-      });
+      await api.post("/security/block-ip", { ip: blockIp.trim(), duration: 3600 });
       setBlockIp("");
       fetchStats();
     } catch {
@@ -178,10 +155,7 @@ export default function SecurityPage() {
 
   const handleUnblockIp = useCallback(async (ip: string) => {
     try {
-      await apiFetch("/security/unblock-ip", {
-        method: "POST",
-        body: JSON.stringify({ ip }),
-      });
+      await api.post("/security/unblock-ip", { ip });
       fetchStats();
     } catch {
       setError("Failed to unblock IP");

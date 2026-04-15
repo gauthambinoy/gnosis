@@ -6,8 +6,7 @@ import { clsx } from "clsx";
 import { Card } from "@/components/shared/Card";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+import { api } from "@/lib/api";
 
 /* ─── Types ─── */
 interface RecordingSummary {
@@ -149,7 +148,7 @@ export default function ReplayPage() {
     try {
       const params = new URLSearchParams();
       if (filterAgent) params.set("agent_id", filterAgent);
-      const res = await fetch(`${API}/replay?${params}`);
+      const res = await api.get(`/replay?${params}`);
       if (res.ok) {
         const data = await res.json();
         if (data.recordings?.length > 0) {
@@ -175,7 +174,7 @@ export default function ReplayPage() {
   /* ─── Fetch detail ─── */
   const fetchDetail = async (id: string) => {
     try {
-      const res = await fetch(`${API}/replay/${id}`);
+      const res = await api.get(`/replay/${id}`);
       if (res.ok) {
         const data = await res.json();
         setSelectedDetail(data);
