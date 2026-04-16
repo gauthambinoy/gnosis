@@ -7,6 +7,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-minimum-32
 
 import pytest
 import uuid
+from unittest.mock import AsyncMock
 
 try:
     from httpx import AsyncClient, ASGITransport
@@ -70,3 +71,34 @@ async def created_agent(client, api_prefix):
     resp = await client.post(f"{api_prefix}/agents", json=payload)
     assert resp.status_code == 201
     return resp.json()
+
+
+@pytest.fixture
+def mock_db():
+    """Mock database session."""
+    db = AsyncMock()
+    db.execute = AsyncMock()
+    db.commit = AsyncMock()
+    db.rollback = AsyncMock()
+    return db
+
+
+@pytest.fixture
+def sample_agent():
+    """Sample agent data for testing."""
+    return {
+        "name": "Test Agent",
+        "description": "A test agent",
+        "system_prompt": "You are a helpful assistant.",
+        "model": "gpt-4",
+        "tools": [],
+        "temperature": 0.7,
+    }
+
+
+@pytest.fixture
+def auth_headers():
+    """Generate test auth headers with a valid JWT."""
+    from app.core.auth import create_access_token
+    token = create_access_token({"sub": "00000000-0000-0000-0000-000000000001", "type": "access"})
+    return {"Authorization": f"Bearer {token}"}
