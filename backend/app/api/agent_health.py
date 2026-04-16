@@ -2,6 +2,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.core.auth import get_current_user_id
 import logging
+from app.core.safe_error import safe_http_error
 
 logger = logging.getLogger("gnosis.agent_health")
 router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
@@ -60,4 +61,4 @@ async def get_agent_health(agent_id: str, user_id: str = Depends(get_current_use
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        safe_http_error(e, "Operation failed", 500)

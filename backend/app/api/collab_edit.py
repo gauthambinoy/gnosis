@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.collab_editor import collab_editor
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/collab-edit", tags=["collab-edit"])
 
@@ -28,7 +29,7 @@ async def apply_change(session_id: str, data: dict, user_id: str = Depends(get_c
     except KeyError:
         raise HTTPException(status_code=404, detail="Session not found")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("/agent/{agent_id}")

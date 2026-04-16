@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.self_healer import self_healer_engine
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/self-heal", tags=["self-heal"])
 
@@ -36,4 +37,4 @@ async def create_pattern(req: PatternCreate, user_id: str = Depends(get_current_
                                                        req.auto_fixable, req.category)
         return asdict(pattern)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)

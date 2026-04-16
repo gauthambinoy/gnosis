@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from app.core.pipeline import pipeline_engine, PipelineStatus
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/pipelines", tags=["pipelines"])
 
@@ -103,7 +104,7 @@ async def execute_pipeline(pipeline_id: str, req: ExecutePipelineRequest):
         run = await pipeline_engine.execute(pipeline_id, initial_input=req.input_data)
         return asdict(run)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("/{pipeline_id}/runs")

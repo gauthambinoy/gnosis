@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.core.auth import get_current_user_id
 from app.core.integration_tokens import integration_token_engine
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/integration-tokens", tags=["integration-tokens"])
 
@@ -48,7 +49,7 @@ async def revoke_token(token_id: str):
         integration_token_engine.revoke_token(token_id)
         return {"status": "revoked"}
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
 
 
 @router.post("/{token_id}/validate")

@@ -36,8 +36,8 @@ resource "aws_db_instance" "main" {
   backup_window           = "03:00-04:00"
   maintenance_window      = "Mon:04:00-Mon:05:00"
 
-  deletion_protection = var.environment == "prod" ? true : false
-  skip_final_snapshot = var.environment == "prod" ? false : true
+  deletion_protection       = var.environment == "prod" ? true : false
+  skip_final_snapshot       = var.environment == "prod" ? false : true
   final_snapshot_identifier = var.environment == "prod" ? "${var.project_name}-${var.environment}-final-snapshot" : null
 
   performance_insights_enabled = var.environment == "prod" ? true : false
@@ -45,6 +45,6 @@ resource "aws_db_instance" "main" {
   tags = { Name = "${var.project_name}-${var.environment}-postgres" }
 
   lifecycle {
-    prevent_destroy = false
+    prevent_destroy = true
   }
 }

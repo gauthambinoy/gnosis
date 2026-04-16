@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.core.auth import get_current_user_id
 from app.core.internal_marketplace import internal_marketplace_engine
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/internal-marketplace", tags=["internal-marketplace"])
 
@@ -58,9 +59,9 @@ async def rate_listing(listing_id: str, body: RateRequest):
         listing = internal_marketplace_engine.rate(listing_id, body.score)
         return asdict(listing)
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.post("/{listing_id}/download")
@@ -69,4 +70,4 @@ async def download_listing(listing_id: str):
         listing = internal_marketplace_engine.increment_downloads(listing_id)
         return asdict(listing)
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)

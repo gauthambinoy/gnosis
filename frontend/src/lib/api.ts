@@ -1,7 +1,11 @@
 import { useAuth } from "./auth";
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+function normalizeApiBase(url: string) {
+  const trimmed = url.replace(/\/+$/, "");
+  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
+}
+
+const API = normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000");
 
 class ApiClient {
   private getHeaders(): HeadersInit {

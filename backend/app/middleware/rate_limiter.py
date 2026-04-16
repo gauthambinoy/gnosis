@@ -4,8 +4,10 @@ import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+from app.config import get_settings
 
 logger = logging.getLogger("gnosis.rate_limiter")
+settings = get_settings()
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-user sliding window rate limiter. Uses in-memory fallback if Redis unavailable."""
@@ -26,7 +28,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks
-        if request.url.path in ("/health", "/health/ready", "/docs", "/openapi.json"):
+        if request.url.path in (
+            "/health",
+            "/health/ready",
+            "/health/live",
+            "/health/detailed",
+            f"{settings.api_prefix}/health",
+            f"{settings.api_prefix}/health/ready",
+            f"{settings.api_prefix}/health/live",
+            f"{settings.api_prefix}/health/detailed",
+            "/docs",
+            "/openapi.json",
+        ):
             return await call_next(request)
 
         key = self._get_key(request)

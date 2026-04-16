@@ -35,6 +35,7 @@ from app.core.versioning import APIVersionMiddleware
 from app.core.logger import setup_logging, get_logger
 from app.core.error_handlers import register_error_handlers
 from app.core.rate_limiter import require_rate_limit
+from app.core.env_validator import validate_environment
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.body_limit import RequestBodyLimitMiddleware
 from app.core.redis_client import redis_manager
@@ -137,6 +138,9 @@ async def lifespan(app: FastAPI):
 
     # Startup: initialize connections
     logger.info("◎ Gnosis starting up...")
+
+    # Log environment configuration before opening connections.
+    validate_environment(strict=False)
 
     # Connect Redis (graceful — never crashes)
     await redis_manager.connect()
@@ -264,22 +268,22 @@ app.include_router(templates.router, prefix=f"{settings.api_prefix}/templates", 
 app.include_router(events.router, prefix=f"{settings.api_prefix}/events", tags=["events"])
 app.include_router(llm.router, prefix=f"{settings.api_prefix}/llm", tags=["llm"], dependencies=_rl)
 app.include_router(system.router, prefix=f"{settings.api_prefix}/system", tags=["system"])
-app.include_router(schedules.router, dependencies=_rl)
-app.include_router(pipelines.router, dependencies=_rl)
+app.include_router(schedules.router, prefix=f"{settings.api_prefix}/schedules", dependencies=_rl)
+app.include_router(pipelines.router, prefix=f"{settings.api_prefix}/pipelines", dependencies=_rl)
 
-app.include_router(files.router)
-app.include_router(webhook_triggers.router)
-app.include_router(replay.router)
+app.include_router(files.router, prefix=f"{settings.api_prefix}/files", dependencies=_rl)
+app.include_router(webhook_triggers.router, prefix=f"{settings.api_prefix}/webhook-triggers", dependencies=_rl)
+app.include_router(replay.router, prefix=f"{settings.api_prefix}/replay", dependencies=_rl)
 
-app.include_router(marketplace.router)
-app.include_router(export_import.router)
-app.include_router(prompts.router)
-app.include_router(versions.router)
+app.include_router(marketplace.router, prefix=f"{settings.api_prefix}/marketplace", dependencies=_rl)
+app.include_router(export_import.router, prefix=f"{settings.api_prefix}/export-import", dependencies=_rl)
+app.include_router(prompts.router, prefix=f"{settings.api_prefix}/prompts", dependencies=_rl)
+app.include_router(versions.router, prefix=f"{settings.api_prefix}/versions", dependencies=_rl)
 
-app.include_router(rag.router)
+app.include_router(rag.router, prefix=f"{settings.api_prefix}/rag", dependencies=_rl)
 
-app.include_router(workspaces.router)
-app.include_router(billing.router)
+app.include_router(workspaces.router, prefix=f"{settings.api_prefix}/workspaces", dependencies=_rl)
+app.include_router(billing.router, prefix=f"{settings.api_prefix}/billing", dependencies=_rl)
 
 app.include_router(collaboration.router, dependencies=_rl)
 app.include_router(knowledge_graph.router, dependencies=_rl)
@@ -289,9 +293,9 @@ app.include_router(rpa.router, dependencies=_rl)
 
 app.include_router(factory.router, dependencies=_rl)
 
-app.include_router(aws_status.router)
+app.include_router(aws_status.router, prefix=f"{settings.api_prefix}/aws-status", dependencies=_rl)
 
-app.include_router(security_dashboard.router)
+app.include_router(security_dashboard.router, prefix=f"{settings.api_prefix}/security", dependencies=_rl)
 
 app.include_router(dreams.router, dependencies=_rl)
 
@@ -301,7 +305,7 @@ app.include_router(predictions.router, tags=["predictions"], dependencies=_rl)
 app.include_router(realworld.router, tags=["realworld"], dependencies=_rl)
 
 app.include_router(swarm_api.router, dependencies=_rl)
-app.include_router(auto_api_router.router)
+app.include_router(auto_api_router.router, prefix=f"{settings.api_prefix}/auto-api", dependencies=_rl)
 
 # New feature routers
 app.include_router(webhooks_config.router, dependencies=_rl)
@@ -335,10 +339,10 @@ app.include_router(flamegraph.router, dependencies=_rl)
 # Persona & Agent Behavior
 app.include_router(voice_profiles.router, dependencies=_rl)
 app.include_router(emotions.router, dependencies=_rl)
-app.include_router(badges.router, dependencies=_rl)
-app.include_router(preferences.router, dependencies=_rl)
-app.include_router(persona_inheritance.router, dependencies=_rl)
-app.include_router(response_templates.router, dependencies=_rl)
+app.include_router(badges.router, prefix=f"{settings.api_prefix}/badges", dependencies=_rl)
+app.include_router(preferences.router, prefix=f"{settings.api_prefix}/preferences", dependencies=_rl)
+app.include_router(persona_inheritance.router, prefix=f"{settings.api_prefix}/persona-inheritance", dependencies=_rl)
+app.include_router(response_templates.router, prefix=f"{settings.api_prefix}/response-templates", dependencies=_rl)
 app.include_router(mood.router, dependencies=_rl)
 app.include_router(prompt_compression.router, dependencies=_rl)
 
@@ -350,25 +354,25 @@ app.include_router(quality.router, dependencies=_rl)
 
 # Hi-Impact Features
 app.include_router(audit.router, dependencies=_rl)
-app.include_router(search.router, dependencies=_rl)
+app.include_router(search.router, prefix=f"{settings.api_prefix}/search", dependencies=_rl)
 app.include_router(dashboard_stats.router, dependencies=_rl)
-app.include_router(retries.router, dependencies=_rl)
+app.include_router(retries.router, prefix=f"{settings.api_prefix}/retries", dependencies=_rl)
 
 # Collaboration
 app.include_router(annotations.router, dependencies=_rl)
 app.include_router(approvals.router, dependencies=_rl)
 app.include_router(explanations.router, dependencies=_rl)
 app.include_router(collab_edit.router, dependencies=_rl)
-app.include_router(ab_compare.router, dependencies=_rl)
-app.include_router(bookmarks.router, dependencies=_rl)
+app.include_router(ab_compare.router, prefix=f"{settings.api_prefix}/ab-compare", dependencies=_rl)
+app.include_router(bookmarks.router, prefix=f"{settings.api_prefix}/bookmarks", dependencies=_rl)
 app.include_router(voice_input.router, dependencies=_rl)
 app.include_router(comments.router, dependencies=_rl)
 
 # Compliance Extended
 app.include_router(consent.router, dependencies=_rl)
 app.include_router(residency.router, dependencies=_rl)
-app.include_router(compliance_reports.router, dependencies=_rl)
-app.include_router(data_flow.router, dependencies=_rl)
+app.include_router(compliance_reports.router, prefix=f"{settings.api_prefix}/compliance", dependencies=_rl)
+app.include_router(data_flow.router, prefix=f"{settings.api_prefix}/data-flow", dependencies=_rl)
 
 # Governance Extended
 app.include_router(env_promotion.router, dependencies=_rl)
@@ -377,31 +381,31 @@ app.include_router(internal_marketplace.router, dependencies=_rl)
 app.include_router(integration_tokens.router, dependencies=_rl)
 
 # Growth
-app.include_router(tutorials.router, dependencies=_rl)
+app.include_router(tutorials.router, prefix=f"{settings.api_prefix}/tutorials", dependencies=_rl)
 app.include_router(sandbox.router, dependencies=_rl)
-app.include_router(feature_flags.router, dependencies=_rl)
-app.include_router(changelog.router, dependencies=_rl)
-app.include_router(recipes.router, dependencies=_rl)
+app.include_router(feature_flags.router, prefix=f"{settings.api_prefix}/feature-flags", dependencies=_rl)
+app.include_router(changelog.router, prefix=f"{settings.api_prefix}/changelog", dependencies=_rl)
+app.include_router(recipes.router, prefix=f"{settings.api_prefix}/recipes", dependencies=_rl)
 app.include_router(help_api.router, dependencies=_rl)
-app.include_router(nudges.router, dependencies=_rl)
-app.include_router(commands.router, dependencies=_rl)
+app.include_router(nudges.router, prefix=f"{settings.api_prefix}/nudges", dependencies=_rl)
+app.include_router(commands.router, prefix=f"{settings.api_prefix}/commands", dependencies=_rl)
 
 # Edge & Deployment
-app.include_router(ollama.router, dependencies=_rl)
-app.include_router(pwa.router, dependencies=_rl)
-app.include_router(docker_export.router, dependencies=_rl)
-app.include_router(edge_deploy.router, dependencies=_rl)
-app.include_router(bandwidth.router, dependencies=_rl)
-app.include_router(inbound_webhooks.router, dependencies=_rl)
-app.include_router(snapshots_api.router, dependencies=_rl)
-app.include_router(cli_api.router, dependencies=_rl)
+app.include_router(ollama.router, prefix=f"{settings.api_prefix}/ollama", dependencies=_rl)
+app.include_router(pwa.router, prefix=f"{settings.api_prefix}/pwa", dependencies=_rl)
+app.include_router(docker_export.router, prefix=f"{settings.api_prefix}/docker-export", dependencies=_rl)
+app.include_router(edge_deploy.router, prefix=f"{settings.api_prefix}/edge", dependencies=_rl)
+app.include_router(bandwidth.router, prefix=f"{settings.api_prefix}/bandwidth", dependencies=_rl)
+app.include_router(inbound_webhooks.router, prefix=f"{settings.api_prefix}/inbound-webhooks", dependencies=_rl)
+app.include_router(snapshots_api.router, prefix=f"{settings.api_prefix}/snapshots", dependencies=_rl)
+app.include_router(cli_api.router, prefix=f"{settings.api_prefix}/cli", dependencies=_rl)
 
 # Performance Extended
-app.include_router(memory_prefetch.router, dependencies=_rl)
-app.include_router(bundle_analysis.router, dependencies=_rl)
-app.include_router(pool_monitor.router, dependencies=_rl)
-app.include_router(exec_queue.router, dependencies=_rl)
-app.include_router(memory_gc.router, dependencies=_rl)
+app.include_router(memory_prefetch.router, prefix=f"{settings.api_prefix}/memory-prefetch", dependencies=_rl)
+app.include_router(bundle_analysis.router, prefix=f"{settings.api_prefix}/bundle-analysis", dependencies=_rl)
+app.include_router(pool_monitor.router, prefix=f"{settings.api_prefix}/pool-monitor", dependencies=_rl)
+app.include_router(exec_queue.router, prefix=f"{settings.api_prefix}/exec-queue", dependencies=_rl)
+app.include_router(memory_gc.router, prefix=f"{settings.api_prefix}/memory-gc", dependencies=_rl)
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
@@ -417,5 +421,5 @@ app.add_middleware(RequestIDMiddleware)
 
 app.add_route("/metrics", metrics_endpoint)
 
-# Health check routes (replaces inline /health)
-app.include_router(health_router_mod.router, tags=["health"])
+# Health check routes (mounted under the API prefix for infra probes)
+app.include_router(health_router_mod.router, prefix=settings.api_prefix, tags=["health"])

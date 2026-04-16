@@ -3,6 +3,7 @@ from app.core.gdpr_engine import gdpr_engine
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
 from typing import Optional, List
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/gdpr", tags=["compliance"])
 
@@ -23,7 +24,7 @@ async def execute_erasure(request_id: str, user_id: str = Depends(get_current_us
         result = await gdpr_engine.execute_erasure(request_id)
         return asdict(result)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
 
 @router.get("/erasure/{request_id}")
 async def get_erasure_status(request_id: str, user_id: str = Depends(get_current_user_id)):

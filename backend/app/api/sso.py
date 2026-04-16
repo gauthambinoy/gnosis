@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from app.core.sso import sso_engine
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/auth/sso", tags=["sso"])
 
@@ -38,7 +39,7 @@ async def get_authorize_url(req: AuthorizeRequest):
         result = sso_engine.get_authorize_url(req.provider, req.redirect_uri)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.post("/callback")

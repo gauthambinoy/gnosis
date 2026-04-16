@@ -1,58 +1,61 @@
-# -----------------------------------------------------------------------------
-# Route 53 — DNS (optional, uncomment when domain is available)
-# -----------------------------------------------------------------------------
+resource "aws_route53_zone" "main" {
+  count = var.domain_name != "" ? 1 : 0
+  name  = var.domain_name
 
-# Uncomment the resources below and provide your domain name via the
-# domain_name variable to enable DNS management.
+  tags = {
+    Name = "${var.project_name}-${var.environment}-zone"
+  }
+}
 
-# resource "aws_route53_zone" "main" {
-#   count = var.domain_name != "" ? 1 : 0
-#   name  = var.domain_name
-#
-#   tags = {
-#     Name = "${var.project_name}-${var.environment}-zone"
-#   }
-# }
+locals {
+  alb_cert_validation_records = var.domain_name != "" ? {
+    for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => {
+      name  = dvo.resource_record_name
+      type  = dvo.resource_record_type
+      value = dvo.resource_record_value
+    }
+  } : {}
+}
 
-# --- A Record pointing to CloudFront ------------------------------------------
-# resource "aws_route53_record" "a" {
-#   count   = var.domain_name != "" ? 1 : 0
-#   zone_id = aws_route53_zone.main[0].zone_id
-#   name    = var.domain_name
-#   type    = "A"
-#
-#   alias {
-#     name                   = aws_cloudfront_distribution.main[0].domain_name
-#     zone_id                = aws_cloudfront_distribution.main[0].hosted_zone_id
-#     evaluate_target_health = false
-#   }
-# }
+resource "aws_route53_record" "alb_cert_validation" {
+  for_each = local.alb_cert_validation_records
 
-# --- AAAA Record for IPv6 -----------------------------------------------------
-# resource "aws_route53_record" "aaaa" {
-#   count   = var.domain_name != "" ? 1 : 0
-#   zone_id = aws_route53_zone.main[0].zone_id
-#   name    = var.domain_name
-#   type    = "AAAA"
-#
-#   alias {
-#     name                   = aws_cloudfront_distribution.main[0].domain_name
-#     zone_id                = aws_cloudfront_distribution.main[0].hosted_zone_id
-#     evaluate_target_health = false
-#   }
-# }
+  zone_id = aws_route53_zone.main[0].zone_id
+  name    = each.value.name
+  type    = each.value.type
+  ttl     = 60
+  records = [each.value.value]
+}
 
-# --- Health Check for backend -------------------------------------------------
-# resource "aws_route53_health_check" "backend" {
-#   count             = var.domain_name != "" ? 1 : 0
-#   fqdn              = var.domain_name
-#   port              = 443
-#   type              = "HTTPS"
-#   resource_path     = "/api/health"
-#   failure_threshold = 3
-#   request_interval  = 30
-#
-#   tags = {
-#     Name = "${var.project_name}-${var.environment}-health-check"
-#   }
-# }
+resource "aws_acm_certificate_validation" "main" {
+  count = var.domain_name != "" ? 1 : 0
+
+  certificate_arn         = aws_acm_certificate.main[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.alb_cert_validation : record.fqdn]
+}
+
+resource "aws_route53_record" "a" {
+  count   = var.domain_name != "" ? 1 : 0
+  zone_id = aws_route53_zone.main[0].zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "aaaa" {
+  count   = var.domain_name != "" ? 1 : 0
+  zone_id = aws_route53_zone.main[0].zone_id
+  name    = var.domain_name
+  type    = "AAAA"
+
+  alias {
+    name                   = aws_lb.main.dns_name
+    zone_id                = aws_lb.main.zone_id
+    evaluate_target_health = false
+  }
+}

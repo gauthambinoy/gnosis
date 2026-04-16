@@ -14,7 +14,7 @@ output "alb_url" {
 
 output "cloudfront_domain_name" {
   description = "CloudFront distribution domain name"
-  value       = var.domain_name != "" ? aws_cloudfront_distribution.main[0].domain_name : "N/A (no domain configured)"
+  value       = "N/A (CloudFront disabled; ALB + Route53 is the production path)"
 }
 
 output "rds_endpoint" {

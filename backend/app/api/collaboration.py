@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from app.core.collaboration import collaboration_engine
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/collaboration", tags=["collaboration"])
 
@@ -70,7 +71,7 @@ async def run_discussion(room_id: str):
         room = await collaboration_engine.run_discussion(room_id)
         return asdict(room)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
 
 
 @router.post("/rooms/{room_id}/resolve")

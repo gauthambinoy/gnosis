@@ -5,6 +5,7 @@ from typing import Optional, List
 from app.core.file_manager import file_manager
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 logger = logging.getLogger("gnosis.files.api")
 
@@ -30,7 +31,7 @@ async def upload_file(
         )
         return asdict(record)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("")

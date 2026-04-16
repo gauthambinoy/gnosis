@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.core.auth import get_current_user_id
 from app.core.agent_permissions import agent_permission_engine
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/agent-permissions", tags=["agent-permissions"])
 
@@ -31,7 +32,7 @@ async def grant_permission(body: GrantPermissionRequest, user_id: str = Depends(
         )
         return asdict(perm)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.delete("/revoke")
@@ -40,7 +41,7 @@ async def revoke_permission(body: RevokePermissionRequest):
         agent_permission_engine.revoke_permission(body.permission_id)
         return {"status": "revoked"}
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
 
 
 @router.get("/{agent_id}")
@@ -55,4 +56,4 @@ async def check_permission(agent_id: str, user_id: str = Query(...), action: str
         allowed = agent_permission_engine.check_permission(agent_id, user_id, action)
         return {"allowed": allowed}
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
