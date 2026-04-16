@@ -5,6 +5,7 @@ from app.models.execution import Execution, ExecutionStatus
 from app.models.memory import Memory, MemoryTier
 from app.models.insight import Insight
 from app.models.trust import TrustEvent
+from app.models.engine_state import EngineState
 
 __all__ = [
     "Base", "TimestampMixin",
@@ -12,4 +13,5 @@ __all__ = [
     "Execution", "ExecutionStatus",
     "Memory", "MemoryTier",
     "Insight", "TrustEvent",
+    "EngineState",
 ]
