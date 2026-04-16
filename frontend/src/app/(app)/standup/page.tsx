@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/shared/Card";
 import { Badge } from "@/components/shared/Badge";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface StandupAgent {
   id: string;
@@ -76,7 +75,7 @@ export default function StandupPage() {
   useEffect(() => {
     async function fetchStandup() {
       try {
-        const res = await fetch(`${API_URL}/api/v1/standup/daily`);
+        const res = await api.get("/standup/daily");
         if (res.ok) {
           setStandup(await res.json());
         }

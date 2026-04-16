@@ -9,6 +9,7 @@ from app.core.auth import (
     create_access_token, create_refresh_token, decode_token,
     get_current_user_id,
 )
+from app.core.audit_log import audit_log
 from app.core.database import get_db, db_available
 from app.models.user import User
 from app.schemas.auth import (
@@ -69,6 +70,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         )
         db.add(user)
         await db.flush()
+        await audit_log.log("auth.register", "system", {"email": data.email}, user_id=str(user.id))
         return _token_response(user.id, user.email, user.full_name)
 
     # Fallback: in-memory
@@ -81,6 +83,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
             "hashed_password": hash_password(data.password),
         }
         _users_by_email[data.email] = user_id
+    await audit_log.log("auth.register", "system", {"email": data.email}, user_id=user_id)
     return _token_response(user_id, data.email, data.full_name)
 
 
@@ -91,6 +94,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         user = result.scalars().first()
         if not user or not verify_password(data.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Invalid email or password")
+        await audit_log.log("auth.login", "system", {"email": data.email}, user_id=str(user.id))
         return _token_response(user.id, user.email, user.full_name)
 
     # Fallback
@@ -101,6 +105,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         u = _users[uid]
     if not verify_password(data.password, u["hashed_password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    await audit_log.log("auth.login", "system", {"email": data.email}, user_id=uid)
     return _token_response(uid, u["email"], u["full_name"])
 
 

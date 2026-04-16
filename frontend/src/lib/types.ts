@@ -7,20 +7,49 @@
 
 export interface SystemInfo {
   hostname: string;
-  platform: string;
+  os: string;
   architecture: string;
-  cpu_count: number;
-  cpu_percent: number;
-  memory_total: number;
-  memory_used: number;
-  memory_percent: number;
-  disk_total: number;
-  disk_used: number;
-  disk_percent: number;
-  uptime_seconds: number;
   python_version: string;
-  boot_time: number;
-  load_avg: [number, number, number];
+  uptime_seconds: number;
+  cpu: {
+    cores: number;
+    usage_percent: number;
+    per_core?: number[];
+  };
+  memory: {
+    total_gb: number;
+    used_gb: number;
+    available_gb: number;
+    percent: number;
+  };
+  disk: {
+    total_gb: number;
+    used_gb: number;
+    free_gb: number;
+    percent: number;
+  };
+  network: {
+    bytes_sent?: number;
+    bytes_recv?: number;
+    packets_sent?: number;
+    packets_recv?: number;
+  };
+  processes?: {
+    total: number;
+    running: number;
+  };
+  // Flat aliases kept for backward compat with other pages
+  platform?: string;
+  cpu_count?: number;
+  cpu_percent?: number;
+  memory_total?: number;
+  memory_used?: number;
+  memory_percent?: number;
+  disk_total?: number;
+  disk_used?: number;
+  disk_percent?: number;
+  boot_time?: number;
+  load_avg?: [number, number, number];
 }
 
 export interface ProcessInfo {
@@ -48,6 +77,7 @@ export interface DirectoryData {
   path: string;
   entries: DirectoryEntry[];
   parent: string | null;
+  error?: string;
 }
 
 export interface DockerContainer {
@@ -61,9 +91,9 @@ export interface DockerContainer {
 }
 
 export interface DockerData {
-  containers: DockerContainer[];
-  images: { id: string; tags: string[]; size: number }[];
-  volumes: { name: string; driver: string; mountpoint: string }[];
+  status?: { available: boolean; compose_available: boolean; note?: string };
+  containers?: { output?: string; error?: string };
+  stats?: { output?: string; error?: string };
 }
 
 export interface AuditEntry {

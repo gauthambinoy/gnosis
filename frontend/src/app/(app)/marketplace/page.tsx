@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface MarketplaceAgent {
   id: string;
@@ -81,7 +80,7 @@ export default function MarketplacePage() {
     if (search) params.set("search", search);
     if (featuredOnly) params.set("featured", "true");
     try {
-      const res = await fetch(`${API_BASE}/api/v1/marketplace/browse?${params}`);
+      const res = await api.get(`/marketplace/browse?${params}`);
       const data = await res.json();
       setAgents(data.agents || []);
       setTotal(data.total || 0);
@@ -92,11 +91,11 @@ export default function MarketplacePage() {
   }, [sortBy, selectedCategory, search, featuredOnly]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/v1/marketplace/categories`)
+    api.get("/marketplace/categories")
       .then((r) => r.json())
       .then((d) => setCategories(d.categories || []))
       .catch(() => {});
-    fetch(`${API_BASE}/api/v1/marketplace/stats`)
+    api.get("/marketplace/stats")
       .then((r) => r.json())
       .then((d) => setStats(d))
       .catch(() => {});
@@ -108,7 +107,7 @@ export default function MarketplacePage() {
 
   async function handleClone(agentId: string) {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/marketplace/${agentId}/clone`, { method: "POST" });
+      const res = await api.post(`/marketplace/${agentId}/clone`);
       if (res.ok) {
         setCloneMessage("Agent config cloned! Create a new agent with this config.");
         setTimeout(() => setCloneMessage(null), 3000);
@@ -120,16 +119,12 @@ export default function MarketplacePage() {
 
   async function handlePublish() {
     try {
-      await fetch(`${API_BASE}/api/v1/marketplace/publish`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: pubName,
-          description: pubDesc,
-          category: pubCategory,
-          config: { persona: pubPersona },
-          tags: pubTags.split(",").map((t) => t.trim()).filter(Boolean),
-        }),
+      await api.post("/marketplace/publish", {
+        name: pubName,
+        description: pubDesc,
+        category: pubCategory,
+        config: { persona: pubPersona },
+        tags: pubTags.split(",").map((t) => t.trim()).filter(Boolean),
       });
       setShowPublish(false);
       setPubName("");
@@ -145,7 +140,7 @@ export default function MarketplacePage() {
   async function openDetail(agent: MarketplaceAgent) {
     setSelectedAgent(agent);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/marketplace/${agent.id}/reviews`);
+      const res = await api.get(`/marketplace/${agent.id}/reviews`);
       const data = await res.json();
       setReviews(data.reviews || []);
     } catch {
@@ -156,13 +151,9 @@ export default function MarketplacePage() {
   async function submitReview() {
     if (!selectedAgent) return;
     try {
-      await fetch(`${API_BASE}/api/v1/marketplace/${selectedAgent.id}/reviews`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating: reviewRating, comment: reviewComment }),
-      });
+      await api.post(`/marketplace/${selectedAgent.id}/reviews`, { rating: reviewRating, comment: reviewComment });
       setReviewComment("");
-      const res = await fetch(`${API_BASE}/api/v1/marketplace/${selectedAgent.id}/reviews`);
+      const res = await api.get(`/marketplace/${selectedAgent.id}/reviews`);
       const data = await res.json();
       setReviews(data.reviews || []);
     } catch {

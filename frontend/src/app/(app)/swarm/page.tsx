@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface Agent {
   agent_id: string;
@@ -73,9 +72,9 @@ export default function SwarmPage() {
   const fetchData = useCallback(async () => {
     try {
       const [regRes, taskRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/swarm/registry`),
-        fetch(`${API_BASE}/api/v1/swarm/tasks`),
-        fetch(`${API_BASE}/api/v1/swarm/stats`),
+        api.get("/swarm/registry"),
+        api.get("/swarm/tasks"),
+        api.get("/swarm/stats"),
       ]);
       if (regRes.ok) { const d = await regRes.json(); setAgents(d.agents || []); }
       if (taskRes.ok) { const d = await taskRes.json(); setTasks(d.tasks || []); }
@@ -89,14 +88,10 @@ export default function SwarmPage() {
     if (!regId.trim()) return;
     setLoading(true);
     try {
-      await fetch(`${API_BASE}/api/v1/swarm/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          agent_id: regId, name: regName || regId,
-          skills: regSkills.split(",").map(s => s.trim()).filter(Boolean),
-          specialization: regSpec || "general",
-        }),
+      await api.post("/swarm/register", {
+        agent_id: regId, name: regName || regId,
+        skills: regSkills.split(",").map(s => s.trim()).filter(Boolean),
+        specialization: regSpec || "general",
       });
       setRegId(""); setRegName(""); setRegSkills(""); setRegSpec("");
       setShowRegister(false);
@@ -105,7 +100,7 @@ export default function SwarmPage() {
   };
 
   const unregisterAgent = async (id: string) => {
-    await fetch(`${API_BASE}/api/v1/swarm/register/${id}`, { method: "DELETE" });
+    await api.delete(`/swarm/register/${id}`);
     fetchData();
   };
 
@@ -113,14 +108,10 @@ export default function SwarmPage() {
     if (!taskDesc.trim()) return;
     setLoading(true);
     try {
-      await fetch(`${API_BASE}/api/v1/swarm/tasks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          description: taskDesc,
-          requester_id: taskRequester || "user",
-          required_skills: taskSkills.split(",").map(s => s.trim()).filter(Boolean),
-        }),
+      await api.post("/swarm/tasks", {
+        description: taskDesc,
+        requester_id: taskRequester || "user",
+        required_skills: taskSkills.split(",").map(s => s.trim()).filter(Boolean),
       });
       setTaskDesc(""); setTaskSkills(""); setTaskRequester("");
       fetchData();
@@ -131,7 +122,7 @@ export default function SwarmPage() {
   const loadInbox = async (agentId: string) => {
     setSelectedInbox(agentId);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/swarm/inbox/${agentId}`);
+      const res = await api.get(`/swarm/inbox/${agentId}`);
       if (res.ok) { const d = await res.json(); setMessages(d.messages || []); }
     } catch { /* ignore */ }
   };

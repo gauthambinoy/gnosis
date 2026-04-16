@@ -3,6 +3,7 @@ import json
 import sys
 from datetime import datetime, timezone
 
+
 class JSONFormatter(logging.Formatter):
     def format(self, record):
         log_data = {
@@ -11,6 +12,14 @@ class JSONFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+        # Inject request trace ID when available (lazy import to avoid circular dep)
+        try:
+            from app.middleware.request_id import get_request_id
+            trace_id = get_request_id()
+            if trace_id:
+                log_data["trace_id"] = trace_id
+        except (ImportError, Exception):
+            pass
         if record.exc_info:
             log_data["exception"] = self.formatException(record.exc_info)
         if hasattr(record, "extra_data"):
