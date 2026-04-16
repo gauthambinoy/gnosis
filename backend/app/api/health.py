@@ -16,7 +16,7 @@ _settings = get_settings()
 
 @router.get("/health")
 async def health():
-    return {"status": "ok", "version": "1.0.0"}
+    return {"status": "ok", "service": "gnosis", "version": "1.0.0"}
 
 
 @router.get("/health/ready")

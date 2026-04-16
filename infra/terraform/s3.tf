@@ -50,6 +50,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "uploads" {
     id     = "delete-after-${var.s3_lifecycle_days}-days"
     status = "Enabled"
 
+    filter {
+      prefix = ""
+    }
+
     expiration {
       days = var.s3_lifecycle_days
     }
@@ -130,6 +134,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "exports" {
     id     = "delete-after-30-days"
     status = "Enabled"
 
+    filter {
+      prefix = ""
+    }
+
     expiration {
       days = 30
     }
@@ -200,6 +208,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
   rule {
     id     = "glacier-transition"
     status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
 
     transition {
       days          = 30
