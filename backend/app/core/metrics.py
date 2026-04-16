@@ -10,11 +10,23 @@ LLM_REQUESTS = Counter('gnosis_llm_requests_total', 'Total LLM API calls', ['pro
 MEMORY_OPERATIONS = Counter('gnosis_memory_ops_total', 'Memory operations', ['operation', 'tier'])
 AUTH_EVENTS = Counter('gnosis_auth_events_total', 'Auth events', ['event'])
 
+# Business metrics — agent executions with agent_id label
+AGENT_EXEC_DETAILED = Counter('gnosis_agent_exec_detailed_total', 'Agent executions by agent', ['agent_id', 'status'])
+LLM_REQUESTS_BY_MODEL = Counter('gnosis_llm_requests_by_model_total', 'LLM requests by model', ['model', 'tier'])
+LLM_COST_USD = Counter('gnosis_llm_cost_usd', 'Estimated LLM cost in USD', ['model'])
+AGENT_CORRECTION = Counter('gnosis_agent_correction_total', 'Agent self-corrections')
+
 # Histograms
 REQUEST_LATENCY = Histogram('gnosis_http_request_duration_seconds', 'Request latency', ['method', 'endpoint'],
                             buckets=[.005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10])
-EXECUTION_LATENCY = Histogram('gnosis_execution_duration_seconds', 'Agent execution latency')
+EXECUTION_LATENCY = Histogram('gnosis_execution_duration_seconds', 'Agent execution latency',
+                              buckets=[0.1, 0.5, 1, 5, 10, 30, 60])
 LLM_LATENCY = Histogram('gnosis_llm_request_duration_seconds', 'LLM request latency', ['provider'])
+
+# Queue metrics
+TASK_QUEUE_DEPTH = Gauge('gnosis_task_queue_depth', 'Total tasks pending in queue')
+TASK_PROCESSING_DURATION = Histogram('gnosis_task_processing_duration_seconds', 'Task processing duration',
+                                     buckets=[0.1, 0.5, 1, 5, 10, 30, 60, 120, 300])
 
 # Gauges
 ACTIVE_AGENTS = Gauge('gnosis_active_agents', 'Number of active agents')

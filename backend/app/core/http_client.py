@@ -1,36 +1,54 @@
 """Shared HTTP client with connection pooling for outbound requests."""
 
-import aiohttp
+import httpx
+from typing import Optional
 from app.core.logger import get_logger
 
 logger = get_logger("http_client")
 
-_session: aiohttp.ClientSession | None = None
+_client: Optional[httpx.AsyncClient] = None
 
 
 async def init_http_client() -> None:
-    """Create the shared aiohttp session. Call once during app startup."""
-    global _session
-    if _session is not None:
+    """Create the shared httpx session. Call once during app startup."""
+    global _client
+    if _client is not None and not _client.is_closed:
         return
-    connector = aiohttp.TCPConnector(limit=100, limit_per_host=10)
-    _session = aiohttp.ClientSession(connector=connector)
-    logger.info("◎ Shared HTTP client initialised (limit=100, per_host=10)")
+    _client = httpx.AsyncClient(
+        timeout=httpx.Timeout(30.0, connect=10.0),
+        limits=httpx.Limits(
+            max_connections=100,
+            max_keepalive_connections=20,
+            keepalive_expiry=30.0,
+        ),
+        follow_redirects=True,
+        headers={"User-Agent": "Gnosis/1.0"},
+    )
+    logger.info("http_client_created")
 
 
 async def close_http_client() -> None:
     """Close the shared session. Call during app shutdown."""
-    global _session
-    if _session is not None:
-        await _session.close()
-        _session = None
-        logger.info("◎ Shared HTTP client closed")
+    global _client
+    if _client and not _client.is_closed:
+        await _client.aclose()
+        logger.info("http_client_closed")
+        _client = None
 
 
-def get_http_client() -> aiohttp.ClientSession:
-    """Return the shared session. Raises if not yet initialised."""
-    if _session is None:
-        raise RuntimeError(
-            "HTTP client not initialised – call init_http_client() during startup"
+def get_http_client() -> httpx.AsyncClient:
+    """Return the shared httpx client. Raises if not yet initialised."""
+    global _client
+    if _client is None or _client.is_closed:
+        _client = httpx.AsyncClient(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            limits=httpx.Limits(
+                max_connections=100,
+                max_keepalive_connections=20,
+                keepalive_expiry=30.0,
+            ),
+            follow_redirects=True,
+            headers={"User-Agent": "Gnosis/1.0"},
         )
-    return _session
+        logger.info("http_client_created")
+    return _client
