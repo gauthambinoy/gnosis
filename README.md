@@ -1,99 +1,119 @@
-# ◎ GNOSIS
+# 🧠 Gnosis — AI Agent Orchestration Platform
 
-### *The Knowledge That Works*
+> Build, deploy, and manage intelligent AI agents with a powerful orchestration engine.
 
-> AI agents that think, learn, and work. Build intelligent automations by simply describing what you need.
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Python](https://img.shields.io/badge/python-3.12+-blue)
+![Next.js](https://img.shields.io/badge/next.js-16-black)
 
----
+## ✨ Features
 
-## ✦ What is Gnosis?
+- **🤖 Agent Management** — Create, configure, and orchestrate AI agents with custom tools and prompts
+- **⚡ Multi-LLM Routing** — Intelligent routing across OpenAI, Anthropic, Ollama with 4-tier strategy (cache → fast → standard → deep)
+- **🛡️ Guardrails** — Built-in content safety, prompt injection detection, and output validation
+- **📊 Real-time Monitoring** — Prometheus metrics, execution tracking, and audit logging
+- **🔒 Enterprise Security** — JWT auth, rate limiting, PII scrubbing, CORS hardening
+- **📦 Agent Templates** — Pre-built agent archetypes for common use cases
+- **🔄 Workflow Orchestration** — DAG-based pipelines, scheduled tasks, and event-driven execution
+- **🧠 Knowledge Base** — RAG with FAISS vector search and document ingestion
+- **🌐 Multi-workspace** — Team collaboration with role-based access control
+- **📱 Modern Dashboard** — Next.js 16 frontend with real-time updates
 
-Gnosis is a revolutionary AI agent platform where you create intelligent agents through natural conversation. Each agent has its own **brain** (5-layer cortex), **memory** (4-tier neuroscience-inspired storage), and **trust system** that evolves from observer to fully autonomous.
-
-## ⚡ Architecture
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│  NERVE CENTER — Real-time Dashboard         │
-├─────────────────────────────────────────────┤
-│  AWAKENING — Natural Language Agent Builder  │
-├──────────┬──────────┬──────────┬────────────┤
-│  CORTEX  │  HIPPO-  │ CERE-    │  FORGE     │
-│  Brain   │  CAMPUS  │ BELLUM   │  Integra-  │
-│  Engine  │  Memory  │ Learning │  tions     │
-├──────────┴──────────┴──────────┴────────────┤
-│  UNIVERSAL LLM GATEWAY                      │
-│  OpenRouter · Anthropic · OpenAI · Google   │
-│  Groq · Ollama · Together AI · Custom       │
-├─────────────────────────────────────────────┤
-│  SANCTUM — Trust & Guardrails               │
-├──────────┬──────────┬───────────────────────┤
-│ PostgreSQL│  Redis   │  FAISS Vector Store   │
-└──────────┴──────────┴───────────────────────┘
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│   Frontend   │────▶│   Backend    │────▶│  LLM Router  │
+│  Next.js 16  │     │  FastAPI     │     │  4-Tier      │
+│  TypeScript  │     │  SQLAlchemy  │     │  Routing     │
+└──────────────┘     └──────┬───────┘     └──────────────┘
+                            │
+                  ┌─────────┼─────────┐
+                  │         │         │
+            ┌─────▼──┐ ┌───▼───┐ ┌───▼───┐
+            │PostgreSQL│ │ Redis │ │ FAISS │
+            │  + async │ │ cache │ │vectors│
+            └─────────┘ └───────┘ └───────┘
 ```
-
-## 🧠 12 Pillars
-
-| # | Pillar | Description |
-|---|--------|-------------|
-| 1 | **The Awakening** | Create agents via conversation — no forms, no code |
-| 2 | **The Cortex** | 5-layer brain: Perceive → Retrieve → Assemble → Reason → Meta |
-| 3 | **The Hippocampus** | 4-tier memory: Correction > Episodic > Semantic > Procedural |
-| 4 | **The Cerebellum** | 3 learning loops: instant, pattern (6h), evolution (weekly) |
-| 5 | **Mind's Eye** | Live consciousness stream — watch agents think in real-time |
-| 6 | **The Oracle** | Proactive cross-agent insights and anomaly detection |
-| 7 | **The Forge** | Universal Action Protocol for any integration |
-| 8 | **The Sanctum** | Trust levels 0-3 with auto-promotion and guardrails |
-| 9 | **The Chorus** | Agent-to-agent communication network |
-| 10 | **Nerve Center** | Real-time dashboard with breathing status orbs |
-| 11 | **Morning Standup** | Daily AI-generated briefing of all agent activity |
-| 12 | **Token Conservation** | 93.5% token reduction via tiered reasoning (L0-L3) |
 
 ## 🚀 Quick Start
 
+### Prerequisites
+- Python 3.12+
+- Node.js 18+
+- PostgreSQL (optional — runs in-memory for development)
+
+### Development Setup
+
 ```bash
-# Frontend
-cd frontend && npm install && npm run dev
+# Clone
+git clone https://github.com/gauthambinoy/gnosis.git
+cd gnosis
 
 # Backend
-cd backend && python3 -m venv venv && source venv/bin/activate
+cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+cp .env.example .env  # Edit with your settings
+python3 -m uvicorn app.main:app --reload --port 8000
+
+# Frontend (new terminal)
+cd frontend
+npm install
+npm run dev
 ```
 
-## 🛠 Tech Stack
+### Docker (Recommended)
 
-- **Frontend**: Next.js 14 · TypeScript · Tailwind CSS · Framer Motion · Zustand
-- **Backend**: FastAPI · Python 3.11+ · SQLAlchemy Async · Celery
-- **Database**: PostgreSQL · Redis · FAISS
-- **LLM**: Universal Gateway (OpenRouter, Anthropic, OpenAI, Google, Groq, Ollama)
-- **Deploy**: Vercel + Railway + Supabase + Upstash
+```bash
+docker-compose up -d
+# Backend: http://localhost:8000
+# Frontend: http://localhost:3000
+# Prometheus: http://localhost:9090
+# Grafana: http://localhost:3001 (admin/gnosis)
+```
 
-## 📁 Structure
+## 📖 API Documentation
+
+Once running, visit:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+- **Health**: http://localhost:8000/api/v1/health
+
+## 🧪 Testing
+
+```bash
+cd backend
+python3 -m pytest tests/ -v
+```
+
+## 📊 Monitoring
+
+- **Prometheus**: Scrapes `/metrics` endpoint with request rates, latencies, error counts
+- **Grafana**: Pre-configured dashboard at port 3001
+
+## 🏛️ Project Structure
 
 ```
 gnosis/
-├── frontend/          # Next.js 14 App
-│   ├── src/
-│   │   ├── app/       # Routes (nerve-center, awaken, oracle, standup, settings)
-│   │   ├── components/# Shared UI components
-│   │   └── lib/       # API client, WebSocket, state store
-│   └── package.json
-├── backend/           # FastAPI Server
+├── backend/           # FastAPI application
 │   ├── app/
-│   │   ├── api/       # REST endpoints
-│   │   ├── core/      # Orchestrator, Builder, Memory, Learning, Trust
-│   │   ├── llm/       # Universal LLM Gateway
-│   │   ├── integrations/ # UAP connectors (Gmail, Sheets, Slack, HTTP)
-│   │   ├── models/    # SQLAlchemy models
-│   │   └── ws/        # WebSocket handlers
-│   ├── alembic/       # Database migrations
-│   └── requirements.txt
-└── README.md
+│   │   ├── api/       # Route handlers (40+ endpoints)
+│   │   ├── core/      # Business logic engines
+│   │   ├── models/    # SQLAlchemy ORM models
+│   │   └── schemas/   # Pydantic request/response schemas
+│   └── tests/         # pytest test suite
+├── frontend/          # Next.js 16 application
+│   └── src/
+│       ├── app/       # App router pages (32+ routes)
+│       ├── components/ # React components
+│       └── lib/       # Utilities and API client
+├── infra/             # Infrastructure as Code
+│   ├── terraform/     # AWS ECS, RDS, S3
+│   └── prometheus/    # Monitoring config
+├── scripts/           # Utility scripts
+└── docker-compose.yml # Full stack orchestration
 ```
 
----
+## 📄 License
 
-<p align="center">
-  <em>Built with divine knowledge ◎</em>
-</p>
+MIT

@@ -1,0 +1,48 @@
+{
+  "dashboard": {
+    "title": "Gnosis Platform",
+    "uid": "gnosis-main",
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [{"expr": "rate(gnosis_requests_total[5m])", "legendFormat": "{{method}} {{path}}"}]
+      },
+      {
+        "title": "Response Time (p95)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [{"expr": "histogram_quantile(0.95, rate(gnosis_request_duration_seconds_bucket[5m]))", "legendFormat": "p95"}]
+      },
+      {
+        "title": "Active Agents",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 8},
+        "targets": [{"expr": "gnosis_active_agents"}]
+      },
+      {
+        "title": "Error Rate",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 8},
+        "targets": [{"expr": "rate(gnosis_errors_total[5m])"}]
+      },
+      {
+        "title": "LLM Cost (USD/hr)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 8},
+        "targets": [{"expr": "rate(gnosis_llm_cost_usd[1h]) * 3600"}]
+      },
+      {
+        "title": "Memory Usage",
+        "type": "gauge",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 8},
+        "targets": [{"expr": "process_resident_memory_bytes / 1024 / 1024"}],
+        "fieldConfig": {"defaults": {"unit": "MB", "max": 4096}}
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "refresh": "10s"
+  }
+}
