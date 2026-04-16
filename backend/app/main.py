@@ -44,6 +44,8 @@ from app.core.task_worker import task_worker
 from app.core.database import engine
 from app.core.metrics import MetricsMiddleware, metrics_endpoint
 from app.core.http_client import init_http_client, close_http_client
+from app.core.shutdown import shutdown_manager
+from app.core.startup_banner import print_banner
 from fastapi import Depends
 from app.api import health as health_router_mod
 from app.api import aws_status
@@ -135,9 +137,13 @@ async def lifespan(app: FastAPI):
     # Install signal handlers for graceful shutdown
     loop = asyncio.get_running_loop()
     _install_signal_handlers(loop, _shutdown_event)
+    shutdown_manager.install_signal_handlers(loop)
 
     # Startup: initialize connections
     logger.info("◎ Gnosis starting up...")
+
+    # Print startup banner
+    print_banner()
 
     # Log environment configuration before opening connections.
     validate_environment(strict=False)
@@ -421,6 +427,6 @@ app.add_middleware(RequestIDMiddleware)
 
 app.add_route("/metrics", metrics_endpoint)
 
-# Health check routes (root for tests/dev, API-prefixed for infra probes)
+# Health check routes — NO rate limiting (must remain available for k8s probes)
 app.include_router(health_router_mod.router, tags=["health"])
 app.include_router(health_router_mod.router, prefix=settings.api_prefix, tags=["health"])

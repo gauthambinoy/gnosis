@@ -1,5 +1,19 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_TASK_TIMEOUT = 300  # 5 minutes
+
+
+async def execute_with_timeout(coro, timeout_seconds=DEFAULT_TASK_TIMEOUT):
+    """Wrap a coroutine with a timeout guard."""
+    try:
+        return await asyncio.wait_for(coro, timeout=timeout_seconds)
+    except asyncio.TimeoutError:
+        logger.error(f"Task timed out after {timeout_seconds}s")
+        raise
 
 
 class TaskWorker:
@@ -9,11 +23,12 @@ class TaskWorker:
         self.tasks: dict[str, dict] = {}
         self._running = False
 
-    def register(self, name: str, func, interval_seconds: int):
+    def register(self, name: str, func, interval_seconds: int, timeout_seconds: int = DEFAULT_TASK_TIMEOUT):
         """Register a periodic task."""
         self.tasks[name] = {
             "func": func,
             "interval": interval_seconds,
+            "timeout": timeout_seconds,
             "last_run": None,
             "run_count": 0,
             "errors": 0,
@@ -29,9 +44,12 @@ class TaskWorker:
                 if task["last_run"] is None or \
                    (now - task["last_run"]).total_seconds() >= task["interval"]:
                     try:
-                        await task["func"]()
+                        await execute_with_timeout(task["func"](), task["timeout"])
                         task["last_run"] = now
                         task["run_count"] += 1
+                    except asyncio.TimeoutError:
+                        task["errors"] += 1
+                        logger.error(f"⚠ Task {name} timed out after {task['timeout']}s")
                     except Exception as e:
                         task["errors"] += 1
                         print(f"⚠ Task {name} failed: {e}")
