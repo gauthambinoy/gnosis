@@ -421,5 +421,6 @@ app.add_middleware(RequestIDMiddleware)
 
 app.add_route("/metrics", metrics_endpoint)
 
-# Health check routes (mounted under the API prefix for infra probes)
+# Health check routes (root for tests/dev, API-prefixed for infra probes)
+app.include_router(health_router_mod.router, tags=["health"])
 app.include_router(health_router_mod.router, prefix=settings.api_prefix, tags=["health"])
