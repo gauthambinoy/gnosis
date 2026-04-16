@@ -11,7 +11,7 @@ logger = logging.getLogger("gnosis.retry")
 @dataclass
 class RetryRecord:
     execution_id: str
-    attempt: int
+    attempt: int = 0
     max_attempts: int = 3
     status: str = "pending"  # pending, retrying, succeeded, exhausted
     errors: List[str] = field(default_factory=list)
