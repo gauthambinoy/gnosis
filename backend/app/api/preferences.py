@@ -4,6 +4,7 @@ from app.core.auth import get_current_user_id
 from pydantic import BaseModel
 from dataclasses import asdict
 from typing import Optional
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/preferences", tags=["preferences"])
 
@@ -29,4 +30,4 @@ async def update_preferences(req: PreferencesUpdate, user_id: str = Depends(get_
         prefs = user_preferences_engine.set_preferences(user_id, **updates)
         return asdict(prefs)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Any
 
 from app.core.realworld_engine import realworld_engine
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/realworld", tags=["realworld"])
 
@@ -67,7 +68,7 @@ async def create_trigger(body: CreateTriggerRequest):
             params=body.params,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
     return {"created": True, "trigger": realworld_engine._trigger_to_dict(trigger)}
 
 

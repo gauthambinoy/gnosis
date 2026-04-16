@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
 from app.core.edge_deploy import edge_deploy_engine, VALID_TARGETS
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ async def create_edge_deployment(body: dict, user_id: str = Depends(get_current_
     try:
         dep = edge_deploy_engine.create_deployment(agent_id, target, body.get("config"))
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
     return asdict(dep)
 
 

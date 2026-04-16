@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.ab_comparison import ab_engine
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/ab-compare", tags=["ab-compare"])
 
@@ -26,7 +27,7 @@ async def vote(comparison_id: str, data: dict, user_id: str = Depends(get_curren
     except KeyError:
         raise HTTPException(status_code=404, detail="Comparison not found")
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("")

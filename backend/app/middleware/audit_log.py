@@ -8,8 +8,10 @@ from dataclasses import dataclass, field, asdict
 from typing import List, Dict
 from datetime import datetime, timezone
 from collections import deque
+from app.config import get_settings
 
 logger = logging.getLogger("gnosis.audit")
+_settings = get_settings()
 
 @dataclass
 class AuditRecord:
@@ -61,7 +63,17 @@ audit_store = AuditStore()
 class AuditLogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Skip noisy endpoints
-        if request.url.path in ("/health", "/health/ready", "/metrics"):
+        if request.url.path in (
+            "/health",
+            "/health/ready",
+            "/health/live",
+            "/health/detailed",
+            f"{_settings.api_prefix}/health",
+            f"{_settings.api_prefix}/health/ready",
+            f"{_settings.api_prefix}/health/live",
+            f"{_settings.api_prefix}/health/detailed",
+            "/metrics",
+        ):
             return await call_next(request)
 
         start = time.time()
@@ -73,8 +85,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         if auth.startswith("Bearer "):
             try:
                 from jose import jwt
-                import os
-                payload = jwt.decode(auth[7:], os.getenv("JWT_SECRET_KEY", ""), algorithms=["HS256"], options={"verify_exp": False})
+                payload = jwt.decode(auth[7:], _settings.secret_key, algorithms=["HS256"], options={"verify_exp": False})
                 user_id = payload.get("sub", "")
             except Exception:
                 pass

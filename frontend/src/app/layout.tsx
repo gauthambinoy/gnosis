@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "@/lib/theme";
+import { ToastProvider } from "@/components/ui/Toast";
+import { CommandPalette } from "@/components/ui/CommandPalette";
+import { MobileNav } from "@/components/ui/MobileNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,7 +24,11 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="min-h-screen bg-gnosis-bg text-gnosis-text font-body antialiased">
         <ThemeProvider>
-          {children}
+          <ToastProvider>
+            {children}
+            <MobileNav />
+            <CommandPalette />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from app.core.auth import get_current_user_id
 from app.core.env_promotion import env_promotion_engine
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/promotions", tags=["env-promotion"])
 
@@ -30,7 +31,7 @@ async def create_promotion(body: PromoteRequest, user_id: str = Depends(get_curr
         )
         return asdict(record)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.post("/{promotion_id}/approve")
@@ -39,9 +40,9 @@ async def approve_promotion(promotion_id: str, user_id: str = Depends(get_curren
         record = env_promotion_engine.approve_promotion(promotion_id)
         return asdict(record)
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.post("/{promotion_id}/deploy")
@@ -50,9 +51,9 @@ async def deploy_promotion(promotion_id: str):
         record = env_promotion_engine.deploy_promotion(promotion_id)
         return asdict(record)
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.post("/{promotion_id}/rollback")
@@ -61,9 +62,9 @@ async def rollback_promotion(promotion_id: str):
         record = env_promotion_engine.rollback(promotion_id)
         return asdict(record)
     except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("/")

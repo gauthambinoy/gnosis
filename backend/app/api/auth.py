@@ -10,6 +10,7 @@ from app.core.auth import (
     get_current_user_id,
 )
 from app.core.audit_log import audit_log
+from app.core.rate_limiter import require_rate_limit
 from app.core.database import get_db, db_available
 from app.models.user import User
 from app.schemas.auth import (
@@ -55,7 +56,8 @@ def _token_response(user_id: str, email: str, full_name: str | None) -> TokenRes
 # ---------------------------------------------------------------------------
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED,
+              dependencies=[Depends(require_rate_limit)])
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if _use_db():
         result = await db.execute(select(User).where(User.email == data.email))
@@ -87,7 +89,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     return _token_response(user_id, data.email, data.full_name)
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(require_rate_limit)])
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     if _use_db():
         result = await db.execute(select(User).where(User.email == data.email))
@@ -109,7 +111,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return _token_response(uid, u["email"], u["full_name"])
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(require_rate_limit)])
 async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(data.refresh_token)
     if payload.get("type") != "refresh":

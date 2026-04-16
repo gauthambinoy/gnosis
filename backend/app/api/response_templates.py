@@ -4,6 +4,7 @@ from app.core.auth import get_current_user_id
 from pydantic import BaseModel
 from dataclasses import asdict
 from typing import Optional
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/response-templates", tags=["response-templates"])
 
@@ -30,7 +31,7 @@ async def create_template(req: TemplateCreate, user_id: str = Depends(get_curren
         template = response_template_engine.create_template(req.name, req.format, req.structure, req.example)
         return asdict(template)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("/{template_id}")
@@ -47,4 +48,4 @@ async def apply_template(template_id: str, req: ApplyRequest, user_id: str = Dep
         result = response_template_engine.apply_template(req.content, template_id)
         return {"formatted": result, "template_id": template_id}
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)

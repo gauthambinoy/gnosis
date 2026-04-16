@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.data_residency import residency_engine
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/residency", tags=["residency"])
 
@@ -24,7 +25,7 @@ async def set_policy(data: dict, user_id: str = Depends(get_current_user_id)):
         )
         return asdict(policy)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("/regions")

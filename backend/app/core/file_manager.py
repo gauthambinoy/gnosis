@@ -83,7 +83,8 @@ class FileManager:
                     ".yml": ".yaml", ".yaml": ".yml",
                 }
                 if EXTENSION_ALIASES.get(ext) != detected_ext and EXTENSION_ALIASES.get(detected_ext) != ext:
-                    logger.warning(f"MIME mismatch: claimed={ext}, detected={detected_ext} for {original_name}")
+                    logger.warning(f"MIME mismatch rejected: claimed={ext}, detected={detected_ext} for {original_name}")
+                    raise ValueError(f"File type mismatch: extension is {ext} but content is {detected_ext}")
         
         file_id = str(uuid.uuid4())
         filename = f"{file_id}{ext}"

@@ -4,6 +4,7 @@ from app.core.auth import get_current_user_id
 from pydantic import BaseModel
 from dataclasses import asdict
 from typing import Optional, Dict, List
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/persona-templates", tags=["persona-inheritance"])
 
@@ -43,4 +44,4 @@ async def inherit_template(template_id: str, req: InheritRequest, user_id: str =
         result = persona_inheritance_engine.inherit(template_id, req.overrides)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+        safe_http_error(e, "Operation failed", 404)

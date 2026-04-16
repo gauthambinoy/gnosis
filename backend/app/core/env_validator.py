@@ -6,14 +6,13 @@ import logging
 logger = logging.getLogger("gnosis.env")
 
 REQUIRED_VARS = {
-    "DATABASE_URL": "PostgreSQL connection string (e.g., postgresql+asyncpg://user:pass@host/db)",
-    "JWT_SECRET_KEY": "Secret key for JWT token signing (generate with: openssl rand -hex 32)",
+    "SECRET_KEY": "Secret key for JWT token signing and encryption (generate with: openssl rand -hex 32)",
 }
 
 RECOMMENDED_VARS = {
+    "DATABASE_URL": "PostgreSQL connection string (e.g., postgresql+asyncpg://user:pass@host/db)",
     "REDIS_URL": "Redis connection string (default: redis://localhost:6379/0)",
     "OPENROUTER_API_KEY": "OpenRouter API key for LLM access",
-    "ENCRYPTION_KEY": "Key for encrypting stored secrets (generate with: openssl rand -hex 32)",
 }
 
 OPTIONAL_VARS = {

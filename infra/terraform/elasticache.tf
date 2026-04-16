@@ -18,7 +18,7 @@ resource "aws_elasticache_replication_group" "main" {
   engine               = "redis"
   engine_version       = "7.1"
   node_type            = var.redis_node_type
-  num_cache_clusters   = 1 # Increase for production HA
+  num_cache_clusters   = var.environment == "prod" ? 2 : 1
   parameter_group_name = "default.redis7"
   port                 = 6379
 
@@ -28,7 +28,7 @@ resource "aws_elasticache_replication_group" "main" {
   at_rest_encryption_enabled = true
   transit_encryption_enabled = false # Set true if clients support TLS
 
-  automatic_failover_enabled = false # Requires num_cache_clusters >= 2
+  automatic_failover_enabled = var.environment == "prod"
 
   snapshot_retention_limit = 3
   snapshot_window          = "02:00-03:00"
@@ -37,6 +37,6 @@ resource "aws_elasticache_replication_group" "main" {
   tags = { Name = "${var.project_name}-${var.environment}-redis" }
 
   lifecycle {
-    prevent_destroy = false # Set to true for production
+    prevent_destroy = true
   }
 }

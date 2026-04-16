@@ -3,6 +3,7 @@ from app.core.voice_profiles import voice_profile_engine, VoiceProfile
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
 from typing import Optional, List
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/voice-profiles", tags=["voice-profiles"])
 
@@ -20,7 +21,7 @@ async def create_profile(name: str, tone: str = "friendly", vocabulary_level: st
         profile = voice_profile_engine.create_profile(name, tone, vocabulary_level, response_style, example_phrases)
         return asdict(profile)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("/{profile_id}")

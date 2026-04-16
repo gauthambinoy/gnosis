@@ -179,10 +179,10 @@ resource "aws_lambda_function" "cleanup" {
 
   environment {
     variables = {
-      ENVIRONMENT        = var.environment
-      PROJECT_NAME       = var.project_name
-      SESSIONS_TABLE     = aws_dynamodb_table.sessions.name
-      RATE_LIMITS_TABLE  = aws_dynamodb_table.rate_limits.name
+      ENVIRONMENT       = var.environment
+      PROJECT_NAME      = var.project_name
+      SESSIONS_TABLE    = aws_dynamodb_table.sessions.name
+      RATE_LIMITS_TABLE = aws_dynamodb_table.rate_limits.name
     }
   }
 
@@ -233,11 +233,11 @@ resource "aws_lambda_function" "db_backup" {
 
   environment {
     variables = {
-      ENVIRONMENT        = var.environment
-      PROJECT_NAME       = var.project_name
-      RDS_INSTANCE_ID    = aws_db_instance.main.identifier
-      BACKUP_BUCKET      = aws_s3_bucket.backups.id
-      RETENTION_DAYS     = tostring(var.backup_retention_days)
+      ENVIRONMENT     = var.environment
+      PROJECT_NAME    = var.project_name
+      RDS_INSTANCE_ID = aws_db_instance.main.identifier
+      BACKUP_BUCKET   = aws_s3_bucket.backups.id
+      RETENTION_DAYS  = tostring(var.backup_retention_days)
     }
   }
 

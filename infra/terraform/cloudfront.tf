@@ -4,7 +4,9 @@
 # -----------------------------------------------------------------------------
 
 resource "aws_cloudfront_distribution" "main" {
-  count = var.domain_name != "" ? 1 : 0
+  # Disabled by default: direct ALB + Route53 is the production path.
+  # A separate CloudFront cert/origin flow can be added later if needed.
+  count = 0
 
   enabled             = true
   is_ipv6_enabled     = true

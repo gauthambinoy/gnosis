@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from app.core.webhook_triggers import webhook_trigger_manager
 from dataclasses import asdict
+from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
 
@@ -70,7 +71,7 @@ async def invoke_webhook(trigger_id: str, request: Request):
         invocation = await webhook_trigger_manager.invoke(trigger_id, payload, headers, source_ip)
         return asdict(invocation)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        safe_http_error(e, "Operation failed", 400)
 
 
 @router.get("/triggers/{trigger_id}/invocations")
