@@ -365,11 +365,11 @@ export default function SystemControlPage() {
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-white/40">Sent</p>
-                <p className="text-lg font-semibold text-cyan-400">{fmt(sysInfo.network.bytes_sent)}</p>
+                <p className="text-lg font-semibold text-cyan-400">{fmt(sysInfo.network.bytes_sent ?? 0)}</p>
               </div>
               <div>
                 <p className="text-xs text-white/40">Received</p>
-                <p className="text-lg font-semibold text-green-400">{fmt(sysInfo.network.bytes_recv)}</p>
+                <p className="text-lg font-semibold text-green-400">{fmt(sysInfo.network.bytes_recv ?? 0)}</p>
               </div>
               <div className="flex justify-between text-xs text-white/30">
                 <span>↑ {sysInfo.network.packets_sent?.toLocaleString()} pkts</span>

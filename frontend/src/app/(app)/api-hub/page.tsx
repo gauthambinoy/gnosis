@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface CatalogAPI {
   key: string;
@@ -83,10 +82,10 @@ export default function APIHubPage() {
   const fetchData = useCallback(async () => {
     try {
       const [catRes, connRes, catsRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/v1/apis/catalog`),
-        fetch(`${API_BASE}/api/v1/apis/connections`),
-        fetch(`${API_BASE}/api/v1/apis/categories`),
-        fetch(`${API_BASE}/api/v1/apis/stats`),
+        api.get("/apis/catalog"),
+        api.get("/apis/connections"),
+        api.get("/apis/categories"),
+        api.get("/apis/stats"),
       ]);
       if (catRes.ok) { const d = await catRes.json(); setCatalog(d.apis || []); }
       if (connRes.ok) { const d = await connRes.json(); setConnections(d.connections || []); }
@@ -100,7 +99,7 @@ export default function APIHubPage() {
   const handleSearch = async () => {
     if (!search.trim()) { setSearchResults([]); return; }
     try {
-      const res = await fetch(`${API_BASE}/api/v1/apis/search?q=${encodeURIComponent(search)}`);
+      const res = await api.get(`/apis/search?q=${encodeURIComponent(search)}`);
       if (res.ok) { const d = await res.json(); setSearchResults(d.results || []); }
     } catch { /* ignore */ }
   };
@@ -113,7 +112,7 @@ export default function APIHubPage() {
 
   const loadAPIDetail = async (name: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/apis/catalog/${name}`);
+      const res = await api.get(`/apis/catalog/${name}`);
       if (res.ok) { const d = await res.json(); setSelectedAPI(d); }
     } catch { /* ignore */ }
   };
@@ -122,11 +121,7 @@ export default function APIHubPage() {
     if (!connectModal || !connectKey.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/apis/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_name: connectModal, api_key: connectKey }),
-      });
+      const res = await api.post("/apis/connect", { api_name: connectModal, api_key: connectKey });
       const d = await res.json();
       if (res.ok) {
         setConnectResult(d.message || "Connected!");
@@ -138,12 +133,12 @@ export default function APIHubPage() {
   };
 
   const deleteConnection = async (id: string) => {
-    await fetch(`${API_BASE}/api/v1/apis/connections/${id}`, { method: "DELETE" });
+    await api.delete(`/apis/connections/${id}`);
     fetchData();
   };
 
   const testConnection = async (id: string) => {
-    const res = await fetch(`${API_BASE}/api/v1/apis/connections/${id}/test`, { method: "POST" });
+    const res = await api.post(`/apis/connections/${id}/test`);
     if (res.ok) fetchData();
   };
 
@@ -151,14 +146,10 @@ export default function APIHubPage() {
     if (!explorerConn || !explorerEndpoint) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/apis/connections/${explorerConn}/call`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint_path: explorerEndpoint,
-          method: explorerMethod,
-          body: explorerBody ? JSON.parse(explorerBody) : null,
-        }),
+      const res = await api.post(`/apis/connections/${explorerConn}/call`, {
+        endpoint_path: explorerEndpoint,
+        method: explorerMethod,
+        body: explorerBody ? JSON.parse(explorerBody) : null,
       });
       const d = await res.json();
       setExplorerResult(JSON.stringify(d, null, 2));
@@ -169,7 +160,7 @@ export default function APIHubPage() {
 
   const generateCode = async (name: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/apis/generate/${name}`);
+      const res = await api.get(`/apis/generate/${name}`);
       if (res.ok) { const d = await res.json(); setGeneratedCode(d.code); }
     } catch { /* ignore */ }
   };

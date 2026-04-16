@@ -5,8 +5,7 @@ import { motion } from "framer-motion";
 import { Card } from "@/components/shared/Card";
 import { Badge } from "@/components/shared/Badge";
 import { Button } from "@/components/shared/Button";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { api } from "@/lib/api";
 
 interface Template {
   id: string;
@@ -63,7 +62,7 @@ export default function TemplatesPage() {
   useEffect(() => {
     async function fetchTemplates() {
       try {
-        const res = await fetch(`${API_URL}/api/v1/templates`);
+        const res = await api.get("/templates");
         if (res.ok) {
           const data = await res.json();
           setTemplates(data.templates);
@@ -97,11 +96,7 @@ export default function TemplatesPage() {
   async function handleDeploy(templateId: string) {
     setDeploying(templateId);
     try {
-      const res = await fetch(`${API_URL}/api/v1/templates/${templateId}/deploy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
+      const res = await api.post(`/templates/${templateId}/deploy`, {});
       if (res.ok) {
         setDeployedIds((prev) => new Set(prev).add(templateId));
       }

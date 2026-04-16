@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/shared/Card";
 import LiveExecutionFeed from "@/components/dashboard/LiveExecutionFeed";
+import { api } from "@/lib/api";
 
 interface AgentCard {
   id: string;
@@ -25,8 +26,6 @@ const STATUS_COLORS: Record<string, string> = {
   error: "bg-red-500",
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 export default function NerveCenterPage() {
   const [agents, setAgents] = useState<AgentCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,7 +37,7 @@ export default function NerveCenterPage() {
 
   async function fetchAgents() {
     try {
-      const res = await fetch(API_URL + "/api/v1/agents");
+      const res = await api.get("/agents");
       if (res.ok) {
         const data = await res.json();
         setAgents(data.agents || []);

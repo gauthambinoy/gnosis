@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/shared/Card";
+import { api } from "@/lib/api";
 
 interface InsightItem {
   id: string;
@@ -19,8 +20,6 @@ const SEVERITY_STYLES: Record<string, { bg: string; text: string; border: string
   critical: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20" },
 };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
 export default function OraclePage() {
   const [insights, setInsights] = useState<InsightItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +27,7 @@ export default function OraclePage() {
   useEffect(() => {
     async function fetchInsights() {
       try {
-        const res = await fetch(API_URL + "/api/v1/oracle/insights");
+        const res = await api.get("/oracle/insights");
         if (res.ok) {
           const data = await res.json();
           setInsights(data.insights || []);

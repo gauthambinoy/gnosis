@@ -7,9 +7,9 @@ import { Card } from "@/components/shared/Card";
 import { Badge } from "@/components/shared/Badge";
 import { ConsciousnessViewer } from "@/components/mindseye/ConsciousnessViewer";
 import { ExecutionHistory } from "@/components/mindseye/ExecutionHistory";
+import { api } from "@/lib/api";
 
 const TRUST_LABELS = ["Observer", "Apprentice", "Associate", "Autonomous"];
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 type TabId = "consciousness" | "history" | "memory" | "stats";
 
@@ -96,7 +96,7 @@ function MemoryExplorer({ agentId }: { agentId: string }) {
       const params = new URLSearchParams();
       if (search) params.set("q", search);
       if (tierFilter !== "all") params.set("tier", tierFilter);
-      const res = await fetch(`${API_URL}/api/v1/memory/${agentId}?${params}`);
+      const res = await api.get(`/memory/${agentId}?${params}`);
       if (res.ok) {
         const data = await res.json();
         setMemories(Array.isArray(data) ? data : data.memories || []);
@@ -241,7 +241,7 @@ export default function AgentDetailPage() {
   useEffect(() => {
     async function fetchAgent() {
       try {
-        const res = await fetch(API_URL + "/api/v1/agents/" + agentId);
+        const res = await api.get("/agents/" + agentId);
         if (res.ok) setAgent(await res.json());
       } catch {
         // API not available yet
@@ -255,7 +255,7 @@ export default function AgentDetailPage() {
   const handleExecute = async () => {
     setExecuting(true);
     try {
-      await fetch(`${API_URL}/api/v1/execute/${agentId}`, { method: "POST" });
+      await api.post(`/execute/${agentId}`);
       setActiveTab("consciousness");
     } catch {
       // handle error
@@ -268,11 +268,7 @@ export default function AgentDetailPage() {
     const correction = prompt("Describe the correction:");
     if (!correction) return;
     try {
-      await fetch(`${API_URL}/api/v1/agents/${agentId}/correct`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correction }),
-      });
+      await api.post(`/agents/${agentId}/correct`, { correction });
     } catch {
       // handle error
     }

@@ -11,6 +11,21 @@ from app.api import security_dashboard, system_control, predictions, realworld
 from app.api import swarm as swarm_api, auto_api as auto_api_router, dreams
 from app.api import webhooks_config, agent_clone, execution_cancel, bulk_ops, agent_health
 from app.api import agent_export, sse, onboarding
+from app.api import audit, search, dashboard_stats, retries
+from app.api import quotas, config_snapshots, tools, activity
+from app.api import pii, retention, gdpr, dpa
+from app.api import query_analyzer, streaming, redis_metrics
+from app.api import debugger, costs, dlq, flamegraph
+from app.api import voice_profiles, emotions, badges, preferences, persona_inheritance, response_templates
+from app.api import mood, prompt_compression, drift, waterfall, self_heal, quality
+from app.api import annotations, approvals, explanations, collab_edit, ab_compare, bookmarks, voice_input, comments
+from app.api import consent, residency, compliance_reports, data_flow
+from app.api import env_promotion, agent_permissions, internal_marketplace, integration_tokens
+from app.api import tutorials, sandbox, feature_flags, changelog, recipes, nudges, commands
+from app.api import help as help_api
+from app.api import ollama, pwa, docker_export, edge_deploy, bandwidth, inbound_webhooks
+from app.api import snapshots as snapshots_api, cli as cli_api
+from app.api import memory_prefetch, bundle_analysis, pool_monitor, exec_queue, memory_gc
 from app.ws import nerve_center, minds_eye
 from app.ws.routes import router as ws_execution_router
 from app.core.event_wiring import setup_event_wiring
@@ -297,6 +312,96 @@ app.include_router(agent_health.router, dependencies=_rl)
 app.include_router(agent_export.router, dependencies=_rl)
 app.include_router(sse.router, dependencies=_rl)
 app.include_router(onboarding.router, dependencies=_rl)
+
+# Governance & Compliance
+app.include_router(quotas.router, dependencies=_rl)
+app.include_router(config_snapshots.router, dependencies=_rl)
+app.include_router(tools.router, dependencies=_rl)
+app.include_router(activity.router, dependencies=_rl)
+app.include_router(pii.router, dependencies=_rl)
+app.include_router(retention.router, dependencies=_rl)
+app.include_router(gdpr.router, dependencies=_rl)
+app.include_router(dpa.router, dependencies=_rl)
+
+# Observability & Performance
+app.include_router(query_analyzer.router, dependencies=_rl)
+app.include_router(streaming.router, dependencies=_rl)
+app.include_router(redis_metrics.router, dependencies=_rl)
+app.include_router(debugger.router, dependencies=_rl)
+app.include_router(costs.router, dependencies=_rl)
+app.include_router(dlq.router, dependencies=_rl)
+app.include_router(flamegraph.router, dependencies=_rl)
+
+# Persona & Agent Behavior
+app.include_router(voice_profiles.router, dependencies=_rl)
+app.include_router(emotions.router, dependencies=_rl)
+app.include_router(badges.router, dependencies=_rl)
+app.include_router(preferences.router, dependencies=_rl)
+app.include_router(persona_inheritance.router, dependencies=_rl)
+app.include_router(response_templates.router, dependencies=_rl)
+app.include_router(mood.router, dependencies=_rl)
+app.include_router(prompt_compression.router, dependencies=_rl)
+
+# Observability Extensions
+app.include_router(drift.router, dependencies=_rl)
+app.include_router(waterfall.router, dependencies=_rl)
+app.include_router(self_heal.router, dependencies=_rl)
+app.include_router(quality.router, dependencies=_rl)
+
+# Hi-Impact Features
+app.include_router(audit.router, dependencies=_rl)
+app.include_router(search.router, dependencies=_rl)
+app.include_router(dashboard_stats.router, dependencies=_rl)
+app.include_router(retries.router, dependencies=_rl)
+
+# Collaboration
+app.include_router(annotations.router, dependencies=_rl)
+app.include_router(approvals.router, dependencies=_rl)
+app.include_router(explanations.router, dependencies=_rl)
+app.include_router(collab_edit.router, dependencies=_rl)
+app.include_router(ab_compare.router, dependencies=_rl)
+app.include_router(bookmarks.router, dependencies=_rl)
+app.include_router(voice_input.router, dependencies=_rl)
+app.include_router(comments.router, dependencies=_rl)
+
+# Compliance Extended
+app.include_router(consent.router, dependencies=_rl)
+app.include_router(residency.router, dependencies=_rl)
+app.include_router(compliance_reports.router, dependencies=_rl)
+app.include_router(data_flow.router, dependencies=_rl)
+
+# Governance Extended
+app.include_router(env_promotion.router, dependencies=_rl)
+app.include_router(agent_permissions.router, dependencies=_rl)
+app.include_router(internal_marketplace.router, dependencies=_rl)
+app.include_router(integration_tokens.router, dependencies=_rl)
+
+# Growth
+app.include_router(tutorials.router, dependencies=_rl)
+app.include_router(sandbox.router, dependencies=_rl)
+app.include_router(feature_flags.router, dependencies=_rl)
+app.include_router(changelog.router, dependencies=_rl)
+app.include_router(recipes.router, dependencies=_rl)
+app.include_router(help_api.router, dependencies=_rl)
+app.include_router(nudges.router, dependencies=_rl)
+app.include_router(commands.router, dependencies=_rl)
+
+# Edge & Deployment
+app.include_router(ollama.router, dependencies=_rl)
+app.include_router(pwa.router, dependencies=_rl)
+app.include_router(docker_export.router, dependencies=_rl)
+app.include_router(edge_deploy.router, dependencies=_rl)
+app.include_router(bandwidth.router, dependencies=_rl)
+app.include_router(inbound_webhooks.router, dependencies=_rl)
+app.include_router(snapshots_api.router, dependencies=_rl)
+app.include_router(cli_api.router, dependencies=_rl)
+
+# Performance Extended
+app.include_router(memory_prefetch.router, dependencies=_rl)
+app.include_router(bundle_analysis.router, dependencies=_rl)
+app.include_router(pool_monitor.router, dependencies=_rl)
+app.include_router(exec_queue.router, dependencies=_rl)
+app.include_router(memory_gc.router, dependencies=_rl)
 
 # WebSocket routes
 app.include_router(nerve_center.router, tags=["ws"])
