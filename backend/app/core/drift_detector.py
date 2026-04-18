@@ -1,5 +1,4 @@
 """Gnosis Drift Detector — Detect when agent behavior drifts from baseline."""
-import uuid
 import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field, asdict

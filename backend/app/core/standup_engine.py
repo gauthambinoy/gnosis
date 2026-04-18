@@ -1,7 +1,6 @@
 """Gnosis Standup Engine — generates daily briefings summarizing all agent activity."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 from app.core.audit_log import audit_log
 from app.core.cost_tracker import cost_tracker

@@ -1,5 +1,6 @@
 """Gnosis Billing — Usage tracking, quotas, and billing management."""
-import uuid, logging
+import uuid
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -74,7 +75,6 @@ class BillingEngine:
 
     def record_usage(self, user_id: str, metric: str, value: float = 1):
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        month = datetime.now(timezone.utc).strftime("%Y-%m")
 
         record = UsageRecord(id=str(uuid.uuid4()), user_id=user_id, metric=metric, value=value, period=today)
         self._usage.setdefault(user_id, []).append(record)

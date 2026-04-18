@@ -1,7 +1,8 @@
 """Gnosis Internal Agent Marketplace — Publish and discover reusable agents."""
-import uuid, logging
+import uuid
+import logging
 from datetime import datetime, timezone
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 logger = logging.getLogger("gnosis.internal_marketplace")

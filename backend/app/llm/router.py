@@ -5,7 +5,7 @@ import hashlib
 import json
 from collections import OrderedDict
 from typing import AsyncIterator
-from app.llm.client import gateway, LLMResponse
+from app.llm.client import gateway
 
 logger = logging.getLogger(__name__)
 

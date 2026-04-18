@@ -1,7 +1,7 @@
 """Edge deployment configuration API."""
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
-from app.core.edge_deploy import edge_deploy_engine, VALID_TARGETS
+from app.core.edge_deploy import edge_deploy_engine
 from dataclasses import asdict
 from app.core.safe_error import safe_http_error
 

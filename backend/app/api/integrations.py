@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 
-from app.integrations.oauth import oauth_manager, PROVIDER_CONFIGS
+from app.integrations.oauth import oauth_manager
 
 router = APIRouter()
 

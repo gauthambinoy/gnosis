@@ -1,8 +1,8 @@
 """Pre-built agent recipes for quick deployment."""
-import uuid, logging
+import uuid
+import logging
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
-from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.recipes")
 

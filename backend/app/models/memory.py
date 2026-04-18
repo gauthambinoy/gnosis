@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy import Column, String, Integer, Float, JSON, Text, ForeignKey, Enum as SAEnum
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.models.base import Base, TimestampMixin

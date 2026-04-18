@@ -9,7 +9,6 @@ router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 
 def compute_health_score(agent_data: dict) -> dict:
     """Compute composite health score (0-100) for an agent."""
-    score = 100
     factors = {}
 
     # Success rate (40% weight)

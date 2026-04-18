@@ -8,7 +8,6 @@ Agents can:
 5. Vote on decisions (consensus)
 6. Share rewards/credit for collaborative work
 """
-import asyncio
 import time
 import uuid
 from dataclasses import dataclass, field, asdict

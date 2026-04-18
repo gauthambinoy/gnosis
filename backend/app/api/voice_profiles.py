@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.core.voice_profiles import voice_profile_engine, VoiceProfile
+from app.core.voice_profiles import voice_profile_engine
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
-from typing import Optional, List
+from typing import List
 from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/voice-profiles", tags=["voice-profiles"])

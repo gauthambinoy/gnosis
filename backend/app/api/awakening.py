@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-import asyncio
 import json
 
 from app.core.llm_gateway import llm_gateway, LLMRequest

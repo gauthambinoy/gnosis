@@ -1,5 +1,5 @@
 """Gnosis State Snapshots — capture and restore complete agent state."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
 import json

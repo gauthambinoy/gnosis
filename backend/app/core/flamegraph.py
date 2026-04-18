@@ -4,7 +4,6 @@ import time
 import logging
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
-from contextlib import contextmanager
 
 logger = logging.getLogger("gnosis.flamegraph")
 

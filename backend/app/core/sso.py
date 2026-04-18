@@ -1,5 +1,7 @@
 """Gnosis SSO — OAuth2 login with Google and GitHub."""
-import uuid, hashlib, logging
+import uuid
+import hashlib
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, Optional

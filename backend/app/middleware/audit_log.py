@@ -4,8 +4,8 @@ import uuid
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from dataclasses import dataclass, field, asdict
-from typing import List, Dict
+from dataclasses import dataclass, asdict
+from typing import List
 from datetime import datetime, timezone
 from collections import deque
 from app.config import get_settings

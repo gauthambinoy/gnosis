@@ -1,11 +1,14 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 import asyncio
 import signal
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
+
 from app.config import get_settings
+from app.core.api_docs import get_openapi_config as _get_docs_config
+from app.core.cors_config import get_cors_config as _get_cors_config
 from app.api import auth, agents, awakening, execute, integrations, memory, oracle, standup, events, llm, templates, system, pipelines, schedules, files, webhook_triggers, replay, marketplace, export_import, prompts, versions, rag, sso, collaboration, knowledge_graph, workspaces, billing, rpa, factory
 from app.api import security_dashboard, system_control, predictions, realworld
 from app.api import swarm as swarm_api, auto_api as auto_api_router, dreams
@@ -217,7 +220,6 @@ async def lifespan(app: FastAPI):
     logger.info("◎ Gnosis shutdown complete")
 
 
-from app.core.api_docs import get_openapi_config as _get_docs_config
 _docs_config = _get_docs_config()
 app = FastAPI(
     title=_docs_config["title"],
@@ -236,7 +238,6 @@ register_error_handlers(app)
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # CORS (configurable via CORS_ORIGINS env var)
-from app.core.cors_config import get_cors_config as _get_cors_config
 _cors = _get_cors_config()
 app.add_middleware(
     CORSMiddleware,

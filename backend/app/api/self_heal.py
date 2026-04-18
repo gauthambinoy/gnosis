@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from app.core.self_healer import self_healer_engine
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel

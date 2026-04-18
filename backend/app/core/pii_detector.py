@@ -2,7 +2,7 @@
 import re
 import logging
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
+from typing import List
 from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.pii")

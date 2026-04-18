@@ -1,7 +1,6 @@
 """Global search across all entities."""
 from fastapi import APIRouter, Depends, Query
 from app.core.auth import get_current_user_id
-from typing import Optional
 import logging
 
 logger = logging.getLogger("gnosis.search")

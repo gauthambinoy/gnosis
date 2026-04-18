@@ -1,8 +1,10 @@
 """Gnosis Time-Boxed Integration Tokens — Scoped, expiring API tokens."""
-import uuid, hashlib, logging
+import uuid
+import hashlib
+import logging
 from datetime import datetime, timezone, timedelta
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
 
 logger = logging.getLogger("gnosis.integration_tokens")
 

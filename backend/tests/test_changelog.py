@@ -1,5 +1,4 @@
 """Tests for changelog engine."""
-import pytest
 from app.core.changelog import ChangelogEngine
 
 

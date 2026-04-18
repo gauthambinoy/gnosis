@@ -70,7 +70,7 @@ class SSEBroadcaster:
                     yield f"data: {json.dumps(message)}\n\n"
                 except asyncio.TimeoutError:
                     # Send keepalive
-                    yield f": keepalive\n\n"
+                    yield ": keepalive\n\n"
         finally:
             self.unsubscribe(channel, queue)
 

@@ -1,9 +1,11 @@
 """Gnosis RAG Engine — Document ingestion, chunking, embedding, and retrieval."""
-import uuid, hashlib, logging, re
+import uuid
+import hashlib
+import logging
+import re
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from pathlib import Path
 
 logger = logging.getLogger("gnosis.rag")
 

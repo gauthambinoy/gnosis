@@ -1,7 +1,6 @@
 """Gnosis Confidence Scoring — Estimate response confidence."""
 import logging
 from dataclasses import dataclass
-from typing import Optional
 
 logger = logging.getLogger("gnosis.confidence")
 

@@ -1,7 +1,6 @@
 """Gnosis Waterfall — Track timing of each step in execution pipeline."""
 import uuid
 import logging
-from datetime import datetime, timezone
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 from collections import defaultdict

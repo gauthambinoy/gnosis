@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional
 from dataclasses import asdict
 
 from app.core.workspace import workspace_engine, Role

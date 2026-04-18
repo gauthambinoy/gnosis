@@ -270,7 +270,6 @@ class PredictiveEngine:
 
     async def suggest_agents(self, user_id: str) -> list[dict[str, Any]]:
         now = datetime.now(timezone.utc)
-        current_hour = now.strftime("%H:%M")
         current_day = now.strftime("%A").lower()
 
         suggestions: list[dict[str, Any]] = []

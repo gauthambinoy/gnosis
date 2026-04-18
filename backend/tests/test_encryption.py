@@ -1,5 +1,4 @@
 """Tests for encryption module."""
-import pytest
 from app.core.encryption import EncryptionService
 
 

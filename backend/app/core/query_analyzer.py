@@ -1,11 +1,9 @@
 """Gnosis Query Analyzer — Auto-analyze slow queries with EXPLAIN plans."""
-import time
 import logging
 import re
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
-from collections import defaultdict
 
 logger = logging.getLogger("gnosis.query_analyzer")
 

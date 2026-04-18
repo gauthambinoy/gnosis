@@ -1,6 +1,5 @@
 """Gnosis Dead Letter Queue — Failed operations with retry capability."""
 import uuid
-import json
 import logging
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional

@@ -1,8 +1,9 @@
 """Gnosis Delegated Agent Permissions — Role-based access control for agents."""
-import uuid, logging
+import uuid
+import logging
 from datetime import datetime, timezone
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import Dict, List
 
 logger = logging.getLogger("gnosis.agent_permissions")
 

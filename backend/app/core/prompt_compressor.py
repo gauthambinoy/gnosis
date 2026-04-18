@@ -1,8 +1,6 @@
 """Gnosis Prompt Compressor — Compress long prompts to fit token limits."""
 import logging
 import re
-from dataclasses import dataclass, field
-from typing import List
 
 logger = logging.getLogger("gnosis.prompt_compressor")
 

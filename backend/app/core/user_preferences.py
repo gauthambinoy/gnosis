@@ -1,7 +1,7 @@
 """Gnosis User Preferences — Per-user conversation and display settings."""
 import logging
-from dataclasses import dataclass, field, asdict
-from typing import Dict, Optional
+from dataclasses import dataclass
+from typing import Dict
 
 logger = logging.getLogger("gnosis.preferences")
 

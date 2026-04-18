@@ -1,7 +1,8 @@
 """Gnosis Prompt Optimizer — Automatically improve user prompts for better results."""
-import re, logging
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+import re
+import logging
+from dataclasses import dataclass
+from typing import Dict, List
 
 logger = logging.getLogger("gnosis.prompt_optimizer")
 

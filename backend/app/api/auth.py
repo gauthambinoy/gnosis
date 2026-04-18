@@ -11,7 +11,7 @@ from app.core.auth import (
 )
 from app.core.audit_log import audit_log
 from app.core.rate_limiter import require_rate_limit
-from app.core.database import get_db, db_available
+from app.core.database import get_db
 from app.models.user import User
 from app.schemas.auth import (
     RegisterRequest, LoginRequest, RefreshRequest,

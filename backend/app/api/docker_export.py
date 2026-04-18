@@ -1,5 +1,5 @@
 """Docker export API for agents."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from app.core.auth import get_current_user_id
 from app.core.docker_exporter import docker_exporter
 

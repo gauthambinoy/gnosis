@@ -1,5 +1,6 @@
 """Gnosis Workspaces — Multi-user organizations with role-based access."""
-import uuid, logging
+import uuid
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional

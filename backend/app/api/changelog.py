@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from app.core.changelog import changelog_engine
 from app.core.auth import get_current_user_id
 from typing import Optional

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.webhook_dispatcher import webhook_dispatcher, ALL_EVENTS
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
-from typing import List, Optional
+from typing import Optional
 
 router = APIRouter(prefix="/api/v1/webhooks", tags=["webhooks"])
 

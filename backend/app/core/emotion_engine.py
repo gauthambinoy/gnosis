@@ -1,10 +1,9 @@
 """Gnosis Emotion Engine — Detect and track emotional signals in conversations."""
 import uuid
 import logging
-import re
 from datetime import datetime, timezone
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional
+from typing import Dict, List
 from collections import defaultdict
 
 logger = logging.getLogger("gnosis.emotion")

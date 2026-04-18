@@ -2,7 +2,6 @@
 guardrails, input_sanitizer, encryption, and pagination."""
 import pytest
 from datetime import timedelta
-from unittest.mock import patch
 
 
 # ── Auth ─────────────────────────────────────────────────────────────

@@ -1,7 +1,8 @@
 """Interactive tutorial system with step-by-step walkthroughs."""
-import uuid, logging
+import uuid
+import logging
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional
+from typing import Dict, List
 from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.tutorials")

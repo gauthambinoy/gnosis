@@ -1,7 +1,8 @@
 """In-app changelog for tracking updates."""
-import uuid, logging
+import uuid
+import logging
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List
+from typing import List
 
 logger = logging.getLogger("gnosis.changelog")
 

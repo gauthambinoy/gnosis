@@ -1,9 +1,8 @@
 """Gnosis Redis Batcher — Batch multiple Redis ops into single round-trips."""
-import asyncio
 import logging
 import time
-from typing import List, Any, Optional, Dict
-from dataclasses import dataclass, field
+from typing import List, Any, Dict
+from dataclasses import dataclass
 
 logger = logging.getLogger("gnosis.redis_batcher")
 

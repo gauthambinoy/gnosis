@@ -1,7 +1,8 @@
 """Sandbox demo environment for safe experimentation."""
-import uuid, logging
+import uuid
+import logging
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List
+from typing import Dict
 from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger("gnosis.sandbox")

@@ -6,11 +6,6 @@ from app.core.logger import get_logger
 from app.core.error_response import (
     ErrorResponse,
     GnosisException,
-    NotFoundError as _NewNotFound,
-    ValidationError as _NewValidation,
-    AuthError as _NewAuth,
-    ForbiddenError as _NewForbidden,
-    RateLimitError as _NewRateLimit,
 )
 from app.middleware.request_id import get_request_id
 

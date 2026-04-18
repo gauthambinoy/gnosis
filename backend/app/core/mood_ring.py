@@ -1,8 +1,8 @@
 """Gnosis Mood Ring — Track agent mood based on recent success/failure rates."""
 import logging
 from datetime import datetime, timezone
-from dataclasses import dataclass, field, asdict
-from typing import Dict, Optional
+from dataclasses import dataclass, field
+from typing import Dict
 
 logger = logging.getLogger("gnosis.mood_ring")
 

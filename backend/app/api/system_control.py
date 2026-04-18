@@ -4,7 +4,6 @@ Secure endpoints for OS/system management.
 """
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from typing import Optional
 
 from app.core.system_control import system_control
 

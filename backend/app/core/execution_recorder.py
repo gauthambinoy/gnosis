@@ -1,5 +1,6 @@
 """Gnosis Execution Recorder — Records execution steps for replay."""
-import uuid, time, logging
+import uuid
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional

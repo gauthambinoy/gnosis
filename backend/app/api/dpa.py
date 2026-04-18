@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.dpa_registry import dpa_registry
 from app.core.auth import get_current_user_id
 from dataclasses import asdict
-from typing import Optional, List
 
 router = APIRouter(prefix="/api/v1/dpa", tags=["compliance"])
 

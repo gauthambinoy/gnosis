@@ -1,6 +1,5 @@
 """Vector store — FAISS-backed similarity search for agent memories."""
 import numpy as np
-from typing import Optional
 from dataclasses import dataclass
 
 
@@ -41,7 +40,6 @@ class VectorStore:
         self._metadata[id] = metadata or {}
 
         if self._faiss_index is not None:
-            import faiss
             self._faiss_index.add(embedding.reshape(1, -1))
             self._faiss_ids.append(id)
 
@@ -56,7 +54,6 @@ class VectorStore:
             query = query / norm
 
         if self._faiss_index is not None and self._faiss_index.ntotal > 0:
-            import faiss
             scores, indices = self._faiss_index.search(query.reshape(1, -1), min(top_k, self._faiss_index.ntotal))
             results = []
             for score, idx in zip(scores[0], indices[0]):

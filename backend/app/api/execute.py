@@ -1,7 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Body, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException
 
 from app.schemas.execute import ExecuteRequest, ExecutionResponse
 from app.core.guardrails import guardrail_engine

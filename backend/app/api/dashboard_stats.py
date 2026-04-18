@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends
 from app.core.auth import get_current_user_id
 import logging
-import time
 
 logger = logging.getLogger("gnosis.dashboard")
 

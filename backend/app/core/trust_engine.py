@@ -1,7 +1,6 @@
 """Gnosis Trust Engine — auto-evolving trust levels based on agent performance."""
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 from app.core.event_bus import event_bus, Events
 

@@ -1,6 +1,6 @@
 """Reusable pagination utilities for all list endpoints."""
 from dataclasses import dataclass
-from typing import List, Any, TypeVar, Generic
+from typing import List, Any, TypeVar
 
 T = TypeVar("T")
 

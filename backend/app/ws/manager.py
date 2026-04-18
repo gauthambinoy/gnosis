@@ -1,8 +1,6 @@
 """Centralized WebSocket connection manager for Gnosis."""
 import json
-import asyncio
 from fastapi import WebSocket
-from typing import Optional
 from datetime import datetime, timezone
 
 

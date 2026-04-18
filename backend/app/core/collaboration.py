@@ -1,5 +1,6 @@
 """Gnosis Collaboration — Multi-agent discussion rooms."""
-import uuid, asyncio, logging
+import uuid
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -89,8 +90,6 @@ class CollaborationEngine:
             raise ValueError("Room not found")
         
         # Initial prompt for each agent based on the topic
-        context_history = []
-        
         for round_num in range(room.max_rounds):
             for agent_id in room.agent_ids:
                 agent_name = room.agent_names.get(agent_id, agent_id[:8])

@@ -1,5 +1,5 @@
 """Gnosis Ollama Bridge — local-first LLM execution via Ollama."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import httpx
 

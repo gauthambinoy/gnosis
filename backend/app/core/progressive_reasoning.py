@@ -7,7 +7,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.core.memory_engine import memory_engine
-from app.core.embeddings import embedding_service
 
 
 # ---------------------------------------------------------------------------

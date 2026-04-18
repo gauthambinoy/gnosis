@@ -1,5 +1,5 @@
 """Gnosis Edge Deployment — manage lightweight edge deployment configs."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
 
