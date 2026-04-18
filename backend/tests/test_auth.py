@@ -1,16 +1,18 @@
+"""Tests for auth endpoints: register, login, refresh."""
+
+import uuid
+
 import pytest
 
 pytestmark = pytest.mark.anyio
 
-"""Tests for auth endpoints: register, login, refresh."""
-import uuid
-
 
 async def test_register_success(client, api_prefix):
     email = f"reg-{uuid.uuid4().hex[:8]}@gnosis.ai"
-    resp = await client.post(f"{api_prefix}/auth/register", json={
-        "email": email, "password": "StrongPass1!", "full_name": "Alice"
-    })
+    resp = await client.post(
+        f"{api_prefix}/auth/register",
+        json={"email": email, "password": "StrongPass1!", "full_name": "Alice"},
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert "access_token" in data
@@ -29,9 +31,13 @@ async def test_register_duplicate(client, api_prefix):
 
 
 async def test_login_success(client, api_prefix, registered_user):
-    resp = await client.post(f"{api_prefix}/auth/login", json={
-        "email": registered_user["email"], "password": registered_user["password"]
-    })
+    resp = await client.post(
+        f"{api_prefix}/auth/login",
+        json={
+            "email": registered_user["email"],
+            "password": registered_user["password"],
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["user"]["email"] == registered_user["email"]
@@ -39,23 +45,26 @@ async def test_login_success(client, api_prefix, registered_user):
 
 
 async def test_login_wrong_password(client, api_prefix, registered_user):
-    resp = await client.post(f"{api_prefix}/auth/login", json={
-        "email": registered_user["email"], "password": "WrongPassword!"
-    })
+    resp = await client.post(
+        f"{api_prefix}/auth/login",
+        json={"email": registered_user["email"], "password": "WrongPassword!"},
+    )
     assert resp.status_code == 401
 
 
 async def test_login_nonexistent(client, api_prefix):
-    resp = await client.post(f"{api_prefix}/auth/login", json={
-        "email": "nobody@nowhere.com", "password": "Whatever1!"
-    })
+    resp = await client.post(
+        f"{api_prefix}/auth/login",
+        json={"email": "nobody@nowhere.com", "password": "Whatever1!"},
+    )
     assert resp.status_code == 401
 
 
 async def test_refresh_token(client, api_prefix, registered_user):
-    resp = await client.post(f"{api_prefix}/auth/refresh", json={
-        "refresh_token": registered_user["refresh_token"]
-    })
+    resp = await client.post(
+        f"{api_prefix}/auth/refresh",
+        json={"refresh_token": registered_user["refresh_token"]},
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert "access_token" in data

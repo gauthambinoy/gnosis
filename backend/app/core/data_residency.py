@@ -1,5 +1,6 @@
 """Data Residency Control — control where data is stored geographically."""
-from dataclasses import dataclass, field, asdict
+
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 import uuid
@@ -20,14 +21,18 @@ class ResidencyPolicy:
     workspace_id: str
     region: str  # us-east / eu-west / ap-southeast
     enforced: bool = True
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class DataResidencyEngine:
     def __init__(self):
         self._policies: Dict[str, ResidencyPolicy] = {}  # workspace_id -> policy
 
-    def set_policy(self, workspace_id: str, region: str, enforced: bool = True) -> ResidencyPolicy:
+    def set_policy(
+        self, workspace_id: str, region: str, enforced: bool = True
+    ) -> ResidencyPolicy:
         if region not in REGION_IDS:
             raise ValueError(f"Invalid region: {region}. Must be one of {REGION_IDS}")
         policy = ResidencyPolicy(
@@ -53,7 +58,10 @@ class DataResidencyEngine:
             return {"valid": True, "reason": "Policy not enforced"}
         if target_region == policy.region:
             return {"valid": True, "reason": "Region matches policy"}
-        return {"valid": False, "reason": f"Data must stay in {policy.region}, got {target_region}"}
+        return {
+            "valid": False,
+            "reason": f"Data must stay in {policy.region}, got {target_region}",
+        }
 
 
 residency_engine = DataResidencyEngine()

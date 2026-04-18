@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from app.core.pipeline import pipeline_engine, PipelineStatus
+from app.core.pipeline import pipeline_engine
 from dataclasses import asdict
 from app.core.safe_error import safe_http_error
 
@@ -43,7 +43,9 @@ class ExecutePipelineRequest(BaseModel):
 @router.post("")
 async def create_pipeline(req: CreatePipelineRequest):
     steps = [s.model_dump() for s in req.steps]
-    pipeline = pipeline_engine.create_pipeline(name=req.name, description=req.description, steps=steps)
+    pipeline = pipeline_engine.create_pipeline(
+        name=req.name, description=req.description, steps=steps
+    )
     return asdict(pipeline)
 
 
@@ -84,8 +86,13 @@ async def delete_pipeline(pipeline_id: str):
 
 @router.post("/{pipeline_id}/steps")
 async def add_step(pipeline_id: str, req: AddStepRequest):
-    step = pipeline_engine.add_step(pipeline_id, req.agent_id, req.name, 
-                                     transform_input=req.transform_input, condition=req.condition)
+    step = pipeline_engine.add_step(
+        pipeline_id,
+        req.agent_id,
+        req.name,
+        transform_input=req.transform_input,
+        condition=req.condition,
+    )
     if not step:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     return asdict(step)

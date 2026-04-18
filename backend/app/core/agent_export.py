@@ -1,5 +1,7 @@
 """Gnosis Agent Export/Import — Portable agent configurations."""
-import json, uuid, logging
+
+import uuid
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -10,7 +12,11 @@ EXPORT_VERSION = "1.0"
 
 def export_agent(agent_config: dict) -> dict:
     """Export agent config as a portable JSON structure."""
-    sanitized = {k: v for k, v in agent_config.items() if k not in ("api_keys", "secrets", "internal_id")}
+    sanitized = {
+        k: v
+        for k, v in agent_config.items()
+        if k not in ("api_keys", "secrets", "internal_id")
+    }
     return {
         "gnosis_export": True,
         "version": EXPORT_VERSION,

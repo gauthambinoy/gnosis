@@ -1,7 +1,9 @@
 """Gnosis Environment Promotion — Promote agent configs between environments."""
-import uuid, logging
+
+import uuid
+import logging
 from datetime import datetime, timezone
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 logger = logging.getLogger("gnosis.env_promotion")
@@ -16,14 +18,23 @@ class PromotionRecord:
     config_snapshot: dict
     promoted_by: str
     status: str = "pending"  # pending/approved/deployed/rolled_back
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class EnvPromotionEngine:
     def __init__(self):
         self._promotions: Dict[str, PromotionRecord] = {}
 
-    def promote(self, agent_id: str, from_env: str, to_env: str, config_snapshot: dict, promoted_by: str) -> PromotionRecord:
+    def promote(
+        self,
+        agent_id: str,
+        from_env: str,
+        to_env: str,
+        config_snapshot: dict,
+        promoted_by: str,
+    ) -> PromotionRecord:
         valid_envs = ["dev", "staging", "production"]
         if from_env not in valid_envs or to_env not in valid_envs:
             raise ValueError(f"Invalid environment. Must be one of {valid_envs}")

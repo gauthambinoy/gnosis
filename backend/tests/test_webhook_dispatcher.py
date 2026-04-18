@@ -1,5 +1,5 @@
 """Tests for webhook dispatcher."""
-import pytest
+
 from app.core.webhook_dispatcher import WebhookDispatcher, ALL_EVENTS
 
 
@@ -8,7 +8,9 @@ class TestWebhookDispatcher:
         self.dispatcher = WebhookDispatcher()
 
     def test_register_endpoint(self):
-        ep = self.dispatcher.register("https://example.com/hook", ["execution.completed"])
+        ep = self.dispatcher.register(
+            "https://example.com/hook", ["execution.completed"]
+        )
         assert ep.url == "https://example.com/hook"
         assert ep.active is True
 
@@ -46,6 +48,8 @@ class TestWebhookDispatcher:
         assert ep.secret == "my-secret"
 
     def test_register_with_workspace(self):
-        ep = self.dispatcher.register("https://a.com", ["*"], workspace_id="ws-1", created_by="user-1")
+        ep = self.dispatcher.register(
+            "https://a.com", ["*"], workspace_id="ws-1", created_by="user-1"
+        )
         assert ep.workspace_id == "ws-1"
         assert ep.created_by == "user-1"

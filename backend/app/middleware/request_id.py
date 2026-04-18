@@ -43,7 +43,9 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                 "%s %s → %s (%.1fms) [%s]",
                 request.method,
                 request.url.path,
-                getattr(response, "status_code", "ERR") if "response" in dir() else "ERR",
+                getattr(response, "status_code", "ERR")
+                if "response" in dir()
+                else "ERR",
                 duration_ms,
                 rid,
             )

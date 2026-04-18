@@ -2,6 +2,7 @@
 Universal LLM Gateway — supports any provider.
 All Gnosis code calls this gateway, never providers directly.
 """
+
 import logging
 
 from abc import ABC, abstractmethod
@@ -52,6 +53,7 @@ class LLMProvider(ABC):
 # ---------------------------------------------------------------------------
 # Existing providers
 # ---------------------------------------------------------------------------
+
 
 class OpenRouterProvider(LLMProvider):
     """200+ models via OpenRouter."""
@@ -164,7 +166,9 @@ class AnthropicProvider(LLMProvider):
 class OllamaProvider(LLMProvider):
     """Local models via Ollama. Zero cost."""
 
-    def __init__(self, model: str = "llama3.2", base_url: str = "http://localhost:11434"):
+    def __init__(
+        self, model: str = "llama3.2", base_url: str = "http://localhost:11434"
+    ):
         self.model = model
         self.base_url = base_url
 
@@ -204,6 +208,7 @@ class OllamaProvider(LLMProvider):
 # ---------------------------------------------------------------------------
 # New providers — OpenAI and Google
 # ---------------------------------------------------------------------------
+
 
 class OpenAIProvider(LLMProvider):
     """OpenAI API (GPT-4o, GPT-4, etc.)."""
@@ -318,6 +323,7 @@ class GoogleProvider(LLMProvider):
 # Circuit Breaker
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class _CircuitState:
     failures: list[float] = field(default_factory=list)  # timestamps
@@ -355,6 +361,7 @@ class _CircuitState:
 # ---------------------------------------------------------------------------
 # Fallback Chain
 # ---------------------------------------------------------------------------
+
 
 class FallbackChain:
     """Wraps multiple LLMProviders with retry + circuit-breaker logic.
@@ -429,6 +436,7 @@ PROVIDERS = {
 # LLM Gateway
 # ---------------------------------------------------------------------------
 
+
 class LLMGateway:
     """The single interface all Gnosis code uses."""
 
@@ -450,9 +458,7 @@ class LLMGateway:
             raise ValueError(f"Unknown provider: {provider_name}")
 
         init_kwargs = {
-            k: v
-            for k, v in {"api_key": api_key, "model": model, **kwargs}.items()
-            if v
+            k: v for k, v in {"api_key": api_key, "model": model, **kwargs}.items() if v
         }
         self._providers[tier] = provider_class(**init_kwargs)
 

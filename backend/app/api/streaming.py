@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from app.core.llm_streamer import llm_streamer
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
-from typing import Optional
 
 router = APIRouter(prefix="/api/v1/stream", tags=["streaming"])
+
 
 class StreamRequest(BaseModel):
     prompt: str
@@ -15,8 +15,11 @@ class StreamRequest(BaseModel):
     max_tokens: int = 2048
     provider: str = "openrouter"
 
+
 @router.post("/completion")
-async def stream_completion(req: StreamRequest, user_id: str = Depends(get_current_user_id)):
+async def stream_completion(
+    req: StreamRequest, user_id: str = Depends(get_current_user_id)
+):
     return StreamingResponse(
         llm_streamer.stream_completion(
             prompt=req.prompt,
@@ -27,8 +30,13 @@ async def stream_completion(req: StreamRequest, user_id: str = Depends(get_curre
             provider=req.provider,
         ),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
+
 
 @router.get("/metrics")
 async def stream_metrics(user_id: str = Depends(get_current_user_id)):

@@ -28,13 +28,17 @@ class ExtractRequest(BaseModel):
 
 @router.post("/entities")
 async def add_entity(req: AddEntityRequest):
-    entity = knowledge_graph_engine.add_entity(req.name, req.entity_type, req.agent_id, req.properties)
+    entity = knowledge_graph_engine.add_entity(
+        req.name, req.entity_type, req.agent_id, req.properties
+    )
     return asdict(entity)
 
 
 @router.post("/relationships")
 async def add_relationship(req: AddRelationRequest):
-    rel = knowledge_graph_engine.add_relationship(req.source_name, req.target_name, req.relation_type, req.context)
+    rel = knowledge_graph_engine.add_relationship(
+        req.source_name, req.target_name, req.relation_type, req.context
+    )
     if not rel:
         raise HTTPException(status_code=400, detail="Source or target entity not found")
     return asdict(rel)

@@ -17,7 +17,10 @@ INJECTION_PATTERNS = [
     re.compile(r"<script\b", re.IGNORECASE),
     re.compile(r"javascript:", re.IGNORECASE),
     re.compile(r"on\w+\s*=", re.IGNORECASE),  # onerror=, onclick=, etc.
-    re.compile(r"(\b(union|select|insert|update|delete|drop|alter)\b.*\b(from|into|table|set)\b)", re.IGNORECASE),
+    re.compile(
+        r"(\b(union|select|insert|update|delete|drop|alter)\b.*\b(from|into|table|set)\b)",
+        re.IGNORECASE,
+    ),
     re.compile(r"--\s*$"),  # SQL comment at end
     re.compile(r";\s*(drop|delete|update|insert)\b", re.IGNORECASE),
 ]
@@ -69,7 +72,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=()"
+        )
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"
 
@@ -89,7 +94,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         # Sanitize query params for injection patterns
         bad_param = self._check_query_params(request)
         if bad_param:
-            logger.warning("Injection attempt in param '%s' from %s", bad_param, client_ip)
+            logger.warning(
+                "Injection attempt in param '%s' from %s", bad_param, client_ip
+            )
             return Response(
                 content='{"detail":"Invalid query parameter."}',
                 status_code=400,

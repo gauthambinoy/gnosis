@@ -1,5 +1,6 @@
 """Gnosis Memory GC — garbage collector for stale, duplicate, or low-value memories."""
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import time
 import uuid
@@ -26,7 +27,9 @@ class MemoryGarbageCollector:
         self._history: list[GCResult] = []
         self._scheduled: dict[str, dict] = {}
 
-    def run_gc(self, agent_id: str, min_strength: float = 0.1, max_age_days: int = 90) -> GCResult:
+    def run_gc(
+        self, agent_id: str, min_strength: float = 0.1, max_age_days: int = 90
+    ) -> GCResult:
         start = time.time()
         # Simulated GC scan
         scanned = 50

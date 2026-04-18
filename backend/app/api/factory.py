@@ -1,4 +1,5 @@
 """Gnosis Agent Factory API — Create AI agents from natural language."""
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from app.core.agent_factory import agent_factory, INTENT_TEMPLATES
@@ -7,7 +8,11 @@ router = APIRouter(prefix="/api/v1/factory", tags=["factory"])
 
 
 class AnalyzeRequest(BaseModel):
-    description: str = Field(min_length=5, max_length=2000, description="Natural language description of what you want to automate")
+    description: str = Field(
+        min_length=5,
+        max_length=2000,
+        description="Natural language description of what you want to automate",
+    )
 
 
 @router.post("/analyze")

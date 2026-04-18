@@ -17,6 +17,7 @@ from typing import Any
 # Domain models
 # ---------------------------------------------------------------------------
 
+
 class DayOfWeek(str, Enum):
     MON = "monday"
     TUE = "tuesday"
@@ -30,38 +31,47 @@ class DayOfWeek(str, Enum):
 @dataclass
 class UserPattern:
     """A detected behavioural pattern for a user."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str = ""
-    time_of_day: str = ""          # e.g. "09:00"
+    time_of_day: str = ""  # e.g. "09:00"
     day_of_week: list[str] = field(default_factory=list)
     action_sequence: list[str] = field(default_factory=list)
-    frequency: int = 0             # how many times observed
+    frequency: int = 0  # how many times observed
     last_seen: str = ""
     confidence: float = 0.0
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 @dataclass
 class Prediction:
     """A predicted agent suggestion."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str = ""
     suggested_agent: str = ""
     confidence: float = 0.0
     reasoning: str = ""
-    pattern_source: str = ""       # id of the source UserPattern
-    status: str = "pending"        # pending | accepted | dismissed
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    pattern_source: str = ""  # id of the source UserPattern
+    status: str = "pending"  # pending | accepted | dismissed
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 @dataclass
 class ActionEvent:
     """A single tracked user action."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str = ""
     action: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -184,13 +194,14 @@ PREDICTION_TEMPLATES: list[dict[str, Any]] = [
 # Engine
 # ---------------------------------------------------------------------------
 
+
 class PredictiveEngine:
     """Analyses user behaviour patterns to predict future agent needs."""
 
     def __init__(self) -> None:
-        self._actions: dict[str, list[ActionEvent]] = {}   # user_id -> events
+        self._actions: dict[str, list[ActionEvent]] = {}  # user_id -> events
         self._patterns: dict[str, list[UserPattern]] = {}  # user_id -> patterns
-        self._predictions: dict[str, Prediction] = {}      # prediction_id -> Prediction
+        self._predictions: dict[str, Prediction] = {}  # prediction_id -> Prediction
         self._dismissed: set[str] = set()
         self._accepted: set[str] = set()
         self._templates = PREDICTION_TEMPLATES
@@ -198,7 +209,9 @@ class PredictiveEngine:
 
     # -- tracking ----------------------------------------------------------
 
-    async def track_action(self, user_id: str, action: str, metadata: dict[str, Any] | None = None) -> ActionEvent:
+    async def track_action(
+        self, user_id: str, action: str, metadata: dict[str, Any] | None = None
+    ) -> ActionEvent:
         async with self._lock:
             event = ActionEvent(user_id=user_id, action=action, metadata=metadata or {})
             self._actions.setdefault(user_id, []).append(event)
@@ -228,15 +241,17 @@ class PredictiveEngine:
         for seq, freq in sequences.items():
             if freq >= 2:
                 now = datetime.now(timezone.utc)
-                patterns.append(UserPattern(
-                    user_id=user_id,
-                    action_sequence=list(seq),
-                    frequency=freq,
-                    confidence=min(0.5 + freq * 0.1, 0.99),
-                    last_seen=now.isoformat(),
-                    time_of_day=now.strftime("%H:%M"),
-                    day_of_week=[now.strftime("%A").lower()],
-                ))
+                patterns.append(
+                    UserPattern(
+                        user_id=user_id,
+                        action_sequence=list(seq),
+                        frequency=freq,
+                        confidence=min(0.5 + freq * 0.1, 0.99),
+                        last_seen=now.isoformat(),
+                        time_of_day=now.strftime("%H:%M"),
+                        day_of_week=[now.strftime("%A").lower()],
+                    )
+                )
         self._patterns[user_id] = patterns
 
     async def analyze_patterns(self, user_id: str) -> list[dict[str, Any]]:
@@ -270,7 +285,6 @@ class PredictiveEngine:
 
     async def suggest_agents(self, user_id: str) -> list[dict[str, Any]]:
         now = datetime.now(timezone.utc)
-        current_hour = now.strftime("%H:%M")
         current_day = now.strftime("%A").lower()
 
         suggestions: list[dict[str, Any]] = []
@@ -337,7 +351,9 @@ class PredictiveEngine:
             "dismissed": len(self._dismissed),
             "templates_available": len(self._templates),
             "accuracy_estimate": round(
-                len(self._accepted) / max(len(self._accepted) + len(self._dismissed), 1), 2
+                len(self._accepted)
+                / max(len(self._accepted) + len(self._dismissed), 1),
+                2,
             ),
         }
 

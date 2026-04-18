@@ -15,6 +15,7 @@ class JSONFormatter(logging.Formatter):
         # Inject request trace ID when available (lazy import to avoid circular dep)
         try:
             from app.middleware.request_id import get_request_id
+
             trace_id = get_request_id()
             if trace_id:
                 log_data["trace_id"] = trace_id
@@ -26,18 +27,20 @@ class JSONFormatter(logging.Formatter):
             log_data.update(record.extra_data)
         return json.dumps(log_data)
 
+
 def setup_logging(level: str = "INFO"):
     """Configure structured JSON logging for the entire app."""
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(JSONFormatter())
-    
+
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, level.upper()))
     root_logger.addHandler(handler)
-    
+
     # Quiet noisy loggers
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
+
 
 def get_logger(name: str) -> logging.Logger:
     """Get a named logger."""

@@ -3,7 +3,6 @@
 import json
 import hashlib
 from datetime import datetime, timezone
-from typing import Any
 
 from app.core.event_bus import event_bus
 
@@ -18,7 +17,9 @@ class AuditLog:
         self.entries: list[dict] = []
         self._last_hash: str = "genesis"
 
-    async def log(self, event_type: str, agent_id: str, details: dict, user_id: str | None = None):
+    async def log(
+        self, event_type: str, agent_id: str, details: dict, user_id: str | None = None
+    ):
         """Log an audit event with timestamp, type, agent, details, and integrity hash."""
         entry = {
             "id": len(self.entries),
@@ -71,8 +72,8 @@ class AuditLog:
                 details_summary = json.dumps(e.get("details", {}), default=str)[:200]
                 details_summary = details_summary.replace('"', '""')
                 lines.append(
-                    f'{e["id"]},{e["timestamp"]},{e["event_type"]},'
-                    f'{e["agent_id"]},{e.get("user_id", "")},'
+                    f"{e['id']},{e['timestamp']},{e['event_type']},"
+                    f"{e['agent_id']},{e.get('user_id', '')},"
                     f'"{details_summary}"'
                 )
             return "\n".join(lines)
@@ -106,6 +107,7 @@ audit_log = AuditLog()
 # ------------------------------------------------------------------
 # Event bus integration: subscribe to relevant events
 # ------------------------------------------------------------------
+
 
 async def _on_audit_event(event: dict):
     """Generic handler that logs any event bus event to the audit log."""

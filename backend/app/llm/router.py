@@ -1,11 +1,12 @@
 """Model Router — routes requests to the right tier/provider based on complexity."""
+
 import logging
 import time
 import hashlib
 import json
 from collections import OrderedDict
 from typing import AsyncIterator
-from app.llm.client import gateway, LLMResponse
+from app.llm.client import gateway
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,9 @@ class ResponseCache:
 
     @staticmethod
     def _key(messages: list[dict], tier: str = "", model: str = "") -> str:
-        content = json.dumps({"tier": tier, "model": model, "messages": messages}, sort_keys=True)
+        content = json.dumps(
+            {"tier": tier, "model": model, "messages": messages}, sort_keys=True
+        )
         return hashlib.sha256(content.encode()).hexdigest()
 
     def get(self, messages: list[dict], tier: str = "", model: str = "") -> dict | None:
@@ -38,13 +41,16 @@ class ResponseCache:
         self._misses += 1
         return None
 
-    async def get_with_redis(self, messages: list[dict], tier: str = "", model: str = "") -> dict | None:
+    async def get_with_redis(
+        self, messages: list[dict], tier: str = "", model: str = ""
+    ) -> dict | None:
         """Check in-memory first, then Redis."""
         mem = self.get(messages, tier, model)
         if mem is not None:
             return mem
         try:
             from app.core.redis_client import redis_manager
+
             if redis_manager.available:
                 key = self._key(messages, tier, model)
                 data = await redis_manager.get(f"llm_cache:{key}")
@@ -68,16 +74,21 @@ class ResponseCache:
             self._cache.popitem(last=False)
         self._cache[key] = response
 
-    def set(self, messages: list[dict], response: dict, tier: str = "", model: str = ""):
+    def set(
+        self, messages: list[dict], response: dict, tier: str = "", model: str = ""
+    ):
         key = self._key(messages, tier, model)
         self._set_memory(key, response)
 
-    async def set_with_redis(self, messages: list[dict], response: dict, tier: str = "", model: str = ""):
+    async def set_with_redis(
+        self, messages: list[dict], response: dict, tier: str = "", model: str = ""
+    ):
         """Write to both in-memory and Redis."""
         key = self._key(messages, tier, model)
         self._set_memory(key, response)
         try:
             from app.core.redis_client import redis_manager
+
             if redis_manager.available:
                 await redis_manager.set(
                     f"llm_cache:{key}",
@@ -130,19 +141,47 @@ COMPLEXITY_TO_TIER = {
 # Keyword heuristics for classify_complexity(trigger_data)
 # ---------------------------------------------------------------------------
 DEEP_KEYWORDS = [
-    "analyze", "compare", "strategy", "architecture", "plan", "debug",
-    "investigate", "diagnose", "complex", "multi-step",
+    "analyze",
+    "compare",
+    "strategy",
+    "architecture",
+    "plan",
+    "debug",
+    "investigate",
+    "diagnose",
+    "complex",
+    "multi-step",
 ]
 STANDARD_KEYWORDS = [
-    "summarize", "draft", "review", "explain", "describe", "generate",
-    "write", "update", "create",
+    "summarize",
+    "draft",
+    "review",
+    "explain",
+    "describe",
+    "generate",
+    "write",
+    "update",
+    "create",
 ]
 CLASSIFY_KEYWORDS = [
-    "classify", "categorize", "label", "tag", "route", "triage", "sort",
-    "yes", "no",
+    "classify",
+    "categorize",
+    "label",
+    "tag",
+    "route",
+    "triage",
+    "sort",
+    "yes",
+    "no",
 ]
 REFLEX_KEYWORDS = [
-    "ack", "ok", "thanks", "ping", "hello", "hi", "status",
+    "ack",
+    "ok",
+    "thanks",
+    "ping",
+    "hello",
+    "hi",
+    "status",
 ]
 
 # Default fallback chain order per tier
@@ -303,11 +342,16 @@ class ModelRouter:
 
         # Cache the response (in-memory + Redis)
         if full_response:
-            await self.cache.set_with_redis(messages, {
-                "content": full_response,
-                "tier": tier,
-                "latency_ms": latency_ms,
-            }, tier, model=tier)
+            await self.cache.set_with_redis(
+                messages,
+                {
+                    "content": full_response,
+                    "tier": tier,
+                    "latency_ms": latency_ms,
+                },
+                tier,
+                model=tier,
+            )
 
         # Track token usage
         self._cost_tracker["requests"] += 1

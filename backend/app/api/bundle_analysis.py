@@ -1,4 +1,5 @@
 """Bundle analysis API."""
+
 from fastapi import APIRouter, Depends
 from app.core.auth import get_current_user_id
 from app.core.bundle_analyzer import bundle_analyzer

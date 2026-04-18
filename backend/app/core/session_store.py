@@ -47,7 +47,8 @@ class SessionStore:
             await redis_manager.delete(f"user_sessions:{user_id}")
         else:
             to_remove = [
-                jti for jti, s in self._memory_sessions.items()
+                jti
+                for jti, s in self._memory_sessions.items()
                 if s.get("user_id") == user_id
             ]
             for jti in to_remove:

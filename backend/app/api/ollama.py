@@ -1,4 +1,5 @@
 """Ollama local LLM bridge API."""
+
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
 from app.core.ollama_bridge import ollama_bridge

@@ -29,9 +29,12 @@ async def test_get_template_not_found(client, api_prefix):
 
 
 async def test_deploy_template(client, api_prefix):
-    resp = await client.post(f"{api_prefix}/templates/email-triage/deploy", json={
-        "name": "My Email Agent",
-    })
+    resp = await client.post(
+        f"{api_prefix}/templates/email-triage/deploy",
+        json={
+            "name": "My Email Agent",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "deployed"

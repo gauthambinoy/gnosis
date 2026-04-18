@@ -3,8 +3,8 @@ Gnosis RPA Engine — Record & Replay Browser Automation
 Records user actions (click, type, scroll, navigate, wait, screenshot)
 and replays them via Playwright or generates executable scripts.
 """
+
 import asyncio
-import json
 import time
 import uuid
 from dataclasses import dataclass, field, asdict
@@ -113,6 +113,7 @@ class RPAEngine:
     def _check_playwright(self):
         try:
             import playwright  # noqa: F401
+
             self._playwright_available = True
         except ImportError:
             self._playwright_available = False
@@ -147,9 +148,14 @@ class RPAEngine:
             element_class=action.get("element_class", ""),
         )
         self._recordings[session_id].append(recorded)
-        return {"action_id": recorded.id, "index": len(self._recordings[session_id]) - 1}
+        return {
+            "action_id": recorded.id,
+            "index": len(self._recordings[session_id]) - 1,
+        }
 
-    def stop_recording(self, session_id: str, name: str = "", description: str = "") -> Optional[dict]:
+    def stop_recording(
+        self, session_id: str, name: str = "", description: str = ""
+    ) -> Optional[dict]:
         """Stop recording and save as a workflow."""
         if session_id not in self._recordings:
             return None
@@ -205,7 +211,16 @@ class RPAEngine:
         wf = self._workflows.get(workflow_id)
         if not wf:
             return None
-        for key in ["name", "description", "actions", "variables", "start_url", "tags", "schedule", "status"]:
+        for key in [
+            "name",
+            "description",
+            "actions",
+            "variables",
+            "start_url",
+            "tags",
+            "schedule",
+            "status",
+        ]:
             if key in data:
                 setattr(wf, key, data[key])
         wf.updated_at = time.time()
@@ -255,7 +270,9 @@ class RPAEngine:
             else:
                 await self._execute_simulated(wf, result, exec_vars)
 
-            result.status = "completed" if result.actions_failed == 0 else "completed_with_errors"
+            result.status = (
+                "completed" if result.actions_failed == 0 else "completed_with_errors"
+            )
         except Exception as e:
             result.status = "failed"
             result.error = str(e)
@@ -271,7 +288,9 @@ class RPAEngine:
             if wf.avg_duration_ms == 0:
                 wf.avg_duration_ms = result.duration_ms
             else:
-                wf.avg_duration_ms = (wf.avg_duration_ms * 0.8) + (result.duration_ms * 0.2)
+                wf.avg_duration_ms = (wf.avg_duration_ms * 0.8) + (
+                    result.duration_ms * 0.2
+                )
 
         return asdict(result)
 
@@ -326,14 +345,25 @@ class RPAEngine:
                     elif action_type == "hover":
                         await page.hover(selector, timeout=10000)
                     elif action_type == "scroll":
-                        await page.evaluate(f"window.scrollBy(0, {action_data.get('y', 300)})")
+                        await page.evaluate(
+                            f"window.scrollBy(0, {action_data.get('y', 300)})"
+                        )
                     elif action_type == "extract_text":
                         text = await page.text_content(selector)
-                        result.extracted_data.append({"selector": selector, "text": text, "index": i})
+                        result.extracted_data.append(
+                            {"selector": selector, "text": text, "index": i}
+                        )
                     elif action_type == "extract_attribute":
                         attr = action_data.get("value", "href")
                         val = await page.get_attribute(selector, attr)
-                        result.extracted_data.append({"selector": selector, "attribute": attr, "value": val, "index": i})
+                        result.extracted_data.append(
+                            {
+                                "selector": selector,
+                                "attribute": attr,
+                                "value": val,
+                                "index": i,
+                            }
+                        )
                     elif action_type == "assert_text":
                         text = await page.text_content(selector)
                         if value not in (text or ""):
@@ -344,11 +374,26 @@ class RPAEngine:
                             raise AssertionError(f"Element {selector} not visible")
 
                     result.actions_completed += 1
-                    result.logs.append({"action": action_type, "selector": selector, "status": "ok", "index": i})
+                    result.logs.append(
+                        {
+                            "action": action_type,
+                            "selector": selector,
+                            "status": "ok",
+                            "index": i,
+                        }
+                    )
 
                 except Exception as e:
                     result.actions_failed += 1
-                    result.logs.append({"action": action_type, "selector": selector, "status": "error", "error": str(e), "index": i})
+                    result.logs.append(
+                        {
+                            "action": action_type,
+                            "selector": selector,
+                            "status": "error",
+                            "error": str(e),
+                            "index": i,
+                        }
+                    )
 
                 wait_after = action_data.get("wait_after_ms", 500)
                 if wait_after > 0:
@@ -366,11 +411,15 @@ class RPAEngine:
             result.current_action = f"{action_type}: {selector}"
             await asyncio.sleep(0.1)  # Simulate action time
             result.actions_completed += 1
-            result.logs.append({
-                "action": action_type, "selector": selector,
-                "status": "simulated", "index": i,
-                "note": "Install playwright for real browser automation: pip install playwright && playwright install chromium",
-            })
+            result.logs.append(
+                {
+                    "action": action_type,
+                    "selector": selector,
+                    "status": "simulated",
+                    "index": i,
+                    "note": "Install playwright for real browser automation: pip install playwright && playwright install chromium",
+                }
+            )
         result.status = "completed_simulated"
 
     def _interpolate(self, text: str, variables: dict) -> str:
@@ -447,22 +496,30 @@ class RPAEngine:
             elif at == "navigate":
                 lines.append(f'        await page.goto("{val}")')
             elif at == "wait":
-                lines.append(f"        await asyncio.sleep({float(val) / 1000 if val else 1})")
+                lines.append(
+                    f"        await asyncio.sleep({float(val) / 1000 if val else 1})"
+                )
             elif at == "wait_for_selector":
                 lines.append(f'        await page.wait_for_selector("{sel}")')
             elif at == "screenshot":
-                lines.append(f"        await page.screenshot(path=\"screenshot_{action.get('id', '')}.png\")")
+                lines.append(
+                    f'        await page.screenshot(path="screenshot_{action.get("id", "")}.png")'
+                )
             elif at == "select":
                 lines.append(f'        await page.select_option("{sel}", "{val}")')
             elif at == "hover":
                 lines.append(f'        await page.hover("{sel}")')
             elif at == "scroll":
-                lines.append(f"        await page.evaluate(\"window.scrollBy(0, {action.get('y', 300)})\")")
+                lines.append(
+                    f'        await page.evaluate("window.scrollBy(0, {action.get("y", 300)})")'
+                )
             elif at == "extract_text":
                 lines.append(f'        text = await page.text_content("{sel}")')
                 lines.append('        print(f"Extracted: {text}")')
             elif at == "assert_text":
-                lines.append(f'        assert "{val}" in await page.text_content("{sel}")')
+                lines.append(
+                    f'        assert "{val}" in await page.text_content("{sel}")'
+                )
             elif at == "assert_visible":
                 lines.append(f'        assert await page.is_visible("{sel}")')
 
@@ -471,11 +528,13 @@ class RPAEngine:
                 lines.append(f"        await asyncio.sleep({wait_after / 1000})")
             lines.append("")
 
-        lines.extend([
-            "        await browser.close()",
-            "",
-            "asyncio.run(run())",
-        ])
+        lines.extend(
+            [
+                "        await browser.close()",
+                "",
+                "asyncio.run(run())",
+            ]
+        )
         return "\n".join(lines)
 
     def get_stats(self) -> dict:

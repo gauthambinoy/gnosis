@@ -4,7 +4,12 @@ from typing import Optional
 
 class FactoryRequest(BaseModel):
     """Natural language description of what to automate."""
-    description: str = Field(min_length=5, max_length=2000, description="Natural language description of what you want to automate")
+
+    description: str = Field(
+        min_length=5,
+        max_length=2000,
+        description="Natural language description of what you want to automate",
+    )
 
 
 class AgentBlueprintSchema(BaseModel):
@@ -20,6 +25,7 @@ class AgentBlueprintSchema(BaseModel):
 
 class FactoryPlanResponse(BaseModel):
     """A deployment plan returned by the factory."""
+
     model_config = {"extra": "allow"}
 
     id: str
@@ -40,6 +46,7 @@ class FactoryPlanResponse(BaseModel):
 
 class FactoryDeployResponse(BaseModel):
     """Result of deploying a plan."""
+
     model_config = {"extra": "allow"}
 
     status: str

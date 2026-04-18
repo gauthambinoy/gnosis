@@ -17,8 +17,13 @@ from app.models.agent import Agent, AgentStatus
 from app.models.memory import Memory, MemoryTier
 from app.core.memory_engine import memory_engine
 from app.schemas.agents import (
-    CreateAgentRequest, UpdateAgentRequest, AgentResponse,
-    AgentListResponse, ExecuteResponse, CorrectRequest, CorrectResponse,
+    CreateAgentRequest,
+    UpdateAgentRequest,
+    AgentResponse,
+    AgentListResponse,
+    ExecuteResponse,
+    CorrectRequest,
+    CorrectResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,6 +40,7 @@ _agents_lock = asyncio.Lock()
 
 def _use_db() -> bool:
     from app.core.database import db_available as _flag
+
     return _flag
 
 
@@ -46,7 +52,9 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         description=agent.description,
         personality=agent.personality or "professional",
         avatar_emoji=agent.avatar_emoji or "◎",
-        status=agent.status.value if isinstance(agent.status, AgentStatus) else str(agent.status),
+        status=agent.status.value
+        if isinstance(agent.status, AgentStatus)
+        else str(agent.status),
         trigger_type=agent.trigger_type or "manual",
         trust_level=agent.trust_level or 0,
         total_executions=agent.total_executions or 0,
@@ -61,8 +69,12 @@ def _agent_to_response(agent: Agent) -> AgentResponse:
         memory_count=agent.memory_count or 0,
         integrations=agent.integrations or [],
         guardrails=agent.guardrails or [],
-        created_at=agent.created_at.isoformat() if agent.created_at else datetime.now(timezone.utc).isoformat(),
-        updated_at=agent.updated_at.isoformat() if agent.updated_at else datetime.now(timezone.utc).isoformat(),
+        created_at=agent.created_at.isoformat()
+        if agent.created_at
+        else datetime.now(timezone.utc).isoformat(),
+        updated_at=agent.updated_at.isoformat()
+        if agent.updated_at
+        else datetime.now(timezone.utc).isoformat(),
     )
 
 
@@ -99,6 +111,7 @@ def _make_agent_dict(data: CreateAgentRequest, owner_id: str) -> dict:
 # Helper: get agent scoped to the authenticated owner
 # ---------------------------------------------------------------------------
 
+
 async def _get_owned_agent(agent_id: str, user_id: str, db: AsyncSession) -> Agent:
     """Fetch an agent from DB, raising 404 if not found or not owned by user."""
     try:
@@ -106,7 +119,9 @@ async def _get_owned_agent(agent_id: str, user_id: str, db: AsyncSession) -> Age
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid agent ID format")
     result = await db.execute(
-        select(Agent).where(Agent.id == agent_uuid, Agent.owner_id == uuid.UUID(user_id))
+        select(Agent).where(
+            Agent.id == agent_uuid, Agent.owner_id == uuid.UUID(user_id)
+        )
     )
     agent = result.scalars().first()
     if not agent:
@@ -141,16 +156,22 @@ async def create_agent(
         )
         db.add(agent)
         await db.flush()
-        await event_bus.emit(Events.AGENT_CREATED, {"agent_id": str(agent.id), "name": agent.name})
+        await event_bus.emit(
+            Events.AGENT_CREATED, {"agent_id": str(agent.id), "name": agent.name}
+        )
         resp = _agent_to_response(agent)
-        version_manager.save_version(str(agent.id), resp.model_dump(), change_summary="Agent created")
+        version_manager.save_version(
+            str(agent.id), resp.model_dump(), change_summary="Agent created"
+        )
         return resp
 
     # Fallback (demo mode)
     agent = _make_agent_dict(data, owner_id=user_id)
     async with _agents_lock:
         _agents[agent["id"]] = agent
-    await event_bus.emit(Events.AGENT_CREATED, {"agent_id": agent["id"], "name": agent["name"]})
+    await event_bus.emit(
+        Events.AGENT_CREATED, {"agent_id": agent["id"], "name": agent["name"]}
+    )
     version_manager.save_version(agent["id"], agent, change_summary="Agent created")
     return AgentResponse(**agent)
 
@@ -178,7 +199,9 @@ async def list_agents(
         agents = result.scalars().all()
         return AgentListResponse(
             agents=[_agent_to_response(a) for a in agents],
-            total=total, page=page, per_page=per_page,
+            total=total,
+            page=page,
+            per_page=per_page,
         )
 
     # Fallback
@@ -189,8 +212,10 @@ async def list_agents(
     total = len(agents)
     start = (page - 1) * per_page
     return AgentListResponse(
-        agents=[AgentResponse(**a) for a in agents[start:start + per_page]],
-        total=total, page=page, per_page=per_page,
+        agents=[AgentResponse(**a) for a in agents[start : start + per_page]],
+        total=total,
+        page=page,
+        per_page=per_page,
     )
 
 
@@ -228,7 +253,9 @@ async def update_agent(
         await db.flush()
         await event_bus.emit(Events.AGENT_UPDATED, {"agent_id": agent_id, **updates})
         resp = _agent_to_response(agent)
-        version_manager.save_version(agent_id, resp.model_dump(), change_summary="Agent updated")
+        version_manager.save_version(
+            agent_id, resp.model_dump(), change_summary="Agent updated"
+        )
         return resp
 
     async with _agents_lock:
@@ -292,14 +319,19 @@ async def trigger_execution(
                 detail=f"Guardrail violation: {blocking[0].get('description', 'Blocked by safety check')}",
             )
     for w in guardrail_result.get("warnings", []):
-        logger.warning("Guardrail warning for agent %s: %s", agent_id, w.get("description"))
+        logger.warning(
+            "Guardrail warning for agent %s: %s", agent_id, w.get("description")
+        )
 
     if _use_db():
         agent = await _get_owned_agent(agent_id, user_id, db)
         execution_id = str(uuid.uuid4())
         agent.status = AgentStatus.active
         agent.total_executions = (agent.total_executions or 0) + 1
-        await event_bus.emit(Events.EXECUTION_STARTED, {"execution_id": execution_id, "agent_id": agent_id})
+        await event_bus.emit(
+            Events.EXECUTION_STARTED,
+            {"execution_id": execution_id, "agent_id": agent_id},
+        )
         agent.successful_executions = (agent.successful_executions or 0) + 1
         agent.status = AgentStatus.idle
         total = agent.total_executions
@@ -307,8 +339,15 @@ async def trigger_execution(
         agent.accuracy = success / total if total > 0 else 0.0
         agent.time_saved_minutes = (agent.time_saved_minutes or 0.0) + 2.5
         await db.flush()
-        await event_bus.emit(Events.EXECUTION_COMPLETED, {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"})
-        return {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"}
+        await event_bus.emit(
+            Events.EXECUTION_COMPLETED,
+            {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"},
+        )
+        return {
+            "execution_id": execution_id,
+            "agent_id": agent_id,
+            "status": "completed",
+        }
 
     # Fallback
     async with _agents_lock:
@@ -318,7 +357,9 @@ async def trigger_execution(
         execution_id = str(uuid.uuid4())
         a["status"] = "active"
         a["total_executions"] += 1
-    await event_bus.emit(Events.EXECUTION_STARTED, {"execution_id": execution_id, "agent_id": agent_id})
+    await event_bus.emit(
+        Events.EXECUTION_STARTED, {"execution_id": execution_id, "agent_id": agent_id}
+    )
     async with _agents_lock:
         a = _agents.get(agent_id)
         if a:
@@ -329,7 +370,10 @@ async def trigger_execution(
             a["accuracy"] = success / total if total > 0 else 0.0
             a["time_saved_minutes"] += 2.5
             a["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await event_bus.emit(Events.EXECUTION_COMPLETED, {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"})
+    await event_bus.emit(
+        Events.EXECUTION_COMPLETED,
+        {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"},
+    )
     return {"execution_id": execution_id, "agent_id": agent_id, "status": "completed"}
 
 
@@ -351,16 +395,29 @@ async def correct_agent(
             agent_id=agent.id,
             tier=MemoryTier.correction,
             content=f"CORRECTION: do NOT '{original}', instead '{correction}'",
-            extra_metadata={"original": original, "correction": correction, "context": context},
+            extra_metadata={
+                "original": original,
+                "correction": correction,
+                "context": context,
+            },
         )
         db.add(mem)
         agent.memory_count = (agent.memory_count or 0) + 1
         await db.flush()
         try:
-            await memory_engine.store_correction(agent_id, original, correction, context)
+            await memory_engine.store_correction(
+                agent_id, original, correction, context
+            )
         except Exception:
-            logger.warning("Failed to store correction in vector engine for agent %s", agent_id, exc_info=True)
-        await event_bus.emit(Events.CORRECTION_RECEIVED, {"agent_id": agent_id, "original": original, "correction": correction})
+            logger.warning(
+                "Failed to store correction in vector engine for agent %s",
+                agent_id,
+                exc_info=True,
+            )
+        await event_bus.emit(
+            Events.CORRECTION_RECEIVED,
+            {"agent_id": agent_id, "original": original, "correction": correction},
+        )
         return {"status": "correction_stored", "agent_id": agent_id}
 
     # Fallback
@@ -370,5 +427,8 @@ async def correct_agent(
             raise HTTPException(status_code=404, detail="Agent not found")
         a["total_corrections"] += 1
         a["updated_at"] = datetime.now(timezone.utc).isoformat()
-    await event_bus.emit(Events.CORRECTION_RECEIVED, {"agent_id": agent_id, "original": original, "correction": correction})
+    await event_bus.emit(
+        Events.CORRECTION_RECEIVED,
+        {"agent_id": agent_id, "original": original, "correction": correction},
+    )
     return {"status": "correction_stored", "agent_id": agent_id}

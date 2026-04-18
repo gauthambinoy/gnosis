@@ -1,4 +1,5 @@
 """Execution priority queue API."""
+
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
 from app.core.exec_queue import execution_queue
@@ -35,5 +36,7 @@ async def get_queue_position(item_id: str, user_id: str = Depends(get_current_us
 @router.delete("/{item_id}")
 async def cancel_execution(item_id: str, user_id: str = Depends(get_current_user_id)):
     if not execution_queue.cancel(item_id):
-        raise HTTPException(status_code=404, detail="Item not found or already processed")
+        raise HTTPException(
+            status_code=404, detail="Item not found or already processed"
+        )
     return {"id": item_id, "status": "cancelled"}

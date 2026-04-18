@@ -5,7 +5,10 @@ from typing import Optional, List
 class ScheduleCreate(BaseModel):
     agent_id: str
     name: str = Field(min_length=1, max_length=200)
-    cron_expression: str = Field(min_length=1, description="Cron expression or simplified: 'every:5m', 'daily:09:00', 'hourly'")
+    cron_expression: str = Field(
+        min_length=1,
+        description="Cron expression or simplified: 'every:5m', 'daily:09:00', 'hourly'",
+    )
     input_data: dict = Field(default_factory=dict)
     max_runs: Optional[int] = Field(None, ge=1)
 

@@ -8,7 +8,11 @@ router = APIRouter(prefix="/api/v1/data-flow", tags=["data-flow"])
 
 
 @router.get("")
-async def get_flows(source: Optional[str] = None, destination: Optional[str] = None, user_id: str = Depends(get_current_user_id)):
+async def get_flows(
+    source: Optional[str] = None,
+    destination: Optional[str] = None,
+    user_id: str = Depends(get_current_user_id),
+):
     return {"flows": data_flow_engine.get_flows(source=source, destination=destination)}
 
 

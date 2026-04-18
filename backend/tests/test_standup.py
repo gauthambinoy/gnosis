@@ -11,7 +11,9 @@ async def test_standup_daily(client, api_prefix):
     data = resp.json()
     assert isinstance(data, dict)
     # Should have standup report fields
-    assert any(k in data for k in ("date", "summary", "agents", "total_executions", "period"))
+    assert any(
+        k in data for k in ("date", "summary", "agents", "total_executions", "period")
+    )
 
 
 async def test_standup_today(client, api_prefix):

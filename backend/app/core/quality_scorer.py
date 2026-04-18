@@ -1,4 +1,5 @@
 """Gnosis Quality Scorer — Score LLM responses on relevance, coherence, completeness."""
+
 import uuid
 import logging
 import re
@@ -19,7 +20,9 @@ class QualityScore:
     completeness: float = 0.0  # 0-1
     overall: float = 0.0  # 0-1
     feedback: str = ""
-    scored_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    scored_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class QualityScorerEngine:
@@ -27,24 +30,35 @@ class QualityScorerEngine:
         self._scores: Dict[str, List[QualityScore]] = defaultdict(list)
 
     def _score_relevance(self, prompt: str, response: str) -> float:
-        prompt_words = set(re.findall(r'\b\w{3,}\b', prompt.lower()))
-        response_words = set(re.findall(r'\b\w{3,}\b', response.lower()))
+        prompt_words = set(re.findall(r"\b\w{3,}\b", prompt.lower()))
+        response_words = set(re.findall(r"\b\w{3,}\b", response.lower()))
         if not prompt_words:
             return 0.5
         overlap = len(prompt_words & response_words)
         return min(1.0, round(overlap / max(1, len(prompt_words)) * 1.5, 2))
 
     def _score_coherence(self, response: str) -> float:
-        sentences = re.split(r'[.!?]+', response)
+        sentences = re.split(r"[.!?]+", response)
         sentences = [s.strip() for s in sentences if s.strip()]
         if len(sentences) <= 1:
             return 0.7
         score = 0.6
         if len(sentences) >= 2:
             score += 0.1
-        if any(w in response.lower() for w in ["first", "second", "then", "next", "finally", "therefore", "however"]):
+        if any(
+            w in response.lower()
+            for w in [
+                "first",
+                "second",
+                "then",
+                "next",
+                "finally",
+                "therefore",
+                "however",
+            ]
+        ):
             score += 0.15
-        if not re.search(r'(.{10,})\1', response):
+        if not re.search(r"(.{10,})\1", response):
             score += 0.1
         return min(1.0, round(score, 2))
 
@@ -60,15 +74,19 @@ class QualityScorerEngine:
             base = 0.7
         else:
             base = 0.8
-        question_marks = prompt.count('?')
+        question_marks = prompt.count("?")
         if question_marks > 0:
-            answer_indicators = sum(1 for w in ["because", "is", "are", "the answer", "result"]
-                                    if w in response.lower())
+            answer_indicators = sum(
+                1
+                for w in ["because", "is", "are", "the answer", "result"]
+                if w in response.lower()
+            )
             base += min(0.2, answer_indicators * 0.05)
         return min(1.0, round(base, 2))
 
-    def score_response(self, prompt: str, response: str, execution_id: str = "",
-                       agent_id: str = "") -> QualityScore:
+    def score_response(
+        self, prompt: str, response: str, execution_id: str = "", agent_id: str = ""
+    ) -> QualityScore:
         relevance = self._score_relevance(prompt, response)
         coherence = self._score_coherence(response)
         completeness = self._score_completeness(prompt, response)
@@ -86,12 +104,18 @@ class QualityScorerEngine:
         feedback = "; ".join(feedback_parts) if feedback_parts else "Acceptable quality"
 
         score = QualityScore(
-            execution_id=execution_id, relevance=relevance, coherence=coherence,
-            completeness=completeness, overall=overall, feedback=feedback,
+            execution_id=execution_id,
+            relevance=relevance,
+            coherence=coherence,
+            completeness=completeness,
+            overall=overall,
+            feedback=feedback,
         )
         if agent_id:
             self._scores[agent_id].append(score)
-        logger.info(f"Quality score: overall={overall} (rel={relevance}, coh={coherence}, comp={completeness})")
+        logger.info(
+            f"Quality score: overall={overall} (rel={relevance}, coh={coherence}, comp={completeness})"
+        )
         return score
 
     def get_history(self, agent_id: str, limit: int = 50) -> List[dict]:

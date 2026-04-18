@@ -1,4 +1,5 @@
 """Gnosis Time-Travel Debugger — Replay agent executions step-by-step."""
+
 import uuid
 import logging
 from dataclasses import dataclass, field, asdict
@@ -6,6 +7,7 @@ from typing import Dict, List, Optional
 from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.time_travel")
+
 
 @dataclass
 class DebugFrame:
@@ -16,6 +18,7 @@ class DebugFrame:
     data: dict = field(default_factory=dict)
     duration_ms: float = 0
 
+
 @dataclass
 class DebugSession:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -23,11 +26,14 @@ class DebugSession:
     agent_id: str = ""
     frames: List[DebugFrame] = field(default_factory=list)
     total_duration_ms: float = 0
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
 
 class TimeTravelDebugger:
     """Records and replays agent execution traces frame-by-frame."""
-    
+
     def __init__(self):
         self._sessions: Dict[str, DebugSession] = {}
         self._active_recordings: Dict[str, DebugSession] = {}  # execution_id -> session
@@ -35,10 +41,19 @@ class TimeTravelDebugger:
     def start_recording(self, execution_id: str, agent_id: str) -> str:
         session = DebugSession(execution_id=execution_id, agent_id=agent_id)
         self._active_recordings[execution_id] = session
-        logger.info(f"Debug recording started: {session.id} for execution {execution_id}")
+        logger.info(
+            f"Debug recording started: {session.id} for execution {execution_id}"
+        )
         return session.id
 
-    def record_frame(self, execution_id: str, phase: str, label: str, data: dict = None, duration_ms: float = 0):
+    def record_frame(
+        self,
+        execution_id: str,
+        phase: str,
+        label: str,
+        data: dict = None,
+        duration_ms: float = 0,
+    ):
         session = self._active_recordings.get(execution_id)
         if not session:
             return
@@ -57,7 +72,9 @@ class TimeTravelDebugger:
         if session:
             session.total_duration_ms = sum(f.duration_ms for f in session.frames)
             self._sessions[session.id] = session
-            logger.info(f"Debug recording complete: {session.id}, {len(session.frames)} frames")
+            logger.info(
+                f"Debug recording complete: {session.id}, {len(session.frames)} frames"
+            )
         return session
 
     def get_session(self, session_id: str) -> Optional[dict]:
@@ -70,11 +87,13 @@ class TimeTravelDebugger:
             return asdict(session.frames[frame_index])
         return None
 
-    def get_frames_range(self, session_id: str, start: int = 0, end: int = -1) -> List[dict]:
+    def get_frames_range(
+        self, session_id: str, start: int = 0, end: int = -1
+    ) -> List[dict]:
         session = self._sessions.get(session_id)
         if not session:
             return []
-        frames = session.frames[start:end if end > 0 else len(session.frames)]
+        frames = session.frames[start : end if end > 0 else len(session.frames)]
         return [asdict(f) for f in frames]
 
     def list_sessions(self, agent_id: str = None, limit: int = 20) -> List[dict]:
@@ -82,9 +101,21 @@ class TimeTravelDebugger:
         if agent_id:
             sessions = [s for s in sessions if s.agent_id == agent_id]
         sessions.sort(key=lambda s: s.created_at, reverse=True)
-        return [{"id": s.id, "execution_id": s.execution_id, "agent_id": s.agent_id, "frame_count": len(s.frames), "total_duration_ms": s.total_duration_ms, "created_at": s.created_at} for s in sessions[:limit]]
+        return [
+            {
+                "id": s.id,
+                "execution_id": s.execution_id,
+                "agent_id": s.agent_id,
+                "frame_count": len(s.frames),
+                "total_duration_ms": s.total_duration_ms,
+                "created_at": s.created_at,
+            }
+            for s in sessions[:limit]
+        ]
 
-    def search_frames(self, session_id: str, phase: str = None, label_contains: str = None) -> List[dict]:
+    def search_frames(
+        self, session_id: str, phase: str = None, label_contains: str = None
+    ) -> List[dict]:
         session = self._sessions.get(session_id)
         if not session:
             return []
@@ -94,5 +125,6 @@ class TimeTravelDebugger:
         if label_contains:
             frames = [f for f in frames if label_contains.lower() in f.label.lower()]
         return [asdict(f) for f in frames]
+
 
 time_travel_debugger = TimeTravelDebugger()

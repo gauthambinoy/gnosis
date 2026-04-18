@@ -1,9 +1,11 @@
 """Gnosis Version Manager — Track and rollback agent configuration versions."""
-import uuid, copy, logging
+
+import uuid
+import copy
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from enum import Enum
 
 logger = logging.getLogger("gnosis.versions")
 
@@ -15,7 +17,9 @@ class AgentVersion:
     version_number: int
     config_snapshot: dict  # Full agent config at this point
     change_summary: str = ""
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     created_by: Optional[str] = None
     is_current: bool = False
 
@@ -26,7 +30,13 @@ class VersionManager:
     def __init__(self):
         self._versions: Dict[str, List[AgentVersion]] = {}  # agent_id -> versions list
 
-    def save_version(self, agent_id: str, config: dict, change_summary: str = "", created_by: str = None) -> AgentVersion:
+    def save_version(
+        self,
+        agent_id: str,
+        config: dict,
+        change_summary: str = "",
+        created_by: str = None,
+    ) -> AgentVersion:
         """Auto-save a new version when agent config changes."""
         if agent_id not in self._versions:
             self._versions[agent_id] = []
@@ -57,7 +67,9 @@ class VersionManager:
                 return v
         return None
 
-    def get_version_by_number(self, agent_id: str, version_number: int) -> Optional[AgentVersion]:
+    def get_version_by_number(
+        self, agent_id: str, version_number: int
+    ) -> Optional[AgentVersion]:
         for v in self._versions.get(agent_id, []):
             if v.version_number == version_number:
                 return v
@@ -91,7 +103,9 @@ class VersionManager:
             return {"error": "Version not found"}
 
         added, removed, changed = {}, {}, {}
-        all_keys = set(list(va.config_snapshot.keys()) + list(vb.config_snapshot.keys()))
+        all_keys = set(
+            list(va.config_snapshot.keys()) + list(vb.config_snapshot.keys())
+        )
 
         for key in all_keys:
             a_val = va.config_snapshot.get(key)
@@ -125,7 +139,10 @@ class VersionManager:
     def stats(self) -> dict:
         total_agents = len(self._versions)
         total_versions = sum(len(v) for v in self._versions.values())
-        return {"total_agents_versioned": total_agents, "total_versions": total_versions}
+        return {
+            "total_agents_versioned": total_agents,
+            "total_versions": total_versions,
+        }
 
 
 version_manager = VersionManager()

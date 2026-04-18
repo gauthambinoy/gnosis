@@ -1,4 +1,5 @@
 """Shared Response Bookmarks — bookmark excellent responses for reference."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -13,14 +14,23 @@ class Bookmark:
     title: str
     note: str = ""
     tags: List[str] = field(default_factory=list)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class BookmarkEngine:
     def __init__(self):
         self._bookmarks: Dict[str, Bookmark] = {}
 
-    def create(self, user_id: str, execution_id: str, title: str, note: str = "", tags: List[str] = None) -> Bookmark:
+    def create(
+        self,
+        user_id: str,
+        execution_id: str,
+        title: str,
+        note: str = "",
+        tags: List[str] = None,
+    ) -> Bookmark:
         bm = Bookmark(
             id=str(uuid.uuid4()),
             user_id=user_id,

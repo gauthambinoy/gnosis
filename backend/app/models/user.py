@@ -4,6 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.models.base import Base, TimestampMixin
 
+
 class User(Base, TimestampMixin):
     __tablename__ = "users"
 
@@ -17,8 +18,12 @@ class User(Base, TimestampMixin):
 
     # LLM settings
     llm_provider = Column(String(50), default="openrouter")
-    llm_config = Column(JSON, default=dict)  # {tier_l1: {provider, model, api_key}, ...}
-    llm_preset = Column(String(20), default="balanced")  # budget, balanced, max, local, speed
+    llm_config = Column(
+        JSON, default=dict
+    )  # {tier_l1: {provider, model, api_key}, ...}
+    llm_preset = Column(
+        String(20), default="balanced"
+    )  # budget, balanced, max, local, speed
 
     # Usage tracking
     total_tokens_used = Column(Integer, default=0)

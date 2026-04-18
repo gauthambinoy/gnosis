@@ -1,7 +1,8 @@
 """Gnosis User Preferences — Per-user conversation and display settings."""
+
 import logging
-from dataclasses import dataclass, field, asdict
-from typing import Dict, Optional
+from dataclasses import dataclass
+from typing import Dict
 
 logger = logging.getLogger("gnosis.preferences")
 
@@ -29,10 +30,20 @@ class UserPreferencesEngine:
         return self._prefs[user_id]
 
     def set_preferences(self, user_id: str, **kwargs) -> UserPreferences:
-        if "response_length" in kwargs and kwargs["response_length"] not in self.VALID_LENGTHS:
-            raise ValueError(f"Invalid response_length. Must be one of {self.VALID_LENGTHS}")
-        if "code_style" in kwargs and kwargs["code_style"] not in self.VALID_CODE_STYLES:
-            raise ValueError(f"Invalid code_style. Must be one of {self.VALID_CODE_STYLES}")
+        if (
+            "response_length" in kwargs
+            and kwargs["response_length"] not in self.VALID_LENGTHS
+        ):
+            raise ValueError(
+                f"Invalid response_length. Must be one of {self.VALID_LENGTHS}"
+            )
+        if (
+            "code_style" in kwargs
+            and kwargs["code_style"] not in self.VALID_CODE_STYLES
+        ):
+            raise ValueError(
+                f"Invalid code_style. Must be one of {self.VALID_CODE_STYLES}"
+            )
         prefs = self.get_preferences(user_id)
         for k, v in kwargs.items():
             if hasattr(prefs, k) and k != "user_id":

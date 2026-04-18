@@ -1,6 +1,6 @@
 """Vector store — FAISS-backed similarity search for agent memories."""
+
 import numpy as np
-from typing import Optional
 from dataclasses import dataclass
 
 
@@ -25,7 +25,10 @@ class VectorStore:
         """Try to use FAISS if available."""
         try:
             import faiss
-            self._faiss_index = faiss.IndexFlatIP(self.dimension)  # Inner product (cosine on normalized)
+
+            self._faiss_index = faiss.IndexFlatIP(
+                self.dimension
+            )  # Inner product (cosine on normalized)
             self._faiss_ids: list[str] = []
         except ImportError:
             self._faiss_index = None
@@ -41,11 +44,12 @@ class VectorStore:
         self._metadata[id] = metadata or {}
 
         if self._faiss_index is not None:
-            import faiss
             self._faiss_index.add(embedding.reshape(1, -1))
             self._faiss_ids.append(id)
 
-    def search(self, query_embedding: np.ndarray, top_k: int = 10, min_score: float = 0.0) -> list[SearchResult]:
+    def search(
+        self, query_embedding: np.ndarray, top_k: int = 10, min_score: float = 0.0
+    ) -> list[SearchResult]:
         """Find most similar vectors."""
         if not self._vectors:
             return []
@@ -56,13 +60,20 @@ class VectorStore:
             query = query / norm
 
         if self._faiss_index is not None and self._faiss_index.ntotal > 0:
-            import faiss
-            scores, indices = self._faiss_index.search(query.reshape(1, -1), min(top_k, self._faiss_index.ntotal))
+            scores, indices = self._faiss_index.search(
+                query.reshape(1, -1), min(top_k, self._faiss_index.ntotal)
+            )
             results = []
             for score, idx in zip(scores[0], indices[0]):
                 if idx >= 0 and score >= min_score:
                     vec_id = self._faiss_ids[idx]
-                    results.append(SearchResult(id=vec_id, score=float(score), metadata=self._metadata.get(vec_id, {})))
+                    results.append(
+                        SearchResult(
+                            id=vec_id,
+                            score=float(score),
+                            metadata=self._metadata.get(vec_id, {}),
+                        )
+                    )
             return results
         else:
             # Numpy fallback
@@ -73,7 +84,13 @@ class VectorStore:
             results = []
             for idx in sorted_indices:
                 if scores[idx] >= min_score:
-                    results.append(SearchResult(id=ids[idx], score=float(scores[idx]), metadata=self._metadata.get(ids[idx], {})))
+                    results.append(
+                        SearchResult(
+                            id=ids[idx],
+                            score=float(scores[idx]),
+                            metadata=self._metadata.get(ids[idx], {}),
+                        )
+                    )
             return results
 
     def remove(self, id: str):
@@ -91,7 +108,9 @@ class AgentVectorStores:
 
     def __init__(self, dimension: int = 384):
         self.dimension = dimension
-        self._stores: dict[str, dict[str, VectorStore]] = {}  # agent_id -> tier -> store
+        self._stores: dict[
+            str, dict[str, VectorStore]
+        ] = {}  # agent_id -> tier -> store
 
     def get_store(self, agent_id: str, tier: str) -> VectorStore:
         if agent_id not in self._stores:
@@ -100,7 +119,9 @@ class AgentVectorStores:
             self._stores[agent_id][tier] = VectorStore(self.dimension)
         return self._stores[agent_id][tier]
 
-    def search_all_tiers(self, agent_id: str, query_embedding: np.ndarray, top_k: int = 10) -> list[SearchResult]:
+    def search_all_tiers(
+        self, agent_id: str, query_embedding: np.ndarray, top_k: int = 10
+    ) -> list[SearchResult]:
         """Search across all tiers for an agent, prioritizing corrections."""
         results = []
         tier_order = ["correction", "procedural", "semantic", "episodic"]
@@ -122,7 +143,11 @@ class AgentVectorStores:
     def stats(self, agent_id: str) -> dict:
         if agent_id not in self._stores:
             return {"tiers": {}}
-        return {"tiers": {tier: store.size for tier, store in self._stores[agent_id].items()}}
+        return {
+            "tiers": {
+                tier: store.size for tier, store in self._stores[agent_id].items()
+            }
+        }
 
 
 # Global singleton

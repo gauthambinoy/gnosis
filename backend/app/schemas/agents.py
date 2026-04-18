@@ -4,9 +4,14 @@ from pydantic import BaseModel, Field
 class CreateAgentRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: str = Field(..., min_length=1, max_length=1000)
-    personality: str = Field(default="professional", pattern="^(professional|friendly|concise|creative)$")
+    personality: str = Field(
+        default="professional", pattern="^(professional|friendly|concise|creative)$"
+    )
     avatar_emoji: str = Field(default="🤖", max_length=10)
-    trigger_type: str = Field(default="manual", pattern="^(manual|email_received|schedule_daily|schedule_hourly|webhook|calendar_event)$")
+    trigger_type: str = Field(
+        default="manual",
+        pattern="^(manual|email_received|schedule_daily|schedule_hourly|webhook|calendar_event)$",
+    )
     integrations: list[str] = Field(default_factory=list)
     guardrails: list[str] = Field(default_factory=list)
 

@@ -78,7 +78,6 @@ function PhaseTimeline({ phases }: { phases: PhaseEvent[] }) {
           const event = phaseMap.get(phase.key);
           const isActive = event?.status === "active";
           const isCompleted = event?.status === "completed";
-          const isPending = !event || event.status === "pending";
 
           return (
             <div key={phase.key} className="flex items-center flex-1">

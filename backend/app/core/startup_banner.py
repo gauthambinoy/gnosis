@@ -1,4 +1,5 @@
 """Startup banner with configuration summary."""
+
 import sys
 from app.config import get_settings
 from app.core.logger import get_logger

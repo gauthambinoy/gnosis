@@ -1,7 +1,7 @@
 """Gnosis Waterfall — Track timing of each step in execution pipeline."""
+
 import uuid
 import logging
-from datetime import datetime, timezone
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 from collections import defaultdict
@@ -25,7 +25,9 @@ class WaterfallEngine:
         self._spans: Dict[str, Dict[str, WaterfallSpan]] = defaultdict(dict)
         self._active_spans: Dict[str, WaterfallSpan] = {}
 
-    def start_span(self, execution_id: str, name: str, parent_id: str = None) -> WaterfallSpan:
+    def start_span(
+        self, execution_id: str, name: str, parent_id: str = None
+    ) -> WaterfallSpan:
         span = WaterfallSpan(
             execution_id=execution_id,
             name=name,
@@ -47,7 +49,9 @@ class WaterfallEngine:
         if span is None:
             return None
         span.end_ms = round(time.time() * 1000, 2)
-        logger.info(f"Ended span '{span.name}' ({span_id}) duration={span.end_ms - span.start_ms:.1f}ms")
+        logger.info(
+            f"Ended span '{span.name}' ({span_id}) duration={span.end_ms - span.start_ms:.1f}ms"
+        )
         return span
 
     def get_waterfall(self, execution_id: str) -> List[dict]:

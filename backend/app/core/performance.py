@@ -113,6 +113,7 @@ class ConnectionPool:
 def timed(func):
     """Decorator that logs execution time for sync and async functions."""
     if asyncio.iscoroutinefunction(func):
+
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
             start = time.perf_counter()
@@ -121,8 +122,10 @@ def timed(func):
             finally:
                 elapsed = (time.perf_counter() - start) * 1000
                 logger.info("%s completed in %.1fms", func.__qualname__, elapsed)
+
         return async_wrapper
     else:
+
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
             start = time.perf_counter()
@@ -131,6 +134,7 @@ def timed(func):
             finally:
                 elapsed = (time.perf_counter() - start) * 1000
                 logger.info("%s completed in %.1fms", func.__qualname__, elapsed)
+
         return sync_wrapper
 
 
@@ -147,7 +151,11 @@ def cached(ttl: int = 300, max_size: int = 100):
         @wraps(func)
         async def wrapper(*args, **kwargs):
             # Build a cache key from function name + arguments
-            key_parts = [func.__qualname__] + [repr(a) for a in args] + [f"{k}={v!r}" for k, v in sorted(kwargs.items())]
+            key_parts = (
+                [func.__qualname__]
+                + [repr(a) for a in args]
+                + [f"{k}={v!r}" for k, v in sorted(kwargs.items())]
+            )
             key = ":".join(key_parts)
 
             result = _cache.get(key)
@@ -160,6 +168,7 @@ def cached(ttl: int = 300, max_size: int = 100):
 
         wrapper.cache = _cache
         return wrapper
+
     return decorator
 
 

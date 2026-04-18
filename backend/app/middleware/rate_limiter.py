@@ -1,4 +1,5 @@
 """Redis-backed sliding window rate limiter."""
+
 import time
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -8,6 +9,7 @@ from app.config import get_settings
 
 logger = logging.getLogger("gnosis.rate_limiter")
 settings = get_settings()
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-user sliding window rate limiter. Uses in-memory fallback if Redis unavailable."""
@@ -23,7 +25,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if auth.startswith("Bearer "):
             return f"rl:{auth[7:20]}"  # Use token prefix as key
         forwarded = request.headers.get("x-forwarded-for", "")
-        ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+        ip = (
+            forwarded.split(",")[0].strip()
+            if forwarded
+            else (request.client.host if request.client else "unknown")
+        )
         return f"rl:{ip}"
 
     async def dispatch(self, request: Request, call_next):
@@ -49,6 +55,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         # Try Redis first
         try:
             from app.core.redis_client import redis_manager
+
             if redis_manager._client:
                 pipe = redis_manager._client.pipeline()
                 pipe.zremrangebyscore(key, 0, window_start)
@@ -63,12 +70,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     return JSONResponse(
                         status_code=429,
                         content={"detail": "Rate limit exceeded", "retry_after": 60},
-                        headers={"Retry-After": "60", "X-RateLimit-Limit": str(self.rpm), "X-RateLimit-Remaining": "0"},
+                        headers={
+                            "Retry-After": "60",
+                            "X-RateLimit-Limit": str(self.rpm),
+                            "X-RateLimit-Remaining": "0",
+                        },
                     )
 
                 response = await call_next(request)
                 response.headers["X-RateLimit-Limit"] = str(self.rpm)
-                response.headers["X-RateLimit-Remaining"] = str(max(0, self.rpm - count))
+                response.headers["X-RateLimit-Remaining"] = str(
+                    max(0, self.rpm - count)
+                )
                 return response
         except Exception:
             pass
@@ -80,9 +93,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._windows[key].append(now)
 
         if len(self._windows[key]) > self.rpm + self.burst:
-            return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"}, headers={"Retry-After": "60"})
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Rate limit exceeded"},
+                headers={"Retry-After": "60"},
+            )
 
         response = await call_next(request)
         response.headers["X-RateLimit-Limit"] = str(self.rpm)
-        response.headers["X-RateLimit-Remaining"] = str(max(0, self.rpm - len(self._windows[key])))
+        response.headers["X-RateLimit-Remaining"] = str(
+            max(0, self.rpm - len(self._windows[key]))
+        )
         return response

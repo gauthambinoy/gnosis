@@ -1,7 +1,8 @@
 """Gnosis Delegated Agent Permissions — API routes."""
+
 from dataclasses import asdict
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from app.core.auth import get_current_user_id
@@ -22,7 +23,9 @@ class RevokePermissionRequest(BaseModel):
 
 
 @router.post("/grant")
-async def grant_permission(body: GrantPermissionRequest, user_id: str = Depends(get_current_user_id)):
+async def grant_permission(
+    body: GrantPermissionRequest, user_id: str = Depends(get_current_user_id)
+):
     try:
         perm = agent_permission_engine.grant_permission(
             agent_id=body.agent_id,
@@ -51,7 +54,9 @@ async def list_permissions(agent_id: str):
 
 
 @router.get("/{agent_id}/check")
-async def check_permission(agent_id: str, user_id: str = Query(...), action: str = Query(...)):
+async def check_permission(
+    agent_id: str, user_id: str = Query(...), action: str = Query(...)
+):
     try:
         allowed = agent_permission_engine.check_permission(agent_id, user_id, action)
         return {"allowed": allowed}

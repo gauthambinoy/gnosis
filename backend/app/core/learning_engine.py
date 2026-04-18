@@ -1,9 +1,8 @@
 """Gnosis Learning Engine — 3-loop self-learning system."""
+
 import logging
-import uuid
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from typing import Any
 
 from app.core.memory_engine import memory_engine, MemoryEntry
 from app.core.embeddings import embedding_service
@@ -22,7 +21,9 @@ class LearningEngine:
     def __init__(self):
         self._correction_log: dict[str, list[dict]] = {}  # agent_id → corrections
         self._pattern_log: dict[str, list[dict]] = {}  # agent_id → extracted patterns
-        self._evolution_log: dict[str, list[dict]] = {}  # agent_id → evolution snapshots
+        self._evolution_log: dict[
+            str, list[dict]
+        ] = {}  # agent_id → evolution snapshots
         self._metrics: dict[str, dict] = {}  # agent_id → performance counters
 
     def _get_metrics(self, agent_id: str) -> dict:
@@ -39,9 +40,7 @@ class LearningEngine:
     # ------------------------------------------------------------------
     # Loop 1 — Instant correction learning
     # ------------------------------------------------------------------
-    async def instant_learn(
-        self, agent_id: str, execution: dict, feedback: dict
-    ):
+    async def instant_learn(self, agent_id: str, execution: dict, feedback: dict):
         """Immediate correction → stored in correction tier with max priority.
 
         `execution` — what the agent did (action, params, result).
@@ -66,22 +65,27 @@ class LearningEngine:
         # Track locally
         if agent_id not in self._correction_log:
             self._correction_log[agent_id] = []
-        self._correction_log[agent_id].append({
-            "memory_id": mem.id,
-            "original": original_action,
-            "correction": correction,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._correction_log[agent_id].append(
+            {
+                "memory_id": mem.id,
+                "original": original_action,
+                "correction": correction,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         metrics = self._get_metrics(agent_id)
         metrics["corrections"] += 1
 
-        await event_bus.emit(Events.CORRECTION_RECEIVED, {
-            "agent_id": agent_id,
-            "memory_id": mem.id,
-            "original": original_action,
-            "correction": correction,
-        })
+        await event_bus.emit(
+            Events.CORRECTION_RECEIVED,
+            {
+                "agent_id": agent_id,
+                "memory_id": mem.id,
+                "original": original_action,
+                "correction": correction,
+            },
+        )
 
     # ------------------------------------------------------------------
     # Loop 2 — Pattern learning
@@ -124,23 +128,28 @@ class LearningEngine:
         # Track
         if agent_id not in self._pattern_log:
             self._pattern_log[agent_id] = []
-        self._pattern_log[agent_id].append({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "episodes_analyzed": len(episodes),
-            "clusters_found": len(clusters),
-            "patterns_extracted": patterns_extracted,
-        })
+        self._pattern_log[agent_id].append(
+            {
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "episodes_analyzed": len(episodes),
+                "clusters_found": len(clusters),
+                "patterns_extracted": patterns_extracted,
+            }
+        )
 
         metrics = self._get_metrics(agent_id)
         metrics["patterns_extracted"] += patterns_extracted
 
         if patterns_extracted > 0:
-            await event_bus.emit(Events.LEARNING_COMPLETED, {
-                "agent_id": agent_id,
-                "loop": "pattern",
-                "patterns_extracted": patterns_extracted,
-                "episodes_analyzed": len(episodes),
-            })
+            await event_bus.emit(
+                Events.LEARNING_COMPLETED,
+                {
+                    "agent_id": agent_id,
+                    "loop": "pattern",
+                    "patterns_extracted": patterns_extracted,
+                    "episodes_analyzed": len(episodes),
+                },
+            )
 
     def _cluster_memories(
         self, memories: list[MemoryEntry], threshold: float = 0.8
@@ -195,10 +204,41 @@ class LearningEngine:
             common_words = common_words & ws
 
         # Filter stop words
-        stop_words = {"the", "a", "an", "is", "was", "were", "be", "been", "being",
-                       "in", "of", "to", "for", "on", "at", "by", "with", "from",
-                       "and", "or", "not", "no", "so", "do", "did", "has", "had",
-                       "have", "this", "that", "it", "its", "as"}
+        stop_words = {
+            "the",
+            "a",
+            "an",
+            "is",
+            "was",
+            "were",
+            "be",
+            "been",
+            "being",
+            "in",
+            "of",
+            "to",
+            "for",
+            "on",
+            "at",
+            "by",
+            "with",
+            "from",
+            "and",
+            "or",
+            "not",
+            "no",
+            "so",
+            "do",
+            "did",
+            "has",
+            "had",
+            "have",
+            "this",
+            "that",
+            "it",
+            "its",
+            "as",
+        }
         meaningful = [w for w in common_words if w not in stop_words and len(w) > 2]
 
         if not meaningful:
@@ -213,7 +253,9 @@ class LearningEngine:
                 actions.append(mem.metadata["status"])
 
         action_counts = Counter(actions)
-        most_common_action = action_counts.most_common(1)[0][0] if action_counts else "process"
+        most_common_action = (
+            action_counts.most_common(1)[0][0] if action_counts else "process"
+        )
 
         # Build rule
         theme = " ".join(sorted(meaningful)[:8])
@@ -258,6 +300,7 @@ class LearningEngine:
             for mem in to_prune:
                 try:
                     from app.core.vector_store import agent_vectors
+
                     store = agent_vectors.get_store(agent_id, "episodic")
                     store.remove(mem.id)
                     pruned += 1
@@ -274,7 +317,9 @@ class LearningEngine:
         correction_count = tier_counts.get("correction", 0)
         total = len(all_memories) or 1
         correction_ratio = correction_count / total
-        health_score = max(0.0, 1.0 - correction_ratio * 5)  # many corrections = low health
+        health_score = max(
+            0.0, 1.0 - correction_ratio * 5
+        )  # many corrections = low health
 
         snapshot = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -293,13 +338,16 @@ class LearningEngine:
         metrics["evolutions"] += 1
         metrics["memories_pruned"] += pruned
 
-        await event_bus.emit(Events.LEARNING_COMPLETED, {
-            "agent_id": agent_id,
-            "loop": "evolution",
-            "health_score": health_score,
-            "pruned": pruned,
-            "total_memories": len(all_memories),
-        })
+        await event_bus.emit(
+            Events.LEARNING_COMPLETED,
+            {
+                "agent_id": agent_id,
+                "loop": "evolution",
+                "health_score": health_score,
+                "pruned": pruned,
+                "total_memories": len(all_memories),
+            },
+        )
 
     # ------------------------------------------------------------------
     # Memory consolidation
@@ -322,7 +370,6 @@ class LearningEngine:
                 continue
 
             # Extract semantic summary from cluster
-            combined_text = " ".join(m.content[:100] for m in cluster)
             summary = self._summarize_cluster(cluster)
 
             if summary:
@@ -354,11 +401,29 @@ class LearningEngine:
 
         word_freq = Counter(all_words)
         # Remove stop words and very short words
-        stop = {"the", "a", "an", "is", "was", "in", "of", "to", "for", "on",
-                "at", "by", "with", "and", "or", "not", "this", "that", "it"}
+        stop = {
+            "the",
+            "a",
+            "an",
+            "is",
+            "was",
+            "in",
+            "of",
+            "to",
+            "for",
+            "on",
+            "at",
+            "by",
+            "with",
+            "and",
+            "or",
+            "not",
+            "this",
+            "that",
+            "it",
+        }
         key_words = [
-            w for w, c in word_freq.most_common(20)
-            if w not in stop and len(w) > 2
+            w for w, c in word_freq.most_common(20) if w not in stop and len(w) > 2
         ][:10]
 
         if not key_words:
@@ -385,9 +450,15 @@ class LearningEngine:
     def stats(self) -> dict:
         return {
             "agents_learning": list(self._metrics.keys()),
-            "total_corrections": sum(m.get("corrections", 0) for m in self._metrics.values()),
-            "total_patterns": sum(m.get("patterns_extracted", 0) for m in self._metrics.values()),
-            "total_evolutions": sum(m.get("evolutions", 0) for m in self._metrics.values()),
+            "total_corrections": sum(
+                m.get("corrections", 0) for m in self._metrics.values()
+            ),
+            "total_patterns": sum(
+                m.get("patterns_extracted", 0) for m in self._metrics.values()
+            ),
+            "total_evolutions": sum(
+                m.get("evolutions", 0) for m in self._metrics.values()
+            ),
         }
 
 

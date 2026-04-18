@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 from app.core.sso import sso_engine
@@ -62,8 +62,11 @@ async def handle_callback(req: CallbackRequest):
 @router.post("/link")
 async def link_sso_account(req: LinkAccountRequest):
     account = sso_engine.register_sso_account(
-        provider=req.provider, provider_user_id=req.provider_user_id,
-        email=req.email, name=req.name, avatar_url=req.avatar_url,
+        provider=req.provider,
+        provider_user_id=req.provider_user_id,
+        email=req.email,
+        name=req.name,
+        avatar_url=req.avatar_url,
         gnosis_user_id=req.gnosis_user_id,
     )
     return asdict(account)

@@ -8,7 +8,9 @@ router = APIRouter(prefix="/api/v1/residency", tags=["residency"])
 
 
 @router.get("/policy")
-async def get_policy(workspace_id: str = "", user_id: str = Depends(get_current_user_id)):
+async def get_policy(
+    workspace_id: str = "", user_id: str = Depends(get_current_user_id)
+):
     policy = residency_engine.get_policy(workspace_id)
     if not policy:
         raise HTTPException(status_code=404, detail="No residency policy found")

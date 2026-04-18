@@ -15,14 +15,16 @@ class DeadLetterQueue:
         self.items: list[dict] = []
 
     def add(self, task_type: str, payload: dict, error: str, attempts: int):
-        self.items.append({
-            "id": str(uuid.uuid4()),
-            "task_type": task_type,
-            "payload": payload,
-            "error": error,
-            "attempts": attempts,
-            "failed_at": datetime.now(timezone.utc).isoformat(),
-        })
+        self.items.append(
+            {
+                "id": str(uuid.uuid4()),
+                "task_type": task_type,
+                "payload": payload,
+                "error": error,
+                "attempts": attempts,
+                "failed_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         logger.error(f"DLQ: {task_type} failed after {attempts} attempts: {error}")
 
     def get_all(self, limit: int = 50) -> list[dict]:
@@ -56,8 +58,10 @@ async def with_retry(
         except Exception as e:
             last_error = e
             if attempt < max_retries - 1:
-                wait = delay * (backoff ** attempt) * random.uniform(0.8, 1.2)
-                logger.warning(f"Retry {attempt+1}/{max_retries} for {task_name}: {e}, waiting {wait}s")
+                wait = delay * (backoff**attempt) * random.uniform(0.8, 1.2)
+                logger.warning(
+                    f"Retry {attempt + 1}/{max_retries} for {task_name}: {e}, waiting {wait}s"
+                )
                 await asyncio.sleep(wait)
 
     dlq.add(task_name, {"args": str(args)}, str(last_error), max_retries)

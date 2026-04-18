@@ -1,4 +1,5 @@
 """Idempotency key support for task deduplication."""
+
 import time
 import hashlib
 from typing import Optional, Any

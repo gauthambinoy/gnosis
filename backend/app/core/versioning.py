@@ -16,6 +16,7 @@ class APIVersionMiddleware(BaseHTTPMiddleware):
         requested_version = request.headers.get("accept-version", "")
         if requested_version and requested_version not in self.SUPPORTED_VERSIONS:
             from starlette.responses import JSONResponse
+
             return JSONResponse(
                 status_code=406,
                 content={

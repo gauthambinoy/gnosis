@@ -10,59 +10,58 @@ Multiple layers of protection:
 7. Content Security Policy
 8. API key management
 """
+
 import hashlib
-import hmac
 import time
 import re
 import secrets
-import ipaddress
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Optional
-from fastapi import Request, Response
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # ─── Input Sanitizer ───
+
 
 class InputSanitizer:
     """Sanitize all inputs against XSS, SQLi, and injection attacks."""
 
     XSS_PATTERNS = [
-        r'<script[^>]*>',
-        r'javascript:',
-        r'on\w+\s*=',
-        r'<iframe',
-        r'<object',
-        r'<embed',
-        r'<form',
-        r'document\.cookie',
-        r'document\.location',
-        r'window\.location',
-        r'\.innerHTML',
-        r'eval\s*\(',
-        r'setTimeout\s*\(',
-        r'setInterval\s*\(',
-        r'new\s+Function',
-        r'data:text/html',
+        r"<script[^>]*>",
+        r"javascript:",
+        r"on\w+\s*=",
+        r"<iframe",
+        r"<object",
+        r"<embed",
+        r"<form",
+        r"document\.cookie",
+        r"document\.location",
+        r"window\.location",
+        r"\.innerHTML",
+        r"eval\s*\(",
+        r"setTimeout\s*\(",
+        r"setInterval\s*\(",
+        r"new\s+Function",
+        r"data:text/html",
     ]
 
     SQLI_PATTERNS = [
         r"('\s*(OR|AND)\s+')",
-        r'(;\s*(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|EXEC))',
-        r'(UNION\s+(ALL\s+)?SELECT)',
+        r"(;\s*(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|EXEC))",
+        r"(UNION\s+(ALL\s+)?SELECT)",
         r"(--\s|/\*|\*/)",
-        r'(\bSLEEP\s*\(|\bBENCHMARK\s*\()',
-        r'(\bWAITFOR\s+DELAY)',
+        r"(\bSLEEP\s*\(|\bBENCHMARK\s*\()",
+        r"(\bWAITFOR\s+DELAY)",
         r"(0x[0-9a-fA-F]+)",
         r"('\s*;\s*)",
     ]
 
     CMD_INJECTION_PATTERNS = [
-        r'[;&|`$]',
-        r'\$\(.*\)',
-        r'\.\./\.\.',
-        r'%00',
-        r'\\x[0-9a-f]{2}',
+        r"[;&|`$]",
+        r"\$\(.*\)",
+        r"\.\./\.\.",
+        r"%00",
+        r"\\x[0-9a-f]{2}",
     ]
 
     @classmethod
@@ -76,14 +75,14 @@ class InputSanitizer:
     def check_sqli(cls, value: str) -> tuple[bool, str]:
         for pattern in cls.SQLI_PATTERNS:
             if re.search(pattern, value, re.IGNORECASE):
-                return True, f"SQL injection pattern detected"
+                return True, "SQL injection pattern detected"
         return False, ""
 
     @classmethod
     def check_command_injection(cls, value: str) -> tuple[bool, str]:
         for pattern in cls.CMD_INJECTION_PATTERNS:
             if re.search(pattern, value):
-                return True, f"Command injection pattern detected"
+                return True, "Command injection pattern detected"
         return False, ""
 
     @classmethod
@@ -108,13 +107,16 @@ class InputSanitizer:
             return False, msg
         return True, ""
 
+
 # ─── Rate Limiter ───
+
 
 @dataclass
 class RateLimitBucket:
     tokens: float = 0
     last_refill: float = field(default_factory=time.time)
     violations: int = 0
+
 
 class AdvancedRateLimiter:
     """Token bucket rate limiter with progressive penalties."""
@@ -129,7 +131,13 @@ class AdvancedRateLimiter:
 
     def _get_client_id(self, request: Request) -> str:
         forwarded = request.headers.get("x-forwarded-for", "")
-        ip = forwarded.split(",")[0].strip() if forwarded else request.client.host if request.client else "unknown"
+        ip = (
+            forwarded.split(",")[0].strip()
+            if forwarded
+            else request.client.host
+            if request.client
+            else "unknown"
+        )
         return ip
 
     def check(self, request: Request) -> tuple[bool, dict]:
@@ -144,7 +152,10 @@ class AdvancedRateLimiter:
         if client_id in self._blocked_ips:
             if now < self._blocked_ips[client_id]:
                 remaining = int(self._blocked_ips[client_id] - now)
-                return False, {"reason": "IP temporarily blocked", "retry_after": remaining}
+                return False, {
+                    "reason": "IP temporarily blocked",
+                    "retry_after": remaining,
+                }
             else:
                 del self._blocked_ips[client_id]
 
@@ -167,7 +178,11 @@ class AdvancedRateLimiter:
             if bucket.violations >= 10:
                 block_duration = min(bucket.violations * 60, 3600)
                 self._blocked_ips[client_id] = now + block_duration
-            return False, {"reason": "Rate limit exceeded", "retry_after": 1, "violations": bucket.violations}
+            return False, {
+                "reason": "Rate limit exceeded",
+                "retry_after": 1,
+                "violations": bucket.violations,
+            }
 
     def block_ip(self, ip: str, duration: int = 3600):
         """Manually block an IP address."""
@@ -197,7 +212,9 @@ class AdvancedRateLimiter:
             "blocked_list": list(self._blocked_ips.keys()),
         }
 
+
 # ─── Brute Force Protection ───
+
 
 class BruteForceProtection:
     """Track failed auth attempts and block after threshold."""
@@ -211,13 +228,19 @@ class BruteForceProtection:
 
     def record_failure(self, identifier: str) -> dict:
         now = time.time()
-        self._attempts[identifier] = [t for t in self._attempts[identifier] if now - t < self._window]
+        self._attempts[identifier] = [
+            t for t in self._attempts[identifier] if now - t < self._window
+        ]
         self._attempts[identifier].append(now)
 
         if len(self._attempts[identifier]) >= self._max:
             self._locked[identifier] = now + self._lockout
             self._attempts[identifier] = []
-            return {"locked": True, "lockout_seconds": self._lockout, "reason": f"Too many failed attempts ({self._max} in {self._window}s)"}
+            return {
+                "locked": True,
+                "lockout_seconds": self._lockout,
+                "reason": f"Too many failed attempts ({self._max} in {self._window}s)",
+            }
 
         remaining = self._max - len(self._attempts[identifier])
         return {"locked": False, "remaining_attempts": remaining}
@@ -239,7 +262,9 @@ class BruteForceProtection:
         active = {k: int(v - now) for k, v in self._locked.items() if v > now}
         return active
 
+
 # ─── Request Fingerprinting ───
+
 
 class RequestFingerprinter:
     """Fingerprint requests for anomaly detection."""
@@ -261,7 +286,16 @@ class RequestFingerprinter:
             anomalies.append("missing_user_agent")
 
         ua = request.headers.get("user-agent", "").lower()
-        suspicious_uas = ["sqlmap", "nikto", "nmap", "burp", "dirbuster", "gobuster", "wfuzz", "hydra"]
+        suspicious_uas = [
+            "sqlmap",
+            "nikto",
+            "nmap",
+            "burp",
+            "dirbuster",
+            "gobuster",
+            "wfuzz",
+            "hydra",
+        ]
         for sus in suspicious_uas:
             if sus in ua:
                 anomalies.append(f"attack_tool_{sus}")
@@ -274,7 +308,9 @@ class RequestFingerprinter:
 
         return {"anomalies": anomalies, "is_suspicious": len(anomalies) > 0}
 
+
 # ─── CSRF Protection ───
+
 
 class CSRFProtection:
     """Double-submit cookie CSRF protection."""
@@ -303,6 +339,7 @@ class CSRFProtection:
         for k in expired:
             del self._tokens[k]
 
+
 # ─── Security Headers ───
 
 SECURITY_HEADERS = {
@@ -319,6 +356,7 @@ SECURITY_HEADERS = {
 }
 
 # ─── Security Middleware ───
+
 
 class UltraSecurityMiddleware(BaseHTTPMiddleware):
     """Combined security middleware — all protections in one layer."""
@@ -344,25 +382,32 @@ class UltraSecurityMiddleware(BaseHTTPMiddleware):
         if not allowed:
             self._blocked_count += 1
             from starlette.responses import JSONResponse
+
             return JSONResponse(
                 status_code=429,
-                content={"error": "Rate limit exceeded", "retry_after": rate_info.get("retry_after", 60)},
-                headers={"Retry-After": str(rate_info.get("retry_after", 60))}
+                content={
+                    "error": "Rate limit exceeded",
+                    "retry_after": rate_info.get("retry_after", 60),
+                },
+                headers={"Retry-After": str(rate_info.get("retry_after", 60))},
             )
 
         # 2. Anomaly detection
         anomaly = self.fingerprinter.detect_anomaly(request, {})
         if anomaly["is_suspicious"]:
-            self._threat_log.append({
-                "time": time.time(),
-                "ip": request.client.host if request.client else "unknown",
-                "path": str(request.url.path),
-                "anomalies": anomaly["anomalies"],
-            })
+            self._threat_log.append(
+                {
+                    "time": time.time(),
+                    "ip": request.client.host if request.client else "unknown",
+                    "path": str(request.url.path),
+                    "anomalies": anomaly["anomalies"],
+                }
+            )
             for a in anomaly["anomalies"]:
                 if a.startswith("attack_tool_"):
                     self._blocked_count += 1
                     from starlette.responses import JSONResponse
+
                     return JSONResponse(status_code=403, content={"error": "Forbidden"})
 
         # 3. Input validation on query params
@@ -370,14 +415,19 @@ class UltraSecurityMiddleware(BaseHTTPMiddleware):
             safe, msg = self.sanitizer.is_safe(value)
             if not safe:
                 self._blocked_count += 1
-                self._threat_log.append({
-                    "time": time.time(),
-                    "ip": request.client.host if request.client else "unknown",
-                    "type": "input_attack",
-                    "detail": msg,
-                })
+                self._threat_log.append(
+                    {
+                        "time": time.time(),
+                        "ip": request.client.host if request.client else "unknown",
+                        "type": "input_attack",
+                        "detail": msg,
+                    }
+                )
                 from starlette.responses import JSONResponse
-                return JSONResponse(status_code=400, content={"error": "Invalid input detected"})
+
+                return JSONResponse(
+                    status_code=400, content={"error": "Invalid input detected"}
+                )
 
         # 4. Process request
         response = await call_next(request)
@@ -396,6 +446,7 @@ class UltraSecurityMiddleware(BaseHTTPMiddleware):
             "rate_limiter": self.rate_limiter.get_stats(),
             "recent_threats": self._threat_log[-20:],
         }
+
 
 # Global instances
 rate_limiter = AdvancedRateLimiter()
