@@ -84,7 +84,7 @@ class ComplianceReportEngine:
         return report
 
     def list_reports(self, workspace_id: str = "") -> List[dict]:
-        reports = self._reports.values()
+        reports: List[ComplianceReport] = list(self._reports.values())
         if workspace_id:
             reports = [r for r in reports if r.workspace_id == workspace_id]
         return [asdict(r) for r in reports]

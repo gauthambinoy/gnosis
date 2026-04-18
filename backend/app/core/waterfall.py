@@ -26,7 +26,7 @@ class WaterfallEngine:
         self._active_spans: Dict[str, WaterfallSpan] = {}
 
     def start_span(
-        self, execution_id: str, name: str, parent_id: str = None
+        self, execution_id: str, name: str, parent_id: Optional[str] = None
     ) -> WaterfallSpan:
         span = WaterfallSpan(
             execution_id=execution_id,

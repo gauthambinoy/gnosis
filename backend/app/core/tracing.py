@@ -5,6 +5,7 @@ import time
 import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass, field
+from typing import Optional
 from app.core.logger import get_logger
 
 logger = get_logger("tracing")
@@ -53,7 +54,7 @@ class Tracer:
         _current_span.set(span_id)
         return span
 
-    def start_span(self, operation: str, parent: Span = None) -> Span:
+    def start_span(self, operation: str, parent: Optional["Span"] = None) -> "Span":
         trace_id = _current_trace.get() or uuid.uuid4().hex[:16]
         parent_id = parent.span_id if parent else _current_span.get() or None
         span_id = uuid.uuid4().hex[:8]
@@ -67,7 +68,7 @@ class Tracer:
         _current_span.set(span_id)
         return span
 
-    def end_span(self, span: Span, status: str = "ok", attributes: dict = None):
+    def end_span(self, span: "Span", status: str = "ok", attributes: Optional[dict] = None):
         span.end_time = time.perf_counter()
         span.status = status
         if attributes:
@@ -80,7 +81,7 @@ class Tracer:
         return [s for s in self.spans if s.trace_id == trace_id]
 
     def get_recent_traces(self, limit: int = 20) -> list[dict]:
-        traces = {}
+        traces: dict[str, dict] = {}
         for span in reversed(self.spans):
             if span.trace_id not in traces:
                 traces[span.trace_id] = {

@@ -166,7 +166,7 @@ def cached(ttl: int = 300, max_size: int = 100):
             _cache.set(key, result)
             return result
 
-        wrapper.cache = _cache
+        wrapper.cache = _cache  # type: ignore[attr-defined]
         return wrapper
 
     return decorator
