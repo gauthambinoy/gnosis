@@ -19,7 +19,7 @@ click-plugins==1.1.1.2
 click-repl==0.3.0
 cryptography==46.0.7
 cuda-bindings==13.2.0
-cuda-pathfinder==1.5.2
+cuda-pathfinder==1.5.3
 cuda-toolkit==13.0.2
 ecdsa==0.19.2
 faiss-cpu==1.13.2
