@@ -100,7 +100,7 @@ export default function KnowledgePage() {
 
     const width = 800;
     const height = 600;
-    let localNodes = nodes.map((n) => ({ ...n }));
+    const localNodes = nodes.map((n) => ({ ...n }));
 
     const tick = () => {
       const k = 0.01; // repulsion damping

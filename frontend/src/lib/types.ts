@@ -58,25 +58,22 @@ export interface ProcessInfo {
   status: string;
   cpu_percent: number;
   memory_percent: number;
-  memory_rss: number;
-  create_time: number;
-  username: string;
-  cmdline: string;
+  user: string;
 }
 
 export interface DirectoryEntry {
   name: string;
-  path: string;
-  is_dir: boolean;
-  size: number;
-  modified: number;
-  permissions: string;
+  type: "dir" | "file" | "unknown";
+  size?: number;
+  modified?: number;
+  permissions?: string;
+  error?: string;
 }
 
 export interface DirectoryData {
-  path: string;
+  path?: string;
   entries: DirectoryEntry[];
-  parent: string | null;
+  count?: number;
   error?: string;
 }
 
@@ -97,20 +94,22 @@ export interface DockerData {
 }
 
 export interface AuditEntry {
-  id: string;
-  timestamp: string;
+  timestamp: number;
+  user_id: string;
   action: string;
-  user: string;
-  details: string;
-  severity: "info" | "warning" | "critical";
-  ip_address?: string;
+  detail: string;
+  result?: string;
 }
 
 export interface TerminalEntry {
+  id?: string;
   command: string;
-  output: string;
+  output?: string;
+  error?: string;
   exit_code: number;
-  timestamp: string;
+  executed_at?: number;
+  duration_ms?: number;
+  executed_by?: string;
 }
 
 // ─── Agents ───
