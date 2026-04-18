@@ -38,7 +38,7 @@ class VoiceProfileEngine:
         tone: str = "friendly",
         vocabulary_level: str = "intermediate",
         response_style: str = "balanced",
-        example_phrases: List[str] = None,
+        example_phrases: Optional[List[str]] = None,
     ) -> VoiceProfile:
         if tone not in self.VALID_TONES:
             raise ValueError(f"Invalid tone: {tone}. Must be one of {self.VALID_TONES}")

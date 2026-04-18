@@ -1,7 +1,7 @@
 """Shared Response Bookmarks — bookmark excellent responses for reference."""
 
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime, timezone
 import uuid
 
@@ -29,7 +29,7 @@ class BookmarkEngine:
         execution_id: str,
         title: str,
         note: str = "",
-        tags: List[str] = None,
+        tags: Optional[List[str]] = None,
     ) -> Bookmark:
         bm = Bookmark(
             id=str(uuid.uuid4()),

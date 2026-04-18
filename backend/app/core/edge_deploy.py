@@ -54,7 +54,7 @@ class EdgeDeployEngine:
         return self._deployments.get(deployment_id)
 
     def generate_edge_config(self, agent_id: str, target: str) -> dict:
-        base = {"agent_id": agent_id, "target": target, "runtime": "python3.11"}
+        base: dict[str, object] = {"agent_id": agent_id, "target": target, "runtime": "python3.11"}
         configs = {
             "raspberry_pi": {
                 "memory_limit": "512MB",
