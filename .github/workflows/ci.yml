@@ -34,11 +34,19 @@ jobs:
 
       - name: Test
         run: cd backend && pytest tests/ -v --tb=short
+        env:
+          DEBUG: "true"
+          SECRET_KEY: "ci-test-secret-key-not-for-production-use-only-do-not-reuse-anywhere"
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
 
       - name: Import check
         run: |
           cd backend
           python -c "from app.main import app; print(f'Routes: {len(app.routes)}')"
+        env:
+          DEBUG: "true"
+          SECRET_KEY: "ci-test-secret-key-not-for-production-use-only-do-not-reuse-anywhere"
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
 
   frontend:
     runs-on: ubuntu-latest
