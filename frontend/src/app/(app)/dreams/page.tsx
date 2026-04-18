@@ -73,21 +73,41 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 // ─── Particle Background ───
+interface Star {
+  width: number;
+  height: number;
+  top: number;
+  left: number;
+  duration: number;
+  delay: number;
+}
+
+// Computed once at module load — keeps the render path pure (no Math.random
+// during render) and the starfield stable across re-renders.
+const STARS: Star[] = Array.from({ length: 60 }, () => ({
+  width: Math.random() * 2 + 1,
+  height: Math.random() * 2 + 1,
+  top: Math.random() * 100,
+  left: Math.random() * 100,
+  duration: 3 + Math.random() * 4,
+  delay: Math.random() * 5,
+}));
+
 function ParticleField() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       {/* Stars */}
-      {Array.from({ length: 60 }).map((_, i) => (
+      {STARS.map((s, i) => (
         <div
           key={i}
           className="absolute rounded-full bg-white/20"
           style={{
-            width: `${Math.random() * 2 + 1}px`,
-            height: `${Math.random() * 2 + 1}px`,
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
-            animation: `twinkle ${3 + Math.random() * 4}s ease-in-out infinite`,
-            animationDelay: `${Math.random() * 5}s`,
+            width: `${s.width}px`,
+            height: `${s.height}px`,
+            top: `${s.top}%`,
+            left: `${s.left}%`,
+            animation: `twinkle ${s.duration}s ease-in-out infinite`,
+            animationDelay: `${s.delay}s`,
           }}
         />
       ))}
