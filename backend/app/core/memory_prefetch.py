@@ -27,7 +27,7 @@ class MemoryPrefetchEngine:
 
     def prefetch(self, agent_id: str, context_hint: str = "") -> PrefetchResult:
         start = time.time()
-        cache_key = f"{agent_id}:{hashlib.md5(context_hint.encode()).hexdigest()[:8]}"
+        cache_key = f"{agent_id}:{hashlib.md5(context_hint.encode(), usedforsecurity=False).hexdigest()[:8]}"
 
         if cache_key in self._cache:
             keys = self._cache[cache_key]
