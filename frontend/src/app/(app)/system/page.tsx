@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api";
-import type { SystemInfo, ProcessInfo, DirectoryData, DockerData, AuditEntry } from "@/lib/types";
+import type { SystemInfo, ProcessInfo, DirectoryData, DirectoryEntry, DockerData, AuditEntry, TerminalEntry } from "@/lib/types";
 
 // ─── Helpers ───
 
@@ -149,7 +149,7 @@ export default function SystemControlPage() {
 
   // Terminal state
   const [termInput, setTermInput] = useState("");
-  const [termHistory, setTermHistory] = useState<any[]>([]);
+  const [termHistory, setTermHistory] = useState<TerminalEntry[]>([]);
   const [termHistIdx, setTermHistIdx] = useState(-1);
   const [cmdHistory, setCmdHistory] = useState<string[]>([]);
   const termEndRef = useRef<HTMLDivElement>(null);
@@ -473,7 +473,7 @@ export default function SystemControlPage() {
                     <td /><td /><td />
                   </tr>
                 )}
-                {dirData.entries.map((entry: any) => (
+                {dirData.entries.map((entry: DirectoryEntry) => (
                   <tr
                     key={entry.name}
                     className="border-b border-white/[0.03] hover:bg-white/[0.02] cursor-pointer"
@@ -529,7 +529,7 @@ export default function SystemControlPage() {
             <tbody>
               {processes.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-4 text-white/20">No data</td></tr>
-              ) : processes.map((p: any) => (
+              ) : processes.map((p: ProcessInfo) => (
                 <tr key={p.pid} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                   <td className="py-1 px-2 font-mono text-white/50">{p.pid}</td>
                   <td className="py-1 px-2 text-white/70">{p.name}</td>
@@ -621,7 +621,7 @@ export default function SystemControlPage() {
             <tbody>
               {filteredAudit.length === 0 ? (
                 <tr><td colSpan={5} className="text-center py-4 text-white/20">No audit entries</td></tr>
-              ) : filteredAudit.map((entry: any, i: number) => (
+              ) : filteredAudit.map((entry: AuditEntry, i: number) => (
                 <tr key={i} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
                   <td className="py-1 px-2 text-white/30 text-xs whitespace-nowrap">{fmtDate(entry.timestamp)}</td>
                   <td className="py-1 px-2 text-white/50">{entry.user_id}</td>
