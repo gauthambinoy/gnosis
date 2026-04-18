@@ -1,9 +1,10 @@
 import logging
 import warnings
 
-from pydantic_settings import BaseSettings
-from pydantic import model_validator
 from functools import lru_cache
+
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
 
@@ -94,10 +95,11 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 300
     max_cache_size: int = 1000
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
 
 @lru_cache()
