@@ -33,9 +33,17 @@ async def readiness():
             async with engine.begin() as conn:
                 await conn.execute(text("SELECT 1"))
             latency = round((time.time() - start) * 1000, 2)
-            checks["database"] = {"status": "ok", "latency_ms": latency, "type": "postgresql"}
+            checks["database"] = {
+                "status": "ok",
+                "latency_ms": latency,
+                "type": "postgresql",
+            }
         else:
-            checks["database"] = {"status": "degraded", "latency_ms": 0, "type": "in-memory"}
+            checks["database"] = {
+                "status": "degraded",
+                "latency_ms": 0,
+                "type": "in-memory",
+            }
     except Exception as e:
         checks["database"] = {"status": "down", "latency_ms": 0, "error": str(e)}
         has_critical_down = True
@@ -48,7 +56,11 @@ async def readiness():
             latency = round((time.time() - start) * 1000, 2)
             checks["redis"] = {"status": "ok", "latency_ms": latency}
         else:
-            checks["redis"] = {"status": "degraded", "latency_ms": 0, "type": "in-memory fallback"}
+            checks["redis"] = {
+                "status": "degraded",
+                "latency_ms": 0,
+                "type": "in-memory fallback",
+            }
     except Exception as e:
         checks["redis"] = {"status": "down", "latency_ms": 0, "error": str(e)}
         has_critical_down = True
@@ -56,7 +68,12 @@ async def readiness():
     # FAISS
     try:
         from app.core.memory_engine import memory_engine
-        checks["faiss"] = {"status": "ok", "latency_ms": 0} if memory_engine else {"status": "degraded", "latency_ms": 0}
+
+        checks["faiss"] = (
+            {"status": "ok", "latency_ms": 0}
+            if memory_engine
+            else {"status": "degraded", "latency_ms": 0}
+        )
     except Exception:
         checks["faiss"] = {"status": "degraded", "latency_ms": 0, "note": "not loaded"}
 
@@ -82,10 +99,20 @@ async def readiness():
         has_critical_down = True
 
     # LLM provider
-    checks["llm"] = {"status": "ok", "latency_ms": 0, "note": "Requires API keys for actual calls"}
+    checks["llm"] = {
+        "status": "ok",
+        "latency_ms": 0,
+        "note": "Requires API keys for actual calls",
+    }
 
-    overall = "down" if has_critical_down else (
-        "degraded" if any(c["status"] == "degraded" for c in checks.values()) else "ready"
+    overall = (
+        "down"
+        if has_critical_down
+        else (
+            "degraded"
+            if any(c["status"] == "degraded" for c in checks.values())
+            else "ready"
+        )
     )
     status_code = 503 if has_critical_down else 200
 
@@ -112,20 +139,38 @@ async def deep_health():
             start = time.time()
             async with engine.connect() as conn:
                 await conn.execute(text("SELECT 1"))
-            checks["database"] = {"status": "ok", "latency_ms": round((time.time() - start) * 1000, 2)}
+            checks["database"] = {
+                "status": "ok",
+                "latency_ms": round((time.time() - start) * 1000, 2),
+            }
         else:
-            checks["database"] = {"status": "degraded", "latency_ms": 0, "note": "in-memory mode"}
+            checks["database"] = {
+                "status": "degraded",
+                "latency_ms": 0,
+                "note": "in-memory mode",
+            }
     except Exception as e:
-        checks["database"] = {"status": "down", "latency_ms": 0, "error": type(e).__name__}
+        checks["database"] = {
+            "status": "down",
+            "latency_ms": 0,
+            "error": type(e).__name__,
+        }
 
     # Redis
     try:
         if redis_manager.available:
             start = time.time()
             await redis_manager.client.ping()
-            checks["redis"] = {"status": "ok", "latency_ms": round((time.time() - start) * 1000, 2)}
+            checks["redis"] = {
+                "status": "ok",
+                "latency_ms": round((time.time() - start) * 1000, 2),
+            }
         else:
-            checks["redis"] = {"status": "degraded", "latency_ms": 0, "note": "in-memory fallback"}
+            checks["redis"] = {
+                "status": "degraded",
+                "latency_ms": 0,
+                "note": "in-memory fallback",
+            }
     except Exception as e:
         checks["redis"] = {"status": "down", "latency_ms": 0, "error": type(e).__name__}
 
@@ -149,6 +194,7 @@ async def deep_health():
     # FAISS
     try:
         from app.core.memory_engine import memory_engine
+
         checks["faiss"] = {"status": "ok" if memory_engine else "degraded"}
     except Exception:
         checks["faiss"] = {"status": "degraded", "note": "not loaded"}
@@ -164,7 +210,12 @@ async def deep_health():
 
     status_code = 200 if overall != "down" else 503
     return JSONResponse(
-        content={"status": overall, "service": "gnosis", "version": "1.0.0", "checks": checks},
+        content={
+            "status": overall,
+            "service": "gnosis",
+            "version": "1.0.0",
+            "checks": checks,
+        },
         status_code=status_code,
     )
 

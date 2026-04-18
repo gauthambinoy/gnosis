@@ -10,10 +10,29 @@ class TrustEngine:
 
     LEVELS = {
         0: {"name": "Observer", "permissions": ["read"], "auto_approve": False},
-        1: {"name": "Apprentice", "permissions": ["read", "draft"], "auto_approve": False},
-        2: {"name": "Operator", "permissions": ["read", "draft", "execute_safe"], "auto_approve": True, "limit": 10},
-        3: {"name": "Trusted", "permissions": ["read", "draft", "execute_safe", "execute_risky"], "auto_approve": True, "limit": 50},
-        4: {"name": "Autonomous", "permissions": ["all"], "auto_approve": True, "limit": None},
+        1: {
+            "name": "Apprentice",
+            "permissions": ["read", "draft"],
+            "auto_approve": False,
+        },
+        2: {
+            "name": "Operator",
+            "permissions": ["read", "draft", "execute_safe"],
+            "auto_approve": True,
+            "limit": 10,
+        },
+        3: {
+            "name": "Trusted",
+            "permissions": ["read", "draft", "execute_safe", "execute_risky"],
+            "auto_approve": True,
+            "limit": 50,
+        },
+        4: {
+            "name": "Autonomous",
+            "permissions": ["all"],
+            "auto_approve": True,
+            "limit": None,
+        },
     }
 
     PROMOTE_MIN_EXECUTIONS = 20
@@ -42,19 +61,24 @@ class TrustEngine:
 
         total = metrics.get("total_executions", len(history))
         accuracy = metrics.get("accuracy", self._calc_accuracy(history))
-        critical_failures = metrics.get("critical_failures_7d", self._recent_critical_failures(agent_id, days=7))
+        critical_failures = metrics.get(
+            "critical_failures_7d", self._recent_critical_failures(agent_id, days=7)
+        )
 
         recommendation = "hold"
         reason = "Insufficient data or stable performance."
 
         # Check demotion first (safety takes priority)
-        recent = history[-self.DEMOTE_WINDOW:] if history else []
+        recent = history[-self.DEMOTE_WINDOW :] if history else []
         recent_accuracy = self._calc_accuracy(recent) if recent else accuracy
 
         if critical_failures > 0:
             recommendation = "demote"
             reason = f"Critical failure detected in last 7 days ({critical_failures} failure(s))."
-        elif len(recent) >= self.DEMOTE_WINDOW and recent_accuracy < self.DEMOTE_ACCURACY_THRESHOLD:
+        elif (
+            len(recent) >= self.DEMOTE_WINDOW
+            and recent_accuracy < self.DEMOTE_ACCURACY_THRESHOLD
+        ):
             recommendation = "demote"
             reason = f"Recent accuracy {recent_accuracy:.1%} below {self.DEMOTE_ACCURACY_THRESHOLD:.0%} threshold over last {self.DEMOTE_WINDOW} executions."
         elif (
@@ -80,9 +104,15 @@ class TrustEngine:
             },
         }
 
-    async def check_permission(self, agent_id: str, action: str, trust_level: int | None = None) -> dict:
+    async def check_permission(
+        self, agent_id: str, action: str, trust_level: int | None = None
+    ) -> dict:
         """Check if agent can perform action at current trust level."""
-        level = trust_level if trust_level is not None else self._agent_trust.get(agent_id, 0)
+        level = (
+            trust_level
+            if trust_level is not None
+            else self._agent_trust.get(agent_id, 0)
+        )
         level_info = self.LEVELS.get(level, self.LEVELS[0])
 
         permissions = level_info["permissions"]
@@ -112,7 +142,13 @@ class TrustEngine:
         """Promote agent to next trust level."""
         current = self._agent_trust.get(agent_id, 0)
         if current >= 4:
-            return {"agent_id": agent_id, "level": current, "name": self.LEVELS[current]["name"], "changed": False, "reason": "Already at maximum trust level."}
+            return {
+                "agent_id": agent_id,
+                "level": current,
+                "name": self.LEVELS[current]["name"],
+                "changed": False,
+                "reason": "Already at maximum trust level.",
+            }
 
         new_level = current + 1
         self._agent_trust[agent_id] = new_level
@@ -130,13 +166,27 @@ class TrustEngine:
 
         await event_bus.emit(Events.TRUST_CHANGED, change)
 
-        return {"agent_id": agent_id, "level": new_level, "name": self.LEVELS[new_level]["name"], "changed": True, "reason": f"Promoted from {self.LEVELS[current]['name']} to {self.LEVELS[new_level]['name']}."}
+        return {
+            "agent_id": agent_id,
+            "level": new_level,
+            "name": self.LEVELS[new_level]["name"],
+            "changed": True,
+            "reason": f"Promoted from {self.LEVELS[current]['name']} to {self.LEVELS[new_level]['name']}.",
+        }
 
-    async def demote(self, agent_id: str, reason: str = "Performance degradation") -> dict:
+    async def demote(
+        self, agent_id: str, reason: str = "Performance degradation"
+    ) -> dict:
         """Demote agent to previous trust level."""
         current = self._agent_trust.get(agent_id, 0)
         if current <= 0:
-            return {"agent_id": agent_id, "level": current, "name": self.LEVELS[current]["name"], "changed": False, "reason": "Already at minimum trust level."}
+            return {
+                "agent_id": agent_id,
+                "level": current,
+                "name": self.LEVELS[current]["name"],
+                "changed": False,
+                "reason": "Already at minimum trust level.",
+            }
 
         new_level = current - 1
         self._agent_trust[agent_id] = new_level
@@ -155,7 +205,13 @@ class TrustEngine:
 
         await event_bus.emit(Events.TRUST_CHANGED, change)
 
-        return {"agent_id": agent_id, "level": new_level, "name": self.LEVELS[new_level]["name"], "changed": True, "reason": f"Demoted from {self.LEVELS[current]['name']} to {self.LEVELS[new_level]['name']}: {reason}"}
+        return {
+            "agent_id": agent_id,
+            "level": new_level,
+            "name": self.LEVELS[new_level]["name"],
+            "changed": True,
+            "reason": f"Demoted from {self.LEVELS[current]['name']} to {self.LEVELS[new_level]['name']}: {reason}",
+        }
 
     async def get_trust_report(self, agent_id: str) -> dict:
         """Full trust report for an agent."""
@@ -173,7 +229,11 @@ class TrustEngine:
             "execution_limit": level_info.get("limit"),
             "total_executions": len(history),
             "accuracy": round(self._calc_accuracy(history), 4),
-            "recent_accuracy": round(self._calc_accuracy(history[-self.DEMOTE_WINDOW:]), 4) if history else 0.0,
+            "recent_accuracy": round(
+                self._calc_accuracy(history[-self.DEMOTE_WINDOW :]), 4
+            )
+            if history
+            else 0.0,
             "critical_failures_7d": self._recent_critical_failures(agent_id, days=7),
             "change_history": changes[-20:],
         }
@@ -186,11 +246,13 @@ class TrustEngine:
         """Record an execution result for trust evaluation."""
         if agent_id not in self._agent_history:
             self._agent_history[agent_id] = []
-        self._agent_history[agent_id].append({
-            "success": success,
-            "critical_failure": critical and not success,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._agent_history[agent_id].append(
+            {
+                "success": success,
+                "critical_failure": critical and not success,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     def set_trust_level(self, agent_id: str, level: int):
         """Directly set trust level (for initialization)."""
@@ -206,7 +268,9 @@ class TrustEngine:
     async def evaluate_trust(self, agent_id: str) -> int:
         return self.get_trust_level(agent_id)
 
-    async def should_require_approval(self, agent_id: str, action_type: str, confidence: float) -> bool:
+    async def should_require_approval(
+        self, agent_id: str, action_type: str, confidence: float
+    ) -> bool:
         result = await self.check_permission(agent_id, action_type)
         if not result["allowed"]:
             return True
@@ -227,7 +291,8 @@ class TrustEngine:
         history = self._agent_history.get(agent_id, [])
         cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
         return sum(
-            1 for r in history
+            1
+            for r in history
             if r.get("critical_failure", False) and r.get("timestamp", "") >= cutoff
         )
 

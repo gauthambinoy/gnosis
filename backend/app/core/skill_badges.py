@@ -1,4 +1,5 @@
 """Gnosis Skill Badges — Award and track agent skill achievements."""
+
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -20,16 +21,46 @@ class SkillBadge:
 
 
 PRESET_BADGES = [
-    SkillBadge(id="badge-speed-demon", name="Speed Demon", icon="⚡", description="Completes tasks in under 2 seconds",
-               criteria={"avg_response_time_ms": 2000}, level="gold"),
-    SkillBadge(id="badge-reliable", name="Reliable Responder", icon="🎯", description="99%+ success rate over 100 executions",
-               criteria={"success_rate": 0.99, "min_executions": 100}, level="platinum"),
-    SkillBadge(id="badge-polyglot", name="Polyglot", icon="🌍", description="Handles 5+ languages",
-               criteria={"languages_supported": 5}, level="silver"),
-    SkillBadge(id="badge-first-run", name="First Steps", icon="👣", description="Completed first execution",
-               criteria={"total_executions": 1}, level="bronze"),
-    SkillBadge(id="badge-marathon", name="Marathon Runner", icon="🏃", description="1000+ executions completed",
-               criteria={"total_executions": 1000}, level="gold"),
+    SkillBadge(
+        id="badge-speed-demon",
+        name="Speed Demon",
+        icon="⚡",
+        description="Completes tasks in under 2 seconds",
+        criteria={"avg_response_time_ms": 2000},
+        level="gold",
+    ),
+    SkillBadge(
+        id="badge-reliable",
+        name="Reliable Responder",
+        icon="🎯",
+        description="99%+ success rate over 100 executions",
+        criteria={"success_rate": 0.99, "min_executions": 100},
+        level="platinum",
+    ),
+    SkillBadge(
+        id="badge-polyglot",
+        name="Polyglot",
+        icon="🌍",
+        description="Handles 5+ languages",
+        criteria={"languages_supported": 5},
+        level="silver",
+    ),
+    SkillBadge(
+        id="badge-first-run",
+        name="First Steps",
+        icon="👣",
+        description="Completed first execution",
+        criteria={"total_executions": 1},
+        level="bronze",
+    ),
+    SkillBadge(
+        id="badge-marathon",
+        name="Marathon Runner",
+        icon="🏃",
+        description="1000+ executions completed",
+        criteria={"total_executions": 1000},
+        level="gold",
+    ),
 ]
 
 
@@ -38,15 +69,30 @@ class SkillBadgeEngine:
 
     def __init__(self):
         self._badges: Dict[str, SkillBadge] = {b.id: b for b in PRESET_BADGES}
-        self._agent_badges: Dict[str, List[str]] = defaultdict(list)  # agent_id -> [badge_id]
+        self._agent_badges: Dict[str, List[str]] = defaultdict(
+            list
+        )  # agent_id -> [badge_id]
         self._awarded_at: Dict[str, str] = {}  # "agent_id:badge_id" -> timestamp
 
-    def create_badge(self, name: str, icon: str = "🏅", description: str = "",
-                     criteria: dict = None, level: str = "bronze") -> SkillBadge:
+    def create_badge(
+        self,
+        name: str,
+        icon: str = "🏅",
+        description: str = "",
+        criteria: dict = None,
+        level: str = "bronze",
+    ) -> SkillBadge:
         if level not in self.VALID_LEVELS:
-            raise ValueError(f"Invalid level: {level}. Must be one of {self.VALID_LEVELS}")
-        badge = SkillBadge(name=name, icon=icon, description=description,
-                           criteria=criteria or {}, level=level)
+            raise ValueError(
+                f"Invalid level: {level}. Must be one of {self.VALID_LEVELS}"
+            )
+        badge = SkillBadge(
+            name=name,
+            icon=icon,
+            description=description,
+            criteria=criteria or {},
+            level=level,
+        )
         self._badges[badge.id] = badge
         logger.info(f"Created badge: {badge.id} ({name})")
         return badge
@@ -68,7 +114,9 @@ class SkillBadgeEngine:
         logger.info(f"Awarded badge {badge_id} to agent {agent_id}")
         return True
 
-    def check_eligibility(self, agent_id: str, badge_id: str, agent_stats: dict = None) -> bool:
+    def check_eligibility(
+        self, agent_id: str, badge_id: str, agent_stats: dict = None
+    ) -> bool:
         badge = self._badges.get(badge_id)
         if not badge:
             return False

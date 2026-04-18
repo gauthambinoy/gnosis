@@ -14,6 +14,10 @@ async def nerve_center_ws(websocket: WebSocket):
             data = await websocket.receive_text()
             msg = json.loads(data)
             if msg.get("type") == "ping":
-                await websocket.send_text(json.dumps({"type": "pong", "connections": ws_manager.total_connections}))
+                await websocket.send_text(
+                    json.dumps(
+                        {"type": "pong", "connections": ws_manager.total_connections}
+                    )
+                )
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)

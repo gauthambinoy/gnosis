@@ -1,4 +1,5 @@
 """Gnosis Billing — Usage tracking, quotas, and billing management."""
+
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -17,10 +18,34 @@ class PlanTier(str, Enum):
 
 
 PLAN_LIMITS = {
-    PlanTier.FREE: {"agents": 3, "executions_per_day": 50, "tokens_per_month": 100_000, "file_storage_mb": 100, "team_members": 1},
-    PlanTier.STARTER: {"agents": 10, "executions_per_day": 500, "tokens_per_month": 1_000_000, "file_storage_mb": 1000, "team_members": 5},
-    PlanTier.PRO: {"agents": 50, "executions_per_day": 5000, "tokens_per_month": 10_000_000, "file_storage_mb": 10000, "team_members": 25},
-    PlanTier.ENTERPRISE: {"agents": -1, "executions_per_day": -1, "tokens_per_month": -1, "file_storage_mb": -1, "team_members": -1},  # -1 = unlimited
+    PlanTier.FREE: {
+        "agents": 3,
+        "executions_per_day": 50,
+        "tokens_per_month": 100_000,
+        "file_storage_mb": 100,
+        "team_members": 1,
+    },
+    PlanTier.STARTER: {
+        "agents": 10,
+        "executions_per_day": 500,
+        "tokens_per_month": 1_000_000,
+        "file_storage_mb": 1000,
+        "team_members": 5,
+    },
+    PlanTier.PRO: {
+        "agents": 50,
+        "executions_per_day": 5000,
+        "tokens_per_month": 10_000_000,
+        "file_storage_mb": 10000,
+        "team_members": 25,
+    },
+    PlanTier.ENTERPRISE: {
+        "agents": -1,
+        "executions_per_day": -1,
+        "tokens_per_month": -1,
+        "file_storage_mb": -1,
+        "team_members": -1,
+    },  # -1 = unlimited
 }
 
 PLAN_PRICES = {
@@ -38,7 +63,9 @@ class UsageRecord:
     metric: str  # agents_created, executions, tokens_used, storage_used_mb
     value: float
     period: str  # YYYY-MM-DD or YYYY-MM
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 @dataclass
@@ -47,23 +74,31 @@ class Subscription:
     user_id: str
     plan: PlanTier = PlanTier.FREE
     status: str = "active"  # active, cancelled, past_due
-    current_period_start: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    current_period_start: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     current_period_end: Optional[str] = None
     stripe_customer_id: Optional[str] = None
     stripe_subscription_id: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class BillingEngine:
     def __init__(self):
         self._subscriptions: Dict[str, Subscription] = {}  # user_id -> sub
         self._usage: Dict[str, List[UsageRecord]] = {}  # user_id -> records
-        self._daily_counters: Dict[str, Dict[str, float]] = {}  # user_id -> {metric: count}
+        self._daily_counters: Dict[
+            str, Dict[str, float]
+        ] = {}  # user_id -> {metric: count}
         self._monthly_counters: Dict[str, Dict[str, float]] = {}
 
     def get_or_create_subscription(self, user_id: str) -> Subscription:
         if user_id not in self._subscriptions:
-            self._subscriptions[user_id] = Subscription(id=str(uuid.uuid4()), user_id=user_id)
+            self._subscriptions[user_id] = Subscription(
+                id=str(uuid.uuid4()), user_id=user_id
+            )
         return self._subscriptions[user_id]
 
     def upgrade_plan(self, user_id: str, plan: PlanTier) -> Subscription:
@@ -76,15 +111,25 @@ class BillingEngine:
     def record_usage(self, user_id: str, metric: str, value: float = 1):
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-        record = UsageRecord(id=str(uuid.uuid4()), user_id=user_id, metric=metric, value=value, period=today)
+        record = UsageRecord(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            metric=metric,
+            value=value,
+            period=today,
+        )
         self._usage.setdefault(user_id, []).append(record)
 
         # Update counters
         self._daily_counters.setdefault(user_id, {})
-        self._daily_counters[user_id][metric] = self._daily_counters[user_id].get(metric, 0) + value
+        self._daily_counters[user_id][metric] = (
+            self._daily_counters[user_id].get(metric, 0) + value
+        )
 
         self._monthly_counters.setdefault(user_id, {})
-        self._monthly_counters[user_id][metric] = self._monthly_counters[user_id].get(metric, 0) + value
+        self._monthly_counters[user_id][metric] = (
+            self._monthly_counters[user_id].get(metric, 0) + value
+        )
 
     def check_quota(self, user_id: str, metric: str) -> dict:
         sub = self.get_or_create_subscription(user_id)
@@ -123,16 +168,33 @@ class BillingEngine:
         return {
             "plan": sub.plan,
             "price": PLAN_PRICES.get(sub.plan, 0),
-            "daily_executions": {"used": daily.get("executions", 0), "limit": limits["executions_per_day"]},
-            "monthly_tokens": {"used": monthly.get("tokens_used", 0), "limit": limits["tokens_per_month"]},
-            "agents": {"used": monthly.get("agents_created", 0), "limit": limits["agents"]},
-            "storage_mb": {"used": monthly.get("storage_used_mb", 0), "limit": limits["file_storage_mb"]},
+            "daily_executions": {
+                "used": daily.get("executions", 0),
+                "limit": limits["executions_per_day"],
+            },
+            "monthly_tokens": {
+                "used": monthly.get("tokens_used", 0),
+                "limit": limits["tokens_per_month"],
+            },
+            "agents": {
+                "used": monthly.get("agents_created", 0),
+                "limit": limits["agents"],
+            },
+            "storage_mb": {
+                "used": monthly.get("storage_used_mb", 0),
+                "limit": limits["file_storage_mb"],
+            },
         }
 
     def get_plans(self) -> list:
         return [
-            {"tier": tier.value, "price": PLAN_PRICES[tier], "limits": PLAN_LIMITS[tier],
-             "name": tier.value.title(), "popular": tier == PlanTier.PRO}
+            {
+                "tier": tier.value,
+                "price": PLAN_PRICES[tier],
+                "limits": PLAN_LIMITS[tier],
+                "name": tier.value.title(),
+                "popular": tier == PlanTier.PRO,
+            }
             for tier in PlanTier
         ]
 

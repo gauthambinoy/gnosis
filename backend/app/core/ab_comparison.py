@@ -1,4 +1,5 @@
 """A/B Response Comparison — compare two agent responses side-by-side with scoring."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -15,7 +16,9 @@ class ABComparison:
     agent_b: str
     winner: str = ""
     scores: dict = field(default_factory=dict)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class ABComparisonEngine:
@@ -23,7 +26,12 @@ class ABComparisonEngine:
         self._comparisons: Dict[str, ABComparison] = {}
 
     def create_comparison(
-        self, prompt: str, response_a: str, response_b: str, agent_a: str = "", agent_b: str = ""
+        self,
+        prompt: str,
+        response_a: str,
+        response_b: str,
+        agent_a: str = "",
+        agent_b: str = "",
     ) -> ABComparison:
         scores = {
             "length_a": len(response_a),

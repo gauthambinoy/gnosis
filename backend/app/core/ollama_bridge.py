@@ -1,4 +1,5 @@
 """Gnosis Ollama Bridge — local-first LLM execution via Ollama."""
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import httpx
@@ -48,12 +49,14 @@ class OllamaBridge:
                 )
                 if resp.status_code == 200:
                     result = resp.json().get("response", "")
-                    self._generation_history.append({
-                        "model": use_model,
-                        "prompt_len": len(prompt),
-                        "response_len": len(result),
-                        "timestamp": datetime.now(timezone.utc).isoformat(),
-                    })
+                    self._generation_history.append(
+                        {
+                            "model": use_model,
+                            "prompt_len": len(prompt),
+                            "response_len": len(result),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
                     return result
                 return f"Error: Ollama returned status {resp.status_code}"
         except Exception as e:

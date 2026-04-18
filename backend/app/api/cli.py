@@ -1,4 +1,5 @@
 """CLI client commands API — backend support for CLI interactions."""
+
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import datetime, timezone
 import time

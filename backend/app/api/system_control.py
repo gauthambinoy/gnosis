@@ -2,6 +2,7 @@
 Gnosis System Control — REST API
 Secure endpoints for OS/system management.
 """
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 

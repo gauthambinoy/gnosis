@@ -1,4 +1,5 @@
 """Trace sampling for high-volume endpoints."""
+
 import random
 
 

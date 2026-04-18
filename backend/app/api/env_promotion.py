@@ -1,4 +1,5 @@
 """Gnosis Environment Promotion — API routes."""
+
 from dataclasses import asdict
 from typing import Optional
 
@@ -20,7 +21,9 @@ class PromoteRequest(BaseModel):
 
 
 @router.post("/")
-async def create_promotion(body: PromoteRequest, user_id: str = Depends(get_current_user_id)):
+async def create_promotion(
+    body: PromoteRequest, user_id: str = Depends(get_current_user_id)
+):
     try:
         record = env_promotion_engine.promote(
             agent_id=body.agent_id,
@@ -35,7 +38,9 @@ async def create_promotion(body: PromoteRequest, user_id: str = Depends(get_curr
 
 
 @router.post("/{promotion_id}/approve")
-async def approve_promotion(promotion_id: str, user_id: str = Depends(get_current_user_id)):
+async def approve_promotion(
+    promotion_id: str, user_id: str = Depends(get_current_user_id)
+):
     try:
         record = env_promotion_engine.approve_promotion(promotion_id)
         return asdict(record)

@@ -20,7 +20,9 @@ async def create_comparison(data: dict, user_id: str = Depends(get_current_user_
 
 
 @router.post("/{comparison_id}/vote")
-async def vote(comparison_id: str, data: dict, user_id: str = Depends(get_current_user_id)):
+async def vote(
+    comparison_id: str, data: dict, user_id: str = Depends(get_current_user_id)
+):
     try:
         comp = ab_engine.vote(comparison_id, data.get("winner", ""))
         return asdict(comp)

@@ -1,4 +1,5 @@
 """Request/Response audit logging middleware."""
+
 import time
 import uuid
 import logging
@@ -12,6 +13,7 @@ from app.config import get_settings
 
 logger = logging.getLogger("gnosis.audit")
 _settings = get_settings()
+
 
 @dataclass
 class AuditRecord:
@@ -27,8 +29,10 @@ class AuditRecord:
     request_size: int = 0
     response_size: int = 0
 
+
 class AuditStore:
     """In-memory circular buffer for audit records."""
+
     def __init__(self, max_records: int = 10000):
         self._records: deque = deque(maxlen=max_records)
         self._stats = {"total_requests": 0, "total_errors": 0, "total_latency_ms": 0}
@@ -40,7 +44,9 @@ class AuditStore:
         if record.status_code >= 400:
             self._stats["total_errors"] += 1
 
-    def recent(self, limit: int = 50, path_filter: str = None, method_filter: str = None) -> List[dict]:
+    def recent(
+        self, limit: int = 50, path_filter: str = None, method_filter: str = None
+    ) -> List[dict]:
         records = list(self._records)
         if path_filter:
             records = [r for r in records if path_filter in r.path]
@@ -58,7 +64,9 @@ class AuditStore:
             "buffer_size": len(self._records),
         }
 
+
 audit_store = AuditStore()
+
 
 class AuditLogMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -85,12 +93,20 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         if auth.startswith("Bearer "):
             try:
                 from jose import jwt
-                payload = jwt.decode(auth[7:], _settings.secret_key, algorithms=["HS256"], options={"verify_exp": False})
+
+                payload = jwt.decode(
+                    auth[7:],
+                    _settings.secret_key,
+                    algorithms=["HS256"],
+                    options={"verify_exp": False},
+                )
                 user_id = payload.get("sub", "")
             except Exception:
                 pass
 
-        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (request.client.host if request.client else "")
+        ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or (
+            request.client.host if request.client else ""
+        )
 
         response = await call_next(request)
         latency = (time.time() - start) * 1000
@@ -111,7 +127,9 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
 
         # Log slow requests
         if latency > 1000:
-            logger.warning(f"Slow request: {request.method} {request.url.path} took {latency:.0f}ms")
+            logger.warning(
+                f"Slow request: {request.method} {request.url.path} took {latency:.0f}ms"
+            )
 
         response.headers["X-Request-ID"] = request_id
         return response

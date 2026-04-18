@@ -18,7 +18,9 @@ target_metadata = Base.metadata
 def get_url():
     settings = get_settings()
     # Convert async URL to sync for Alembic
-    return settings.database_url.replace("+asyncpg", "+psycopg2").replace("postgresql+asyncpg", "postgresql")
+    return settings.database_url.replace("+asyncpg", "+psycopg2").replace(
+        "postgresql+asyncpg", "postgresql"
+    )
 
 
 def run_migrations_offline() -> None:
@@ -37,7 +39,9 @@ def do_run_migrations(connection):
 async def run_async_migrations():
     cfg = config.get_section(config.config_ini_section, {})
     cfg["sqlalchemy.url"] = get_settings().database_url
-    connectable = async_engine_from_config(cfg, prefix="sqlalchemy.", poolclass=pool.NullPool)
+    connectable = async_engine_from_config(
+        cfg, prefix="sqlalchemy.", poolclass=pool.NullPool
+    )
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()

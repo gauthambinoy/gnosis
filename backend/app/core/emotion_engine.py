@@ -1,4 +1,5 @@
 """Gnosis Emotion Engine — Detect and track emotional signals in conversations."""
+
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -9,10 +10,51 @@ from collections import defaultdict
 logger = logging.getLogger("gnosis.emotion")
 
 EMOTION_KEYWORDS = {
-    "frustrated": ["frustrated", "annoying", "angry", "terrible", "horrible", "hate", "worst", "broken", "useless", "awful"],
-    "confused": ["confused", "unclear", "don't understand", "what do you mean", "lost", "how does", "doesn't make sense", "help me"],
-    "satisfied": ["thanks", "great", "perfect", "excellent", "awesome", "love it", "works", "solved", "helpful", "amazing"],
-    "curious": ["how", "why", "what if", "wonder", "curious", "interesting", "tell me more", "explain", "possible"],
+    "frustrated": [
+        "frustrated",
+        "annoying",
+        "angry",
+        "terrible",
+        "horrible",
+        "hate",
+        "worst",
+        "broken",
+        "useless",
+        "awful",
+    ],
+    "confused": [
+        "confused",
+        "unclear",
+        "don't understand",
+        "what do you mean",
+        "lost",
+        "how does",
+        "doesn't make sense",
+        "help me",
+    ],
+    "satisfied": [
+        "thanks",
+        "great",
+        "perfect",
+        "excellent",
+        "awesome",
+        "love it",
+        "works",
+        "solved",
+        "helpful",
+        "amazing",
+    ],
+    "curious": [
+        "how",
+        "why",
+        "what if",
+        "wonder",
+        "curious",
+        "interesting",
+        "tell me more",
+        "explain",
+        "possible",
+    ],
 }
 
 
@@ -23,7 +65,9 @@ class EmotionSignal:
     detected_emotion: str = "neutral"  # neutral/frustrated/confused/satisfied/curious
     confidence: float = 0.0
     context: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class EmotionEngine:
@@ -38,16 +82,26 @@ class EmotionEngine:
             if count > 0:
                 scores[emotion] = count
         if not scores:
-            signal = EmotionSignal(agent_id=agent_id, detected_emotion="neutral", confidence=0.5,
-                                   context=text[:200])
+            signal = EmotionSignal(
+                agent_id=agent_id,
+                detected_emotion="neutral",
+                confidence=0.5,
+                context=text[:200],
+            )
         else:
             best = max(scores, key=scores.get)
             confidence = min(0.95, 0.4 + scores[best] * 0.15)
-            signal = EmotionSignal(agent_id=agent_id, detected_emotion=best, confidence=round(confidence, 2),
-                                   context=text[:200])
+            signal = EmotionSignal(
+                agent_id=agent_id,
+                detected_emotion=best,
+                confidence=round(confidence, 2),
+                context=text[:200],
+            )
         if agent_id:
             self._history[agent_id].append(signal)
-        logger.info(f"Emotion detected: {signal.detected_emotion} (conf={signal.confidence}) for agent {agent_id}")
+        logger.info(
+            f"Emotion detected: {signal.detected_emotion} (conf={signal.confidence}) for agent {agent_id}"
+        )
         return signal
 
     def get_emotion_history(self, agent_id: str, limit: int = 50) -> List[dict]:

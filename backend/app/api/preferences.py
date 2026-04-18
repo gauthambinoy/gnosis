@@ -24,7 +24,9 @@ async def get_preferences(user_id: str = Depends(get_current_user_id)):
 
 
 @router.put("")
-async def update_preferences(req: PreferencesUpdate, user_id: str = Depends(get_current_user_id)):
+async def update_preferences(
+    req: PreferencesUpdate, user_id: str = Depends(get_current_user_id)
+):
     updates = {k: v for k, v in req.dict().items() if v is not None}
     try:
         prefs = user_preferences_engine.set_preferences(user_id, **updates)

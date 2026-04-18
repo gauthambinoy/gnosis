@@ -1,4 +1,5 @@
 """Agent export/import as portable JSON bundles."""
+
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from fastapi.responses import JSONResponse
 from app.core.auth import get_current_user_id
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/api/v1/agents", tags=["agents"])
 
 EXPORT_VERSION = "1.0"
 
+
 @router.get("/{agent_id}/export")
 async def export_agent(agent_id: str, user_id: str = Depends(get_current_user_id)):
     """Export agent as a portable JSON bundle."""
@@ -24,32 +26,48 @@ async def export_agent(agent_id: str, user_id: str = Depends(get_current_user_id
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    data = agent if isinstance(agent, dict) else (agent.__dict__.copy() if hasattr(agent, '__dict__') else {})
+    data = (
+        agent
+        if isinstance(agent, dict)
+        else (agent.__dict__.copy() if hasattr(agent, "__dict__") else {})
+    )
 
     bundle = {
         "_gnosis_export": True,
         "_version": EXPORT_VERSION,
         "_exported_at": datetime.now(timezone.utc).isoformat(),
         "_exported_by": user_id,
-        "agent": {k: v for k, v in data.items() if not k.startswith("_") and k not in ("owner_id",)},
+        "agent": {
+            k: v
+            for k, v in data.items()
+            if not k.startswith("_") and k not in ("owner_id",)
+        },
     }
 
     # Include memory summary if available
     try:
         from app.core.memory_engine import memory_engine
+
         memories = await memory_engine.get_agent_memories(agent_id, limit=100)
-        bundle["memories"] = [{"tier": m.tier, "content": m.content, "metadata": m.metadata} for m in memories]
+        bundle["memories"] = [
+            {"tier": m.tier, "content": m.content, "metadata": m.metadata}
+            for m in memories
+        ]
     except Exception:
         bundle["memories"] = []
 
     return JSONResponse(
         content=bundle,
-        headers={"Content-Disposition": f'attachment; filename="gnosis-agent-{agent_id[:8]}.json"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="gnosis-agent-{agent_id[:8]}.json"'
+        },
     )
 
 
 @router.post("/import")
-async def import_agent(file: UploadFile = File(...), user_id: str = Depends(get_current_user_id)):
+async def import_agent(
+    file: UploadFile = File(...), user_id: str = Depends(get_current_user_id)
+):
     """Import agent from a JSON bundle."""
     content = await file.read()
     try:
@@ -74,6 +92,7 @@ async def import_agent(file: UploadFile = File(...), user_id: str = Depends(get_
 
     try:
         from app.core.marketplace import marketplace_engine
+
         marketplace_engine._agents[new_id] = agent_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Import failed: {e}")
@@ -83,8 +102,14 @@ async def import_agent(file: UploadFile = File(...), user_id: str = Depends(get_
     if bundle.get("memories"):
         try:
             from app.core.memory_engine import memory_engine
+
             for mem in bundle["memories"]:
-                await memory_engine.store(new_id, mem.get("tier", "semantic"), mem.get("content", ""), mem.get("metadata"))
+                await memory_engine.store(
+                    new_id,
+                    mem.get("tier", "semantic"),
+                    mem.get("content", ""),
+                    mem.get("metadata"),
+                )
                 memory_count += 1
         except Exception:
             pass

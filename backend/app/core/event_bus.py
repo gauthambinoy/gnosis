@@ -1,4 +1,5 @@
 """Redis-backed event bus for cross-service communication."""
+
 import logging
 import json
 from typing import Callable, Awaitable
@@ -7,6 +8,7 @@ from datetime import datetime, timezone
 logger = logging.getLogger(__name__)
 
 REDIS_CHANNEL = "gnosis:events"
+
 
 # Event types
 class Events:
@@ -49,15 +51,18 @@ class EventBus:
         }
         self._history.append(event)
         if len(self._history) > self._max_history:
-            self._history = self._history[-self._max_history:]
+            self._history = self._history[-self._max_history :]
 
         # Publish to Redis if available (non-blocking, best-effort)
         try:
             from app.core.redis_client import redis_manager
+
             if redis_manager.available:
                 await redis_manager.publish(REDIS_CHANNEL, json.dumps(event))
         except Exception:
-            logger.debug("Redis publish failed, event delivered in-process only", exc_info=True)
+            logger.debug(
+                "Redis publish failed, event delivered in-process only", exc_info=True
+            )
 
         handlers = self._handlers.get(event_type, [])
         # Also notify wildcard handlers
@@ -76,6 +81,7 @@ class EventBus:
         """
         try:
             from app.core.redis_client import redis_manager
+
             return await redis_manager.subscribe(REDIS_CHANNEL)
         except Exception:
             return None

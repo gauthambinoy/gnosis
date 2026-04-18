@@ -11,6 +11,7 @@ router = APIRouter(prefix="/api/v1/workspaces", tags=["workspaces"])
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
 
+
 class CreateWorkspaceRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     description: str = Field(default="", max_length=500)
@@ -33,8 +34,11 @@ class UpdateRoleRequest(BaseModel):
 
 # ── Routes ────────────────────────────────────────────────────────────────────
 
+
 @router.post("")
-async def create_workspace(body: CreateWorkspaceRequest, user_id: str = Depends(get_current_user_id)):
+async def create_workspace(
+    body: CreateWorkspaceRequest, user_id: str = Depends(get_current_user_id)
+):
     ws = workspace_engine.create(
         name=body.name,
         owner_id=user_id,
@@ -82,12 +86,18 @@ async def delete_workspace(workspace_id: str):
 
 
 @router.post("/{workspace_id}/invite")
-async def invite_member(workspace_id: str, body: InviteMemberRequest, user_id: str = Depends(get_current_user_id)):
+async def invite_member(
+    workspace_id: str,
+    body: InviteMemberRequest,
+    user_id: str = Depends(get_current_user_id),
+):
     try:
         role = Role(body.role)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid role: {body.role}")
-    invite = workspace_engine.invite_member(workspace_id, body.email, role, invited_by=user_id)
+    invite = workspace_engine.invite_member(
+        workspace_id, body.email, role, invited_by=user_id
+    )
     if not invite:
         raise HTTPException(status_code=404, detail="Workspace not found")
     return {"invite": asdict(invite)}
@@ -109,7 +119,9 @@ async def remove_member(workspace_id: str, member_user_id: str):
 
 
 @router.patch("/{workspace_id}/members/{member_user_id}/role")
-async def update_member_role(workspace_id: str, member_user_id: str, body: UpdateRoleRequest):
+async def update_member_role(
+    workspace_id: str, member_user_id: str, body: UpdateRoleRequest
+):
     try:
         role = Role(body.role)
     except ValueError:

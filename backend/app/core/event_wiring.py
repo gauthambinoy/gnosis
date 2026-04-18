@@ -1,4 +1,5 @@
 """Wire the event bus to WebSocket broadcasts and audit log."""
+
 from app.core.event_bus import event_bus, Events
 from app.ws.manager import ws_manager
 from app.core.audit_log import wire_audit_log

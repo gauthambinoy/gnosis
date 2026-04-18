@@ -5,6 +5,7 @@ from app.core.logger import get_logger
 
 logger = get_logger("db_pool")
 
+
 class DBPoolManager:
     def get_pool_status(self) -> dict:
         try:
@@ -18,5 +19,6 @@ class DBPoolManager:
             }
         except Exception as e:
             return {"status": "unavailable", "error": str(e)}
+
 
 db_pool_manager = DBPoolManager()

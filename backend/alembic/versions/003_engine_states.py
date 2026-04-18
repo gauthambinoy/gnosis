@@ -24,11 +24,25 @@ def upgrade() -> None:
         sa.Column("group_id", sa.String(128), nullable=True, index=True),
         sa.Column("state_type", sa.String(64), nullable=True, index=True),
         sa.Column("version_number", sa.Integer, nullable=True),
-        sa.Column("is_active", sa.Boolean, server_default=sa.text("false"), nullable=False),
+        sa.Column(
+            "is_active", sa.Boolean, server_default=sa.text("false"), nullable=False
+        ),
         sa.Column("state_json", postgresql.JSON, server_default=sa.text("'{}'::json")),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.UniqueConstraint("engine_name", "entity_id", name="uq_engine_states_engine_entity"),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
+        sa.UniqueConstraint(
+            "engine_name", "entity_id", name="uq_engine_states_engine_entity"
+        ),
     )
 
 

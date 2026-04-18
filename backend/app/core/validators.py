@@ -6,21 +6,24 @@ import re
 _EMAIL_RE = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 _AGENT_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9 _.-]{0,98}[a-zA-Z0-9]$")
 _API_KEY_PATTERNS = [
-    re.compile(r"^sk-[a-zA-Z0-9_-]{20,}$"),           # OpenAI style
-    re.compile(r"^sk-proj-[a-zA-Z0-9_-]{20,}$"),      # OpenAI project keys
-    re.compile(r"^sk-ant-[a-zA-Z0-9_-]{20,}$"),       # Anthropic style
-    re.compile(r"^anthropic-[a-zA-Z0-9_-]{20,}$"),    # Anthropic alt
-    re.compile(r"^gsk_[a-zA-Z0-9_-]{20,}$"),          # Groq
-    re.compile(r"^xai-[a-zA-Z0-9_-]{20,}$"),          # xAI
+    re.compile(r"^sk-[a-zA-Z0-9_-]{20,}$"),  # OpenAI style
+    re.compile(r"^sk-proj-[a-zA-Z0-9_-]{20,}$"),  # OpenAI project keys
+    re.compile(r"^sk-ant-[a-zA-Z0-9_-]{20,}$"),  # Anthropic style
+    re.compile(r"^anthropic-[a-zA-Z0-9_-]{20,}$"),  # Anthropic alt
+    re.compile(r"^gsk_[a-zA-Z0-9_-]{20,}$"),  # Groq
+    re.compile(r"^xai-[a-zA-Z0-9_-]{20,}$"),  # xAI
 ]
 
 # Dangerous patterns to strip from user input
 _DANGEROUS_PATTERNS = [
     (re.compile(r"<script\b[^>]*>.*?</script>", re.IGNORECASE | re.DOTALL), ""),
-    (re.compile(r"<[^>]+>"), ""),                       # HTML tags
+    (re.compile(r"<[^>]+>"), ""),  # HTML tags
     (re.compile(r"javascript\s*:", re.IGNORECASE), ""),
     (re.compile(r"on\w+\s*=\s*[\"'][^\"']*[\"']", re.IGNORECASE), ""),
-    (re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]"), ""),  # Control chars (keep \n, \r, \t)
+    (
+        re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]"),
+        "",
+    ),  # Control chars (keep \n, \r, \t)
 ]
 
 
@@ -38,7 +41,7 @@ def sanitize_input(text: str, max_length: int = 10000) -> str:
         return ""
 
     # Truncate first to avoid processing huge payloads
-    text = text[:max_length * 2]
+    text = text[: max_length * 2]
 
     for pattern, replacement in _DANGEROUS_PATTERNS:
         text = pattern.sub(replacement, text)

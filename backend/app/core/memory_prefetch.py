@@ -1,4 +1,5 @@
 """Gnosis Memory Pre-Fetching — intelligent pre-loading of likely needed memories."""
+
 from dataclasses import dataclass
 import time
 import hashlib
@@ -17,7 +18,12 @@ class MemoryPrefetchEngine:
 
     def __init__(self):
         self._cache: dict[str, list[str]] = {}
-        self._stats = {"total_prefetches": 0, "cache_hits": 0, "cache_misses": 0, "total_latency_ms": 0.0}
+        self._stats = {
+            "total_prefetches": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "total_latency_ms": 0.0,
+        }
 
     def prefetch(self, agent_id: str, context_hint: str = "") -> PrefetchResult:
         start = time.time()

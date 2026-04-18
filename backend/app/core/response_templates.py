@@ -1,4 +1,5 @@
 """Gnosis Response Templates — Format agent responses in various output formats."""
+
 import uuid
 import logging
 import json
@@ -16,7 +17,9 @@ class ResponseTemplate:
     format: str = "markdown"  # markdown/json/plain/html/table
     structure: str = ""
     example: str = ""
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class ResponseTemplateEngine:
@@ -25,11 +28,20 @@ class ResponseTemplateEngine:
     def __init__(self):
         self._templates: Dict[str, ResponseTemplate] = {}
 
-    def create_template(self, name: str, format: str = "markdown", structure: str = "",
-                        example: str = "") -> ResponseTemplate:
+    def create_template(
+        self,
+        name: str,
+        format: str = "markdown",
+        structure: str = "",
+        example: str = "",
+    ) -> ResponseTemplate:
         if format not in self.VALID_FORMATS:
-            raise ValueError(f"Invalid format: {format}. Must be one of {self.VALID_FORMATS}")
-        template = ResponseTemplate(name=name, format=format, structure=structure, example=example)
+            raise ValueError(
+                f"Invalid format: {format}. Must be one of {self.VALID_FORMATS}"
+            )
+        template = ResponseTemplate(
+            name=name, format=format, structure=structure, example=example
+        )
         self._templates[template.id] = template
         logger.info(f"Created response template: {template.id} ({name})")
         return template
@@ -65,12 +77,16 @@ class ResponseTemplateEngine:
         elif fmt == "json":
             return json.dumps({"content": content, "template": template.name}, indent=2)
         elif fmt == "html":
-            return f"<div class='response'><h2>{template.name}</h2><p>{content}</p></div>"
+            return (
+                f"<div class='response'><h2>{template.name}</h2><p>{content}</p></div>"
+            )
         elif fmt == "table":
             lines = content.split("\n")
             header = "| # | Content |"
             separator = "|---|---------|"
-            rows = "\n".join(f"| {i+1} | {line} |" for i, line in enumerate(lines) if line.strip())
+            rows = "\n".join(
+                f"| {i + 1} | {line} |" for i, line in enumerate(lines) if line.strip()
+            )
             return f"{header}\n{separator}\n{rows}"
         else:
             return content

@@ -1,4 +1,5 @@
 """Gnosis Time-Boxed Integration Tokens — API routes."""
+
 from dataclasses import asdict
 from typing import List
 
@@ -24,7 +25,9 @@ class ValidateTokenRequest(BaseModel):
 
 
 @router.post("/")
-async def generate_token(body: GenerateTokenRequest, user_id: str = Depends(get_current_user_id)):
+async def generate_token(
+    body: GenerateTokenRequest, user_id: str = Depends(get_current_user_id)
+):
     token, raw_token = integration_token_engine.generate_token(
         name=body.name,
         scopes=body.scopes,

@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/v1/predictions", tags=["predictions"])
 # Request / Response models
 # ---------------------------------------------------------------------------
 
+
 class TrackActionRequest(BaseModel):
     user_id: str = "default"
     action: str
@@ -26,6 +27,7 @@ class TrackActionRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
 
 @router.get("")
 async def get_predictions(user_id: str = "default"):
@@ -41,7 +43,9 @@ async def get_predictions(user_id: str = "default"):
 @router.post("/track")
 async def track_action(body: TrackActionRequest):
     """Track a user action for pattern learning."""
-    event = await predictive_engine.track_action(body.user_id, body.action, body.metadata)
+    event = await predictive_engine.track_action(
+        body.user_id, body.action, body.metadata
+    )
     return {
         "tracked": True,
         "event_id": event.id,
@@ -76,7 +80,11 @@ async def accept_prediction(prediction_id: str):
     result = await predictive_engine.accept_prediction(prediction_id)
     if not result:
         raise HTTPException(status_code=404, detail="Prediction not found")
-    return {"accepted": True, "prediction": result, "message": "Agent deployment initiated"}
+    return {
+        "accepted": True,
+        "prediction": result,
+        "message": "Agent deployment initiated",
+    }
 
 
 @router.get("/stats")

@@ -23,27 +23,48 @@ class SearchRequest(BaseModel):
 
 @router.post("/ingest/text")
 async def ingest_text(req: IngestTextRequest):
-    doc = await rag_engine.ingest(name=req.name, content=req.content, agent_id=req.agent_id, chunk_size=req.chunk_size, overlap=req.overlap)
+    doc = await rag_engine.ingest(
+        name=req.name,
+        content=req.content,
+        agent_id=req.agent_id,
+        chunk_size=req.chunk_size,
+        overlap=req.overlap,
+    )
     return asdict(doc)
 
 
 @router.post("/ingest/file")
-async def ingest_file(file: UploadFile = File(...), agent_id: Optional[str] = Query(None)):
+async def ingest_file(
+    file: UploadFile = File(...), agent_id: Optional[str] = Query(None)
+):
     content_bytes = await file.read()
     try:
         content = content_bytes.decode("utf-8")
     except UnicodeDecodeError:
-        raise HTTPException(status_code=400, detail="File must be text-based (TXT, MD, CSV, JSON)")
+        raise HTTPException(
+            status_code=400, detail="File must be text-based (TXT, MD, CSV, JSON)"
+        )
 
     ext = (file.filename or "file.txt").rsplit(".", 1)[-1].lower()
-    doc = await rag_engine.ingest(name=file.filename or "uploaded", content=content, file_type=ext, agent_id=agent_id)
+    doc = await rag_engine.ingest(
+        name=file.filename or "uploaded",
+        content=content,
+        file_type=ext,
+        agent_id=agent_id,
+    )
     return asdict(doc)
 
 
 @router.post("/search")
 async def search_documents(req: SearchRequest):
-    results = await rag_engine.search(query=req.query, agent_id=req.agent_id, top_k=req.top_k)
-    return {"results": [asdict(r) for r in results], "total": len(results), "query": req.query}
+    results = await rag_engine.search(
+        query=req.query, agent_id=req.agent_id, top_k=req.top_k
+    )
+    return {
+        "results": [asdict(r) for r in results],
+        "total": len(results),
+        "query": req.query,
+    }
 
 
 @router.get("/documents")
@@ -64,8 +85,16 @@ async def get_document(doc_id: str):
 async def get_document_chunks(doc_id: str):
     chunks = rag_engine.get_chunks(doc_id)
     if not chunks:
-        raise HTTPException(status_code=404, detail="Document not found or has no chunks")
-    return {"chunks": [{"id": c.id, "content": c.content, "chunk_index": c.chunk_index} for c in chunks], "total": len(chunks)}
+        raise HTTPException(
+            status_code=404, detail="Document not found or has no chunks"
+        )
+    return {
+        "chunks": [
+            {"id": c.id, "content": c.content, "chunk_index": c.chunk_index}
+            for c in chunks
+        ],
+        "total": len(chunks),
+    }
 
 
 @router.delete("/documents/{doc_id}")

@@ -10,7 +10,10 @@ router = APIRouter(prefix="/api/v1/schedules", tags=["schedules"])
 class CreateScheduleRequest(BaseModel):
     agent_id: str
     name: str = Field(min_length=1, max_length=200)
-    cron_expression: str = Field(min_length=1, description="Cron expression or simplified: 'every:5m', 'daily:09:00', 'hourly'")
+    cron_expression: str = Field(
+        min_length=1,
+        description="Cron expression or simplified: 'every:5m', 'daily:09:00', 'hourly'",
+    )
     input_data: dict = Field(default_factory=dict)
     max_runs: Optional[int] = Field(None, ge=1)
 
@@ -72,7 +75,9 @@ async def delete_schedule(schedule_id: str):
 @router.post("/{schedule_id}/pause")
 async def pause_schedule(schedule_id: str):
     if not scheduler_engine.pause(schedule_id):
-        raise HTTPException(status_code=404, detail="Schedule not found or already paused")
+        raise HTTPException(
+            status_code=404, detail="Schedule not found or already paused"
+        )
     return {"paused": True}
 
 

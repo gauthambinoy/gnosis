@@ -95,24 +95,28 @@ CONDITION_OPS = {
 @dataclass
 class RealWorldTrigger:
     """Watches a source and fires when a condition is met."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     user_id: str = ""
     source: str = ""
     params: dict[str, str] = field(default_factory=dict)
-    field_path: str = ""           # dot-separated path into JSON response
-    condition: str = ">"           # one of CONDITION_OPS keys
+    field_path: str = ""  # dot-separated path into JSON response
+    condition: str = ">"  # one of CONDITION_OPS keys
     threshold: Any = None
     action_description: str = ""
     active: bool = True
     last_value: Any = None
     last_checked: str = ""
     last_fired: str = ""
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 @dataclass
 class TriggerEvent:
     """Record of a trigger that fired."""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     trigger_id: str = ""
     source: str = ""
@@ -120,18 +124,21 @@ class TriggerEvent:
     condition: str = ""
     value: Any = None
     threshold: Any = None
-    fired_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    fired_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 # ---------------------------------------------------------------------------
 # Engine
 # ---------------------------------------------------------------------------
 
+
 class RealWorldEngine:
     """Fetches real-world data, evaluates triggers, keeps history."""
 
     def __init__(self) -> None:
-        self._cache: dict[str, tuple[float, Any]] = {}   # key -> (ts, data)
+        self._cache: dict[str, tuple[float, Any]] = {}  # key -> (ts, data)
         self._triggers: dict[str, RealWorldTrigger] = {}  # id -> trigger
         self._history: list[TriggerEvent] = []
         self._lock = asyncio.Lock()
@@ -141,18 +148,22 @@ class RealWorldEngine:
     def list_sources(self) -> list[dict[str, Any]]:
         out = []
         for name, meta in REALWORLD_SOURCES.items():
-            out.append({
-                "name": name,
-                "description": meta["description"],
-                "refresh_rate": meta.get("refresh_rate", 0),
-                "params": meta.get("params", []),
-                "has_free_api": "free_api" in meta,
-            })
+            out.append(
+                {
+                    "name": name,
+                    "description": meta["description"],
+                    "refresh_rate": meta.get("refresh_rate", 0),
+                    "params": meta.get("params", []),
+                    "has_free_api": "free_api" in meta,
+                }
+            )
         return out
 
     # -- fetch -------------------------------------------------------------
 
-    async def fetch_source(self, source: str, params: dict[str, str] | None = None) -> dict[str, Any]:
+    async def fetch_source(
+        self, source: str, params: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         params = params or {}
         meta = REALWORLD_SOURCES.get(source)
         if not meta:
@@ -167,14 +178,21 @@ class RealWorldEngine:
         if cache_key in self._cache:
             ts, data = self._cache[cache_key]
             if refresh > 0 and (now - ts) < refresh:
-                return {"source": source, "cached": True, "data": data, "fetched_at": ts}
+                return {
+                    "source": source,
+                    "cached": True,
+                    "data": data,
+                    "fetched_at": ts,
+                }
 
         url_template = meta.get("free_api")
         if not url_template:
             return {
                 "source": source,
                 "cached": False,
-                "data": {"message": f"No free API configured for '{source}'. An API key is required."},
+                "data": {
+                    "message": f"No free API configured for '{source}'. An API key is required."
+                },
                 "fetched_at": now,
             }
 
@@ -213,7 +231,9 @@ class RealWorldEngine:
         params: dict[str, str] | None = None,
     ) -> RealWorldTrigger:
         if condition not in CONDITION_OPS:
-            raise ValueError(f"Unknown condition '{condition}'. Choose from: {list(CONDITION_OPS)}")
+            raise ValueError(
+                f"Unknown condition '{condition}'. Choose from: {list(CONDITION_OPS)}"
+            )
         trigger = RealWorldTrigger(
             user_id=user_id,
             source=source,
@@ -256,7 +276,9 @@ class RealWorldEngine:
 
             did_fire = False
             if trigger.condition == "changes":
-                did_fire = trigger.last_value is not None and value != trigger.last_value
+                did_fire = (
+                    trigger.last_value is not None and value != trigger.last_value
+                )
             else:
                 try:
                     cmp_fn = CONDITION_OPS[trigger.condition]
@@ -281,17 +303,19 @@ class RealWorldEngine:
                     threshold=trigger.threshold,
                 )
                 self._history.append(event)
-                fired.append({
-                    "trigger_id": trigger.id,
-                    "event_id": event.id,
-                    "source": trigger.source,
-                    "field_path": trigger.field_path,
-                    "condition": trigger.condition,
-                    "value": value,
-                    "threshold": trigger.threshold,
-                    "action": trigger.action_description,
-                    "fired_at": event.fired_at,
-                })
+                fired.append(
+                    {
+                        "trigger_id": trigger.id,
+                        "event_id": event.id,
+                        "source": trigger.source,
+                        "field_path": trigger.field_path,
+                        "condition": trigger.condition,
+                        "value": value,
+                        "threshold": trigger.threshold,
+                        "action": trigger.action_description,
+                        "fired_at": event.fired_at,
+                    }
+                )
         return fired
 
     # -- history / stats ---------------------------------------------------

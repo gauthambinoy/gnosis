@@ -1,4 +1,5 @@
 """Gnosis SSO — OAuth2 login with Google and GitHub."""
+
 import uuid
 import hashlib
 import logging
@@ -15,7 +16,9 @@ class OAuthState:
     state: str
     provider: str
     redirect_uri: str
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 @dataclass
@@ -28,7 +31,9 @@ class SSOAccount:
     avatar_url: Optional[str] = None
     gnosis_user_id: Optional[str] = None  # Linked Gnosis account
     access_token: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 PROVIDERS = {
@@ -50,7 +55,9 @@ PROVIDERS = {
 class SSOEngine:
     def __init__(self):
         self._states: Dict[str, OAuthState] = {}
-        self._accounts: Dict[str, SSOAccount] = {}  # provider:provider_user_id -> account
+        self._accounts: Dict[
+            str, SSOAccount
+        ] = {}  # provider:provider_user_id -> account
         self._user_sso: Dict[str, list] = {}  # gnosis_user_id -> SSO accounts
 
         # Config (would come from env in production)
@@ -66,7 +73,9 @@ class SSOEngine:
             raise ValueError(f"Unknown provider: {provider}")
 
         state = hashlib.sha256(uuid.uuid4().bytes).hexdigest()[:32]
-        self._states[state] = OAuthState(state=state, provider=provider, redirect_uri=redirect_uri)
+        self._states[state] = OAuthState(
+            state=state, provider=provider, redirect_uri=redirect_uri
+        )
 
         config = PROVIDERS[provider]
         params = {
@@ -87,8 +96,15 @@ class SSOEngine:
     def validate_state(self, state: str) -> Optional[OAuthState]:
         return self._states.pop(state, None)
 
-    def register_sso_account(self, provider: str, provider_user_id: str, email: str,
-                              name: str, avatar_url: str = None, gnosis_user_id: str = None) -> SSOAccount:
+    def register_sso_account(
+        self,
+        provider: str,
+        provider_user_id: str,
+        email: str,
+        name: str,
+        avatar_url: str = None,
+        gnosis_user_id: str = None,
+    ) -> SSOAccount:
         key = f"{provider}:{provider_user_id}"
         if key in self._accounts:
             account = self._accounts[key]
@@ -98,8 +114,13 @@ class SSOEngine:
             return account
 
         account = SSOAccount(
-            id=str(uuid.uuid4()), provider=provider, provider_user_id=provider_user_id,
-            email=email, name=name, avatar_url=avatar_url, gnosis_user_id=gnosis_user_id,
+            id=str(uuid.uuid4()),
+            provider=provider,
+            provider_user_id=provider_user_id,
+            email=email,
+            name=name,
+            avatar_url=avatar_url,
+            gnosis_user_id=gnosis_user_id,
         )
         self._accounts[key] = account
         if gnosis_user_id:
@@ -129,7 +150,10 @@ class SSOEngine:
         for key in self._accounts:
             provider = key.split(":")[0]
             provider_counts[provider] = provider_counts.get(provider, 0) + 1
-        return {"total_sso_accounts": len(self._accounts), "by_provider": provider_counts}
+        return {
+            "total_sso_accounts": len(self._accounts),
+            "by_provider": provider_counts,
+        }
 
 
 sso_engine = SSOEngine()

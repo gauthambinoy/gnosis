@@ -1,4 +1,5 @@
 """Gnosis Internal Agent Marketplace — API routes."""
+
 from dataclasses import asdict
 from typing import Optional, List
 
@@ -26,13 +27,17 @@ class RateRequest(BaseModel):
 
 
 @router.get("/")
-async def search_listings(query: Optional[str] = Query(None), category: Optional[str] = Query(None)):
+async def search_listings(
+    query: Optional[str] = Query(None), category: Optional[str] = Query(None)
+):
     results = internal_marketplace_engine.search(query=query, category=category)
     return [asdict(r) for r in results]
 
 
 @router.post("/")
-async def publish_listing(body: PublishRequest, user_id: str = Depends(get_current_user_id)):
+async def publish_listing(
+    body: PublishRequest, user_id: str = Depends(get_current_user_id)
+):
     listing = internal_marketplace_engine.publish(
         agent_id=body.agent_id,
         title=body.title,

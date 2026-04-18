@@ -18,6 +18,7 @@ router = APIRouter(prefix="/api/v1/realworld", tags=["realworld"])
 # Request models
 # ---------------------------------------------------------------------------
 
+
 class CreateTriggerRequest(BaseModel):
     user_id: str = "default"
     source: str
@@ -32,6 +33,7 @@ class CreateTriggerRequest(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
+
 @router.get("/sources")
 async def list_sources():
     """List available real-world data sources."""
@@ -40,7 +42,9 @@ async def list_sources():
 
 
 @router.get("/fetch/{source}")
-async def fetch_source(source: str, params: str = Query("", description="Comma-separated key=value pairs")):
+async def fetch_source(
+    source: str, params: str = Query("", description="Comma-separated key=value pairs")
+):
     """Fetch current data from a real-world source."""
     parsed: dict[str, str] = {}
     if params:

@@ -8,6 +8,7 @@ When the application database is unavailable (the default in unit tests),
 ``engine_state_store`` no-ops, so we can exercise the engine's in-memory
 behaviour without spinning up a real database.
 """
+
 import pytest
 
 from app.core.feature_flags import FeatureFlagEngine

@@ -1,4 +1,5 @@
 """Gnosis Context Assembler — compresses memory context into <800 token prompts."""
+
 from app.core.memory_engine import MemoryContext
 
 
@@ -62,7 +63,7 @@ class ContextAssembler:
         # Final safety truncation
         max_chars = MAX_CONTEXT_TOKENS * CHARS_PER_TOKEN
         if len(assembled) > max_chars:
-            assembled = assembled[:max_chars - 3] + "..."
+            assembled = assembled[: max_chars - 3] + "..."
 
         return assembled
 
@@ -72,7 +73,7 @@ class ContextAssembler:
     def _truncate(self, text: str, max_chars: int) -> str:
         if len(text) <= max_chars:
             return text
-        return text[:max_chars - 3] + "..."
+        return text[: max_chars - 3] + "..."
 
 
 # Global singleton

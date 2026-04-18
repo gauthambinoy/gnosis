@@ -28,7 +28,9 @@ async def trigger_execution(data: ExecuteRequest):
                 detail=f"Guardrail violation: {blocking[0].get('description', 'Blocked by safety check')}",
             )
     for w in guardrail_result.get("warnings", []):
-        logger.warning("Guardrail warning for agent %s: %s", data.agent_id, w.get("description"))
+        logger.warning(
+            "Guardrail warning for agent %s: %s", data.agent_id, w.get("description")
+        )
 
     # Placeholder — orchestrator in Phase 2
     return {

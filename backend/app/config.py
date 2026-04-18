@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
 
     # Database
-    database_url: str = "postgresql+asyncpg://gnosis:gnosis_secret@localhost:5432/gnosis"
+    database_url: str = (
+        "postgresql+asyncpg://gnosis:gnosis_secret@localhost:5432/gnosis"
+    )
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

@@ -3,6 +3,7 @@ Gnosis System Control — Secure OS/System Management
 Provides authorized admin access to server management.
 All operations require admin auth + are fully audited.
 """
+
 import logging
 import asyncio
 import os
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Try importing psutil for system metrics
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -39,29 +41,74 @@ class SystemControlEngine:
 
     # Commands that are NEVER allowed (security)
     BLOCKED_COMMANDS = [
-        "rm -rf /", "rm -rf /*", "mkfs", "dd if=/dev/zero",
-        ":(){:|:&};:", "chmod -R 777 /", "mv / /dev/null",
-        "wget|sh", "curl|sh", "shutdown", "reboot", "halt",
-        "passwd", "userdel", "groupdel", "visudo",
+        "rm -rf /",
+        "rm -rf /*",
+        "mkfs",
+        "dd if=/dev/zero",
+        ":(){:|:&};:",
+        "chmod -R 777 /",
+        "mv / /dev/null",
+        "wget|sh",
+        "curl|sh",
+        "shutdown",
+        "reboot",
+        "halt",
+        "passwd",
+        "userdel",
+        "groupdel",
+        "visudo",
     ]
 
     # Only these command prefixes are allowed (whitelist approach)
     ALLOWED_COMMAND_PREFIXES = [
-        "ls", "cat", "head", "tail", "grep", "find", "wc",
-        "df", "du", "free", "top -bn1", "ps", "uptime", "whoami",
-        "docker", "docker-compose", "docker compose",
-        "systemctl status", "systemctl list-units",
-        "journalctl", "netstat", "ss", "ip addr",
-        "python3", "pip3 list", "pip3 show",
-        "node --version", "npm list",
-        "pg_isready", "redis-cli ping", "redis-cli info",
-        "curl -s http://localhost", "curl -s https://localhost",
+        "ls",
+        "cat",
+        "head",
+        "tail",
+        "grep",
+        "find",
+        "wc",
+        "df",
+        "du",
+        "free",
+        "top -bn1",
+        "ps",
+        "uptime",
+        "whoami",
+        "docker",
+        "docker-compose",
+        "docker compose",
+        "systemctl status",
+        "systemctl list-units",
+        "journalctl",
+        "netstat",
+        "ss",
+        "ip addr",
+        "python3",
+        "pip3 list",
+        "pip3 show",
+        "node --version",
+        "npm list",
+        "pg_isready",
+        "redis-cli ping",
+        "redis-cli info",
+        "curl -s http://localhost",
+        "curl -s https://localhost",
         "env | grep -v KEY | grep -v SECRET | grep -v PASSWORD | grep -v TOKEN",
-        "uname", "hostname", "date", "id",
-        "nginx -t", "nginx -T",
-        "aws ecs", "aws s3 ls", "aws rds describe", "aws cloudwatch",
-        "terraform plan", "terraform show",
-        "alembic current", "alembic history",
+        "uname",
+        "hostname",
+        "date",
+        "id",
+        "nginx -t",
+        "nginx -T",
+        "aws ecs",
+        "aws s3 ls",
+        "aws rds describe",
+        "aws cloudwatch",
+        "terraform plan",
+        "terraform show",
+        "alembic current",
+        "alembic history",
     ]
 
     def __init__(self):
@@ -120,10 +167,10 @@ class SystemControlEngine:
                     "packets_recv": net.packets_recv,
                 }
 
-                procs = list(psutil.process_iter(['status']))
+                procs = list(psutil.process_iter(["status"]))
                 info["processes"]["total"] = len(procs)
                 info["processes"]["running"] = sum(
-                    1 for p in procs if p.info['status'] == 'running'
+                    1 for p in procs if p.info["status"] == "running"
                 )
 
             except Exception:
@@ -147,14 +194,22 @@ class SystemControlEngine:
         """Get status of key services."""
         services = []
         checks = [
-            ("Backend API", "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/v1/health"),
-            ("Frontend", "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000"),
+            (
+                "Backend API",
+                "curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/v1/health",
+            ),
+            (
+                "Frontend",
+                "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000",
+            ),
             ("PostgreSQL", "pg_isready -q && echo UP || echo DOWN"),
             ("Redis", "redis-cli ping 2>/dev/null || echo DOWN"),
         ]
         # Return static list — actual checks done via execute_command
         for name, check_cmd in checks:
-            services.append({"name": name, "check_command": check_cmd, "status": "unknown"})
+            services.append(
+                {"name": name, "check_command": check_cmd, "status": "unknown"}
+            )
         return services
 
     def get_docker_status(self) -> dict:
@@ -220,8 +275,10 @@ class SystemControlEngine:
         safe, reason = self._is_command_safe(command)
         if not safe:
             result = CommandResult(
-                command=command, error=f"BLOCKED: {reason}",
-                exit_code=-1, executed_by=user_id,
+                command=command,
+                error=f"BLOCKED: {reason}",
+                exit_code=-1,
+                executed_by=user_id,
             )
             self._audit(user_id, "command_blocked", command, reason)
             return asdict(result)
@@ -261,14 +318,16 @@ class SystemControlEngine:
 
         # Audit
         self._audit(
-            user_id, "command_executed", command,
+            user_id,
+            "command_executed",
+            command,
             f"exit={result.exit_code} duration={result.duration_ms:.0f}ms",
         )
 
         # Store history
         self._command_history.append(result)
         if len(self._command_history) > self._max_history:
-            self._command_history = self._command_history[-self._max_history:]
+            self._command_history = self._command_history[-self._max_history :]
 
         return asdict(result)
 
@@ -285,19 +344,23 @@ class SystemControlEngine:
             for entry in os.scandir(path):
                 try:
                     stat = entry.stat()
-                    entries.append({
-                        "name": entry.name,
-                        "type": "dir" if entry.is_dir() else "file",
-                        "size": stat.st_size,
-                        "modified": stat.st_mtime,
-                        "permissions": oct(stat.st_mode)[-3:],
-                    })
+                    entries.append(
+                        {
+                            "name": entry.name,
+                            "type": "dir" if entry.is_dir() else "file",
+                            "size": stat.st_size,
+                            "modified": stat.st_mtime,
+                            "permissions": oct(stat.st_mode)[-3:],
+                        }
+                    )
                 except (PermissionError, OSError):
-                    entries.append({
-                        "name": entry.name,
-                        "type": "unknown",
-                        "error": "permission denied",
-                    })
+                    entries.append(
+                        {
+                            "name": entry.name,
+                            "type": "unknown",
+                            "error": "permission denied",
+                        }
+                    )
 
             entries.sort(key=lambda e: (e["type"] != "dir", e["name"]))
             return {"path": path, "entries": entries, "count": len(entries)}
@@ -309,7 +372,13 @@ class SystemControlEngine:
     def read_file(self, path: str, max_lines: int = 200) -> dict:
         """Read a file safely (text only, limited size)."""
         blocked_patterns = [
-            "shadow", ".ssh/id_", ".env", "secret", "password", "token", "key",
+            "shadow",
+            ".ssh/id_",
+            ".env",
+            "secret",
+            "password",
+            "token",
+            "key",
         ]
         path_lower = path.lower()
         if any(p in path_lower for p in blocked_patterns):
@@ -351,22 +420,24 @@ class SystemControlEngine:
         try:
             procs = []
             for p in psutil.process_iter(
-                ['pid', 'name', 'cpu_percent', 'memory_percent', 'status', 'username']
+                ["pid", "name", "cpu_percent", "memory_percent", "status", "username"]
             ):
                 try:
                     info = p.info
-                    procs.append({
-                        "pid": info['pid'],
-                        "name": info['name'],
-                        "cpu_percent": info['cpu_percent'] or 0,
-                        "memory_percent": round(info['memory_percent'] or 0, 1),
-                        "status": info['status'],
-                        "user": info['username'],
-                    })
+                    procs.append(
+                        {
+                            "pid": info["pid"],
+                            "name": info["name"],
+                            "cpu_percent": info["cpu_percent"] or 0,
+                            "memory_percent": round(info["memory_percent"] or 0, 1),
+                            "status": info["status"],
+                            "user": info["username"],
+                        }
+                    )
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
 
-            procs.sort(key=lambda p: p['cpu_percent'], reverse=True)
+            procs.sort(key=lambda p: p["cpu_percent"], reverse=True)
             return procs[:top_n]
         except Exception as e:
             return [{"error": str(e)}]
@@ -378,17 +449,19 @@ class SystemControlEngine:
 
         try:
             connections = []
-            for conn in psutil.net_connections(kind='inet'):
-                connections.append({
-                    "local_addr": (
-                        f"{conn.laddr.ip}:{conn.laddr.port}" if conn.laddr else ""
-                    ),
-                    "remote_addr": (
-                        f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else ""
-                    ),
-                    "status": conn.status,
-                    "pid": conn.pid,
-                })
+            for conn in psutil.net_connections(kind="inet"):
+                connections.append(
+                    {
+                        "local_addr": (
+                            f"{conn.laddr.ip}:{conn.laddr.port}" if conn.laddr else ""
+                        ),
+                        "remote_addr": (
+                            f"{conn.raddr.ip}:{conn.raddr.port}" if conn.raddr else ""
+                        ),
+                        "status": conn.status,
+                        "pid": conn.pid,
+                    }
+                )
             return connections[:100]
         except (psutil.AccessDenied, Exception) as e:
             return [{"error": str(e)}]
@@ -420,13 +493,15 @@ class SystemControlEngine:
     # ─── Audit ───
 
     def _audit(self, user_id: str, action: str, detail: str, result: str = ""):
-        self._audit_log.append({
-            "timestamp": time.time(),
-            "user_id": user_id,
-            "action": action,
-            "detail": detail[:500],
-            "result": result[:200],
-        })
+        self._audit_log.append(
+            {
+                "timestamp": time.time(),
+                "user_id": user_id,
+                "action": action,
+                "detail": detail[:500],
+                "result": result[:200],
+            }
+        )
         # Keep last 1000 entries
         if len(self._audit_log) > 1000:
             self._audit_log = self._audit_log[-1000:]
