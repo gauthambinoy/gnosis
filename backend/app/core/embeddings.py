@@ -83,7 +83,7 @@ class EmbeddingService:
     def _fallback_embed(self, text: str) -> np.ndarray:
         """Simple hash-based embedding when sentence-transformers isn't available."""
         np.random.seed(
-            int(hashlib.md5(text.lower().encode()).hexdigest()[:8], 16) % (2**31)
+            int(hashlib.md5(text.lower().encode(), usedforsecurity=False).hexdigest()[:8], 16) % (2**31)
         )
         vec = np.random.randn(self.dimension).astype(np.float32)
         return vec / (np.linalg.norm(vec) + 1e-8)
