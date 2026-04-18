@@ -39,6 +39,16 @@ jobs:
           SECRET_KEY: "ci-test-secret-key-not-for-production-use-only-do-not-reuse-anywhere"
           DATABASE_URL: "sqlite+aiosqlite:///./test.db"
 
+      - name: Alembic up+down smoke
+        continue-on-error: true  # migrations use PostgreSQL-specific DDL; needs pg to pass
+        run: |
+          cd backend
+          alembic upgrade head && alembic downgrade base && alembic upgrade head
+        env:
+          DEBUG: "true"
+          SECRET_KEY: "ci-test-secret-key-not-for-production-use-only-do-not-reuse-anywhere"
+          DATABASE_URL: "sqlite+aiosqlite:///./alembic-test.db"
+
       - name: Import check
         run: |
           cd backend
