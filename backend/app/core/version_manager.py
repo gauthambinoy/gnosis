@@ -35,7 +35,7 @@ class VersionManager:
         agent_id: str,
         config: dict,
         change_summary: str = "",
-        created_by: str = None,
+        created_by: Optional[str] = None,
     ) -> AgentVersion:
         """Auto-save a new version when agent config changes."""
         if agent_id not in self._versions:

@@ -102,8 +102,8 @@ class SSOEngine:
         provider_user_id: str,
         email: str,
         name: str,
-        avatar_url: str = None,
-        gnosis_user_id: str = None,
+        avatar_url: Optional[str] = None,
+        gnosis_user_id: Optional[str] = None,
     ) -> SSOAccount:
         key = f"{provider}:{provider_user_id}"
         if key in self._accounts:
@@ -146,7 +146,7 @@ class SSOEngine:
 
     @property
     def stats(self) -> dict:
-        provider_counts = {}
+        provider_counts: dict[str, int] = {}
         for key in self._accounts:
             provider = key.split(":")[0]
             provider_counts[provider] = provider_counts.get(provider, 0) + 1
