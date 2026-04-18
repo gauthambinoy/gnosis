@@ -31,6 +31,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         rid = request.headers.get("X-Request-ID") or uuid.uuid4().hex
         token = request_id_ctx.set(rid)
+        request.state.request_id = rid
 
         start = time.perf_counter()
         try:
