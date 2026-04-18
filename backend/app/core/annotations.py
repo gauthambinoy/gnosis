@@ -1,6 +1,6 @@
 """Inline Response Annotations — highlight, note, correct, or question agent responses."""
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional
+from typing import Dict, List
 from datetime import datetime, timezone
 import uuid
 

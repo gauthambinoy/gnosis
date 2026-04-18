@@ -11,7 +11,7 @@ from app.config import get_settings
 # Try importing boto3
 try:
     import boto3
-    from botocore.exceptions import ClientError, NoCredentialsError
+    from botocore.exceptions import ClientError, NoCredentialsError  # noqa: F401  (re-exported for callers)
     HAS_BOTO3 = True
 except ImportError:
     HAS_BOTO3 = False

@@ -1,5 +1,6 @@
 """Gnosis Agent Export/Import — Portable agent configurations."""
-import json, uuid, logging
+import uuid
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 

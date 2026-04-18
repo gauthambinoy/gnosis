@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from app.core.cost_tracker import cost_tracker
 from app.core.auth import get_current_user_id
-from typing import Optional
 
 router = APIRouter(prefix="/api/v1/costs", tags=["observability"])
 

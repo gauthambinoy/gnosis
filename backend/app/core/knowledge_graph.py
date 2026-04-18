@@ -1,8 +1,10 @@
 """Gnosis Knowledge Graph — Entity-relationship graph from agent memory."""
-import uuid, re, logging
+import uuid
+import re
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set
 
 logger = logging.getLogger("gnosis.knowledge_graph")
 

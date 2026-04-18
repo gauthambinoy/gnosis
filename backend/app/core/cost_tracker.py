@@ -1,6 +1,6 @@
 """Gnosis Cost Tracker — tracks token usage and costs per user/agent."""
 from datetime import datetime, date, timezone
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass

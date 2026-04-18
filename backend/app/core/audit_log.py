@@ -3,7 +3,6 @@
 import json
 import hashlib
 from datetime import datetime, timezone
-from typing import Any
 
 from app.core.event_bus import event_bus
 

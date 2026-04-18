@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Depends
 from fastapi.responses import FileResponse
-from typing import Optional, List
+from typing import Optional
 from app.core.file_manager import file_manager
 from app.core.auth import get_current_user_id
 from dataclasses import asdict

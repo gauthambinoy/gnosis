@@ -1,12 +1,15 @@
 """Feature flag system for controlled rollouts."""
 import asyncio
-import uuid, random, logging
-from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional
+import logging
+import random
+import uuid
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from typing import Dict, List
+
+from app.core.engine_state_store import load_states, upsert_state
 
 logger = logging.getLogger("gnosis.flags")
-from app.core.engine_state_store import load_states, upsert_state, delete_state
 
 @dataclass
 class FeatureFlag:

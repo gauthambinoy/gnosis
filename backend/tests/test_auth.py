@@ -1,9 +1,9 @@
+"""Tests for auth endpoints: register, login, refresh."""
+import uuid
+
 import pytest
 
 pytestmark = pytest.mark.anyio
-
-"""Tests for auth endpoints: register, login, refresh."""
-import uuid
 
 
 async def test_register_success(client, api_prefix):

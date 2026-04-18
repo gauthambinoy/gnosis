@@ -109,7 +109,6 @@ async def trigger_memory_decay(agent_id: str | None = None):
     If agent_id is provided, decays only that agent's memories.
     Otherwise, decays all agents' memories.
     """
-    import asyncio
     from app.tasks.memory_decay import decay_agent_memories, run_decay_cycle
     
     try:

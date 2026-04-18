@@ -1,5 +1,5 @@
 """Gnosis Bundle Analyzer — analyze frontend bundle stats."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import os
 

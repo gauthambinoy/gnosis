@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import Optional
 from app.llm.router import model_router, TIER_CONFIG
 from app.core.cost_tracker import cost_tracker
 from app.core.llm_gateway import llm_gateway, LLMRequest

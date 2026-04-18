@@ -1,5 +1,4 @@
 """Tests for webhook dispatcher."""
-import pytest
 from app.core.webhook_dispatcher import WebhookDispatcher, ALL_EVENTS
 
 

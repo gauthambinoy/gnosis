@@ -11,15 +11,12 @@ Multiple layers of protection:
 8. API key management
 """
 import hashlib
-import hmac
 import time
 import re
 import secrets
-import ipaddress
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Optional
-from fastapi import Request, Response
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # ─── Input Sanitizer ───
@@ -76,14 +73,14 @@ class InputSanitizer:
     def check_sqli(cls, value: str) -> tuple[bool, str]:
         for pattern in cls.SQLI_PATTERNS:
             if re.search(pattern, value, re.IGNORECASE):
-                return True, f"SQL injection pattern detected"
+                return True, "SQL injection pattern detected"
         return False, ""
 
     @classmethod
     def check_command_injection(cls, value: str) -> tuple[bool, str]:
         for pattern in cls.CMD_INJECTION_PATTERNS:
             if re.search(pattern, value):
-                return True, f"Command injection pattern detected"
+                return True, "Command injection pattern detected"
         return False, ""
 
     @classmethod

@@ -2,8 +2,6 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from app.core.pii_detector import pii_detector
 from app.core.auth import get_current_user_id
-from dataclasses import asdict
-from typing import Optional, List
 
 router = APIRouter(prefix="/api/v1/pii", tags=["compliance"])
 

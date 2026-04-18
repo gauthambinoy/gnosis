@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 import logging
 
 logger = logging.getLogger("gnosis.bulk")

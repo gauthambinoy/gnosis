@@ -10,7 +10,6 @@ import uuid
 from app.core.memory_engine import MemoryEngine, memory_engine
 from app.core.context_assembler import ContextAssembler, context_assembler
 from app.core.event_bus import event_bus, Events
-from app.core.embeddings import embedding_service
 from app.core.execution_recorder import execution_recorder
 from app.llm.router import ModelRouter, model_router
 from app.ws.execution_stream import execution_stream

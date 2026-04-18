@@ -1,6 +1,5 @@
 """Gnosis Memory Pre-Fetching — intelligent pre-loading of likely needed memories."""
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
 import time
 import hashlib
 

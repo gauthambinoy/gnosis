@@ -2,13 +2,11 @@
 Gnosis Agent Factory — Create complete AI agents from natural language.
 The killer feature: "Describe it → Gnosis builds it"
 """
-import json
 import time
 import uuid
 import re
 from dataclasses import dataclass, field, asdict
 from typing import Optional
-from app.config import get_settings
 
 # Intent categories the factory can handle
 INTENT_TEMPLATES = {
@@ -310,7 +308,6 @@ class AgentFactory:
             })
 
         # Cost estimate
-        runs_per_month = self._estimate_runs(schedule_cron) if schedule_cron else 1
         tokens_per_run = 500 * len(plan.agents)
         plan.estimated_cost_per_run = f"~{tokens_per_run} tokens (~${tokens_per_run * 0.000002:.4f})"
 

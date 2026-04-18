@@ -1,7 +1,6 @@
 """Redis-backed event bus for cross-service communication."""
 import logging
 import json
-import asyncio
 from typing import Callable, Awaitable
 from datetime import datetime, timezone
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional, List
-from app.core.pipeline import pipeline_engine, PipelineStatus
+from app.core.pipeline import pipeline_engine
 from dataclasses import asdict
 from app.core.safe_error import safe_http_error
 

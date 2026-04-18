@@ -4,15 +4,11 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import Any
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import Agent
-from app.models.execution import Execution, ExecutionStatus
-from app.models.memory import Memory, MemoryTier
-from app.models.insight import Insight
 
 
 class OracleEngine:
@@ -223,7 +219,7 @@ class OracleEngine:
     # --- Private helpers ---
 
     async def _load_agents(self, db: AsyncSession) -> list[Agent]:
-        result = await db.execute(select(Agent).where(Agent.is_active == True))
+        result = await db.execute(select(Agent).where(Agent.is_active.is_(True)))
         return list(result.scalars().all())
 
     def _detect_high_failure_agents(self, agents: list[Agent]) -> list[dict]:

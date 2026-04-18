@@ -1,6 +1,6 @@
 """A/B Response Comparison — compare two agent responses side-by-side with scoring."""
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional
+from typing import Dict, List
 from datetime import datetime, timezone
 import uuid
 

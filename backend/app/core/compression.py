@@ -1,5 +1,4 @@
 """Gnosis Compression — bandwidth-optimized responses with delta support."""
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import hashlib
 import json

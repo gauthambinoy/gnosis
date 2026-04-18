@@ -1,5 +1,6 @@
 """Smart upgrade nudges based on usage patterns."""
-import uuid, logging
+import uuid
+import logging
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Set
 

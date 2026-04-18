@@ -1,7 +1,8 @@
 """Gnosis Environment Promotion — Promote agent configs between environments."""
-import uuid, logging
+import uuid
+import logging
 from datetime import datetime, timezone
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 logger = logging.getLogger("gnosis.env_promotion")

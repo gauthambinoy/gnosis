@@ -4,7 +4,6 @@ Correction-tier memories NEVER decay (they are permanent).
 Other tiers decay based on age and access frequency.
 """
 import logging
-from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.tasks.memory_decay")
 

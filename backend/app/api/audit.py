@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from app.middleware.audit_log import audit_store
 from app.core.auth import get_current_user_id
 from typing import Optional

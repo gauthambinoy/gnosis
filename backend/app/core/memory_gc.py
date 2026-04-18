@@ -1,5 +1,5 @@
 """Gnosis Memory GC — garbage collector for stale, duplicate, or low-value memories."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import time
 import uuid

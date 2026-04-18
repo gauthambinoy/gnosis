@@ -1,9 +1,8 @@
 """Gnosis LLM Streamer — Real Server-Sent Events streaming from LLM providers."""
 import json
-import asyncio
 import logging
 import time
-from typing import AsyncGenerator, Optional
+from typing import AsyncGenerator
 from dataclasses import dataclass
 
 logger = logging.getLogger("gnosis.llm_streamer")
@@ -33,7 +32,6 @@ class LLMStreamer:
         provider: str = "openrouter",
     ) -> AsyncGenerator[str, None]:
         """Stream tokens from an LLM provider as SSE events."""
-        import os
         
         stream_id = f"stream-{int(time.time() * 1000)}"
         self._metrics.total_streams += 1

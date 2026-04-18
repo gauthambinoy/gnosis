@@ -5,12 +5,10 @@ Supports: OpenRouter (100+ models), OpenAI, Anthropic, Google, Mistral, Groq, Co
 """
 import logging
 import aiohttp
-import asyncio
 import time
 import hashlib
-import json
 from typing import Optional
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from app.config import get_settings
 from app.core.retry import with_retry
 

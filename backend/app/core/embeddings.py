@@ -1,7 +1,6 @@
 """Embedding service — generates vector embeddings for memory storage and retrieval."""
 import hashlib
 import numpy as np
-from typing import Optional
 
 
 class EmbeddingService:

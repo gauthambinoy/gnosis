@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.skill_badges import skill_badge_engine
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
-from typing import Optional
 
 router = APIRouter(prefix="/api/v1/badges", tags=["badges"])
 

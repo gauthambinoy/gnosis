@@ -1,5 +1,4 @@
 """Tests for recipe gallery."""
-import pytest
 from app.core.recipes import RecipeEngine
 
 

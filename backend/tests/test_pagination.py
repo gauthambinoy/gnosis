@@ -1,5 +1,4 @@
 """Tests for pagination utility."""
-import pytest
 from app.core.pagination import paginate, paginate_query, PaginationParams
 
 

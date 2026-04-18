@@ -2,7 +2,7 @@
 from dataclasses import asdict
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.core.auth import get_current_user_id

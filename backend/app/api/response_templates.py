@@ -3,7 +3,6 @@ from app.core.response_templates import response_template_engine
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
 from dataclasses import asdict
-from typing import Optional
 from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/response-templates", tags=["response-templates"])

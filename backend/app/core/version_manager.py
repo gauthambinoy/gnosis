@@ -1,9 +1,10 @@
 """Gnosis Version Manager — Track and rollback agent configuration versions."""
-import uuid, copy, logging
+import uuid
+import copy
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
-from enum import Enum
 
 logger = logging.getLogger("gnosis.versions")
 

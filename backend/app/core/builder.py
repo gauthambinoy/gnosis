@@ -1,7 +1,5 @@
 """Gnosis Agent Builder — converts natural language to structured AgentConfig via LLM."""
-import json
 from dataclasses import dataclass, field, asdict
-from typing import Optional
 
 
 AVAILABLE_INTEGRATIONS = ["gmail", "sheets", "slack", "http", "webhook", "schedule"]

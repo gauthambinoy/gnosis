@@ -444,14 +444,14 @@ class AutoAPIEngine:
             lines.append(f'    async def {name}(self, **kwargs):')
             lines.append(f'        """{ep["description"]}"""')
             lines.append(f'        url = f"{{self.BASE_URL}}{path}"')
-            lines.append(f'        headers = {{"Authorization": f"Bearer {{self.api_key}}"}}')
+            lines.append('        headers = {"Authorization": f"Bearer {self.api_key}"}')
             if method in ("post", "put", "patch"):
-                lines.append(f'        async with aiohttp.ClientSession() as s:')
+                lines.append('        async with aiohttp.ClientSession() as s:')
                 lines.append(f'            async with s.{method}(url, headers=headers, json=kwargs) as r:')
             else:
-                lines.append(f'        async with aiohttp.ClientSession() as s:')
+                lines.append('        async with aiohttp.ClientSession() as s:')
                 lines.append(f'            async with s.{method}(url, headers=headers, params=kwargs) as r:')
-            lines.append(f'                return await r.json()')
+            lines.append('                return await r.json()')
             lines.append('')
         
         return '\n'.join(lines)

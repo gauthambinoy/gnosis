@@ -4,7 +4,6 @@ Records user actions (click, type, scroll, navigate, wait, screenshot)
 and replays them via Playwright or generates executable scripts.
 """
 import asyncio
-import json
 import time
 import uuid
 from dataclasses import dataclass, field, asdict

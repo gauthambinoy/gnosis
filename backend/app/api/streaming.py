@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from app.core.llm_streamer import llm_streamer
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
-from typing import Optional
 
 router = APIRouter(prefix="/api/v1/stream", tags=["streaming"])
 

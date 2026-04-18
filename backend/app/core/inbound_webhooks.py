@@ -1,5 +1,5 @@
 """Gnosis Inbound Webhooks — accept external webhooks to trigger agents."""
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
 import hashlib

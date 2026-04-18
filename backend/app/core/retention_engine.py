@@ -1,7 +1,7 @@
 """Gnosis Data Retention — Per-workspace retention policies with auto-purge."""
 import logging
 from dataclasses import dataclass, field, asdict
-from typing import Dict, Optional, List
+from typing import Dict, List
 from datetime import datetime, timezone, timedelta
 
 logger = logging.getLogger("gnosis.retention")

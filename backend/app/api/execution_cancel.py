@@ -1,5 +1,5 @@
 """Graceful execution cancellation."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from app.core.auth import get_current_user_id
 import logging
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends
 from app.core.dlq import dead_letter_queue
 from app.core.auth import get_current_user_id
 from typing import Optional

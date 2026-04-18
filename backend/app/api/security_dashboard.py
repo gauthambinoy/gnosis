@@ -9,7 +9,6 @@ from app.core.security_hardened import (
     rate_limiter,
     brute_force,
     csrf_protection,
-    input_sanitizer,
 )
 
 router = APIRouter(prefix="/api/v1/security", tags=["security"])

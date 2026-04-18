@@ -1,9 +1,7 @@
 """Gnosis Learning Engine — 3-loop self-learning system."""
 import logging
-import uuid
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-from typing import Any
 
 from app.core.memory_engine import memory_engine, MemoryEntry
 from app.core.embeddings import embedding_service
@@ -322,7 +320,6 @@ class LearningEngine:
                 continue
 
             # Extract semantic summary from cluster
-            combined_text = " ".join(m.content[:100] for m in cluster)
             summary = self._summarize_cluster(cluster)
 
             if summary:

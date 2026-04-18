@@ -3,7 +3,7 @@ from app.core.persona_inheritance import persona_inheritance_engine
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
 from dataclasses import asdict
-from typing import Optional, Dict, List
+from typing import Optional, List
 from app.core.safe_error import safe_http_error
 
 router = APIRouter(prefix="/api/v1/persona-templates", tags=["persona-inheritance"])
