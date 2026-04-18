@@ -1,8 +1,13 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 from typing import List
-from app.core.agent_export import export_agent, export_agents_bulk, import_agent, import_agents_bulk, validate_import
+from app.core.agent_export import (
+    export_agent,
+    export_agents_bulk,
+    import_agent,
+    import_agents_bulk,
+    validate_import,
+)
 import json
 
 router = APIRouter(prefix="/api/v1/agents", tags=["export-import"])
@@ -12,6 +17,7 @@ def _get_agents_store():
     """Get the in-memory agents store from the agents module."""
     try:
         from app.api.agents import _agents
+
         return _agents
     except Exception:
         return {}
@@ -24,7 +30,12 @@ async def export_single_agent(agent_id: str):
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     data = export_agent(agent)
-    return JSONResponse(content=data, headers={"Content-Disposition": f"attachment; filename=gnosis-agent-{agent_id[:8]}.json"})
+    return JSONResponse(
+        content=data,
+        headers={
+            "Content-Disposition": f"attachment; filename=gnosis-agent-{agent_id[:8]}.json"
+        },
+    )
 
 
 @router.post("/export/bulk")
@@ -34,7 +45,12 @@ async def export_bulk(agent_ids: List[str]):
     if not agent_list:
         raise HTTPException(status_code=404, detail="No agents found")
     data = export_agents_bulk(agent_list)
-    return JSONResponse(content=data, headers={"Content-Disposition": "attachment; filename=gnosis-agents-export.json"})
+    return JSONResponse(
+        content=data,
+        headers={
+            "Content-Disposition": "attachment; filename=gnosis-agents-export.json"
+        },
+    )
 
 
 @router.post("/import")

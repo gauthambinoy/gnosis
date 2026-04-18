@@ -1,5 +1,5 @@
 """Tests for recipe gallery."""
-import pytest
+
 from app.core.recipes import RecipeEngine
 
 
@@ -40,5 +40,13 @@ class TestRecipeEngine:
 
     def test_recipe_has_required_fields(self):
         recipe = self.engine.get_recipe("recipe-code-review")
-        for field in ["id", "name", "description", "category", "tools", "persona", "difficulty"]:
+        for field in [
+            "id",
+            "name",
+            "description",
+            "category",
+            "tools",
+            "persona",
+            "difficulty",
+        ]:
             assert field in recipe

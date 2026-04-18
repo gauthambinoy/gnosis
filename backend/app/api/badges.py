@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Depends
 from app.core.skill_badges import skill_badge_engine
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
-from typing import Optional
 
 router = APIRouter(prefix="/api/v1/badges", tags=["badges"])
 
@@ -25,5 +24,7 @@ async def list_agent_badges(agent_id: str, user_id: str = Depends(get_current_us
 @router.post("/award")
 async def award_badge(req: AwardRequest, user_id: str = Depends(get_current_user_id)):
     if not skill_badge_engine.award_badge(req.agent_id, req.badge_id):
-        raise HTTPException(status_code=400, detail="Badge not found or already awarded")
+        raise HTTPException(
+            status_code=400, detail="Badge not found or already awarded"
+        )
     return {"status": "awarded", "agent_id": req.agent_id, "badge_id": req.badge_id}

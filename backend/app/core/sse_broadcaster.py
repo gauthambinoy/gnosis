@@ -1,4 +1,5 @@
 """Server-Sent Events broadcaster for real-time dashboard updates."""
+
 import asyncio
 import json
 import logging
@@ -6,6 +7,7 @@ from typing import Dict, Set, AsyncGenerator
 from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.sse")
+
 
 class SSEBroadcaster:
     """Manages SSE connections and broadcasts events to subscribers."""
@@ -20,7 +22,9 @@ class SSEBroadcaster:
             self._channels[channel] = set()
         queue: asyncio.Queue = asyncio.Queue(maxsize=100)
         self._channels[channel].add(queue)
-        logger.info(f"SSE subscriber added to {channel} (total: {len(self._channels[channel])})")
+        logger.info(
+            f"SSE subscriber added to {channel} (total: {len(self._channels[channel])})"
+        )
         return queue
 
     def unsubscribe(self, channel: str, queue: asyncio.Queue):
@@ -70,7 +74,7 @@ class SSEBroadcaster:
                     yield f"data: {json.dumps(message)}\n\n"
                 except asyncio.TimeoutError:
                     # Send keepalive
-                    yield f": keepalive\n\n"
+                    yield ": keepalive\n\n"
         finally:
             self.unsubscribe(channel, queue)
 
@@ -82,5 +86,6 @@ class SSEBroadcaster:
             "total_events": self._event_count,
             "channel_details": {ch: len(subs) for ch, subs in self._channels.items()},
         }
+
 
 sse_broadcaster = SSEBroadcaster()

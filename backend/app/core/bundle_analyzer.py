@@ -1,5 +1,6 @@
 """Gnosis Bundle Analyzer — analyze frontend bundle stats."""
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import os
 
@@ -34,7 +35,13 @@ class BundleAnalyzer:
                         fp = os.path.join(root, f)
                         size = os.path.getsize(fp)
                         total_size += size
-                        chunks.append({"name": f, "size_bytes": size, "size_kb": round(size / 1024, 2)})
+                        chunks.append(
+                            {
+                                "name": f,
+                                "size_bytes": size,
+                                "size_kb": round(size / 1024, 2),
+                            }
+                        )
         else:
             chunks = [
                 {"name": "main.js", "size_bytes": 245000, "size_kb": 239.26},
@@ -56,7 +63,9 @@ class BundleAnalyzer:
         self._last_report = report
         return report
 
-    def generate_recommendations(self, chunks: list[dict], total_size: int) -> list[str]:
+    def generate_recommendations(
+        self, chunks: list[dict], total_size: int
+    ) -> list[str]:
         recs = []
         if total_size > 1_000_000:
             recs.append("Total bundle exceeds 1MB — consider code splitting")
@@ -72,6 +81,7 @@ class BundleAnalyzer:
     def get_last_report(self) -> dict | None:
         if self._last_report:
             from dataclasses import asdict
+
             return asdict(self._last_report)
         return None
 

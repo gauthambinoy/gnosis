@@ -30,8 +30,11 @@ class ResolveRequest(BaseModel):
 @router.post("/rooms")
 async def create_room(req: CreateRoomRequest):
     room = collaboration_engine.create_room(
-        name=req.name, topic=req.topic, agent_ids=req.agent_ids,
-        agent_names=req.agent_names, max_rounds=req.max_rounds,
+        name=req.name,
+        topic=req.topic,
+        agent_ids=req.agent_ids,
+        agent_names=req.agent_names,
+        max_rounds=req.max_rounds,
     )
     return asdict(room)
 
@@ -39,11 +42,18 @@ async def create_room(req: CreateRoomRequest):
 @router.get("/rooms")
 async def list_rooms(status: Optional[str] = None):
     rooms = collaboration_engine.list_rooms(status=status)
-    summaries = [{
-        "id": r.id, "name": r.name, "topic": r.topic,
-        "agent_count": len(r.agent_ids), "message_count": len(r.messages),
-        "status": r.status, "created_at": r.created_at,
-    } for r in rooms]
+    summaries = [
+        {
+            "id": r.id,
+            "name": r.name,
+            "topic": r.topic,
+            "agent_count": len(r.agent_ids),
+            "message_count": len(r.messages),
+            "status": r.status,
+            "created_at": r.created_at,
+        }
+        for r in rooms
+    ]
     return {"rooms": summaries, "total": len(summaries)}
 
 

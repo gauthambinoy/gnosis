@@ -1,5 +1,5 @@
 """Tests for changelog engine."""
-import pytest
+
 from app.core.changelog import ChangelogEngine
 
 
@@ -12,7 +12,9 @@ class TestChangelogEngine:
         assert len(entries) >= 5
 
     def test_add_entry(self):
-        entry = self.engine.add_entry("2.0.0", "Major Release", "Big update", category="feature", tags=["major"])
+        entry = self.engine.add_entry(
+            "2.0.0", "Major Release", "Big update", category="feature", tags=["major"]
+        )
         assert entry["version"] == "2.0.0"
         assert entry["title"] == "Major Release"
 

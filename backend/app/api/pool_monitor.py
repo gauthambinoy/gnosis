@@ -1,4 +1,5 @@
 """Connection pool health monitor API."""
+
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user_id
 from app.core.pool_monitor import pool_monitor

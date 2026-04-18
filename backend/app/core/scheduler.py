@@ -1,4 +1,5 @@
 """Gnosis Agent Scheduler — Cron-based agent execution scheduling."""
+
 import asyncio
 from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass, field
@@ -30,7 +31,9 @@ class Schedule:
     run_count: int = 0
     last_run: Optional[str] = None
     next_run: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     error_count: int = 0
     last_error: Optional[str] = None
 
@@ -122,7 +125,10 @@ class SchedulerEngine:
                 for schedule in list(self._schedules.values()):
                     if schedule.status != ScheduleStatus.ACTIVE:
                         continue
-                    if schedule.next_run and datetime.fromisoformat(schedule.next_run) <= now:
+                    if (
+                        schedule.next_run
+                        and datetime.fromisoformat(schedule.next_run) <= now
+                    ):
                         await self._execute_schedule(schedule)
             except asyncio.CancelledError:
                 break
@@ -143,21 +149,33 @@ class SchedulerEngine:
                 schedule.status = ScheduleStatus.COMPLETED
                 schedule.next_run = None
             else:
-                schedule.next_run = CronParser.next_run_time(schedule.cron_expression).isoformat()
+                schedule.next_run = CronParser.next_run_time(
+                    schedule.cron_expression
+                ).isoformat()
 
             logger.info(f"Schedule {schedule.id} executed (run #{schedule.run_count})")
         except Exception as e:
             schedule.error_count += 1
             schedule.last_error = str(e)
-            schedule.next_run = CronParser.next_run_time(schedule.cron_expression).isoformat()
+            schedule.next_run = CronParser.next_run_time(
+                schedule.cron_expression
+            ).isoformat()
             logger.error(f"Schedule {schedule.id} failed: {e}")
             if schedule.error_count >= 5:
                 schedule.status = ScheduleStatus.ERROR
-                logger.warning(f"Schedule {schedule.id} disabled after 5 consecutive errors")
+                logger.warning(
+                    f"Schedule {schedule.id} disabled after 5 consecutive errors"
+                )
 
     # CRUD operations
-    def create(self, agent_id: str, name: str, cron_expression: str,
-               input_data: dict = None, max_runs: int = None) -> Schedule:
+    def create(
+        self,
+        agent_id: str,
+        name: str,
+        cron_expression: str,
+        input_data: dict = None,
+        max_runs: int = None,
+    ) -> Schedule:
         schedule = Schedule(
             id=str(uuid.uuid4()),
             agent_id=agent_id,
@@ -185,10 +203,12 @@ class SchedulerEngine:
         if not schedule:
             return None
         for key, value in kwargs.items():
-            if hasattr(schedule, key) and key not in ('id', 'created_at'):
+            if hasattr(schedule, key) and key not in ("id", "created_at"):
                 setattr(schedule, key, value)
-        if 'cron_expression' in kwargs:
-            schedule.next_run = CronParser.next_run_time(kwargs['cron_expression']).isoformat()
+        if "cron_expression" in kwargs:
+            schedule.next_run = CronParser.next_run_time(
+                kwargs["cron_expression"]
+            ).isoformat()
         return schedule
 
     def delete(self, schedule_id: str) -> bool:
@@ -205,7 +225,9 @@ class SchedulerEngine:
         schedule = self._schedules.get(schedule_id)
         if schedule and schedule.status == ScheduleStatus.PAUSED:
             schedule.status = ScheduleStatus.ACTIVE
-            schedule.next_run = CronParser.next_run_time(schedule.cron_expression).isoformat()
+            schedule.next_run = CronParser.next_run_time(
+                schedule.cron_expression
+            ).isoformat()
             return True
         return False
 

@@ -8,6 +8,7 @@ router = APIRouter(prefix="/api/v1/rpa", tags=["rpa"])
 
 # ─── Request Models ───
 
+
 class StartRecordingRequest(BaseModel):
     user_id: str = ""
     start_url: str = ""
@@ -63,9 +64,12 @@ class ExecuteRequest(BaseModel):
 
 # ─── Recording Endpoints ───
 
+
 @router.post("/record/start")
 async def start_recording(req: StartRecordingRequest):
-    session_id = rpa_engine.start_recording(user_id=req.user_id, start_url=req.start_url)
+    session_id = rpa_engine.start_recording(
+        user_id=req.user_id, start_url=req.start_url
+    )
     return {"session_id": session_id}
 
 
@@ -85,7 +89,9 @@ async def get_recording_actions(session_id: str):
 
 @router.post("/record/{session_id}/stop")
 async def stop_recording(session_id: str, req: StopRecordingRequest):
-    result = rpa_engine.stop_recording(session_id, name=req.name, description=req.description)
+    result = rpa_engine.stop_recording(
+        session_id, name=req.name, description=req.description
+    )
     if result is None:
         raise HTTPException(status_code=404, detail="Recording session not found")
     if "error" in result:
@@ -94,6 +100,7 @@ async def stop_recording(session_id: str, req: StopRecordingRequest):
 
 
 # ─── Workflow CRUD ───
+
 
 @router.get("/workflows")
 async def list_workflows(tag: str = "", status: str = ""):
@@ -140,6 +147,7 @@ async def duplicate_workflow(workflow_id: str):
 
 # ─── Execution ───
 
+
 @router.post("/workflows/{workflow_id}/execute")
 async def execute_workflow(workflow_id: str, req: ExecuteRequest):
     result = await rpa_engine.execute_workflow(workflow_id, variables=req.variables)
@@ -164,6 +172,7 @@ async def generate_script(workflow_id: str):
 
 # ─── Executions ───
 
+
 @router.get("/executions")
 async def list_executions(workflow_id: str = ""):
     execs = rpa_engine.list_executions(workflow_id=workflow_id)
@@ -179,6 +188,7 @@ async def get_execution(run_id: str):
 
 
 # ─── Stats ───
+
 
 @router.get("/stats")
 async def get_stats():

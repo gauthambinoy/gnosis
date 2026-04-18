@@ -23,15 +23,21 @@ async def revoke_consent(data: dict, user_id: str = Depends(get_current_user_id)
         purpose=data.get("purpose", ""),
     )
     if not record:
-        raise HTTPException(status_code=404, detail="No active consent found for this purpose")
+        raise HTTPException(
+            status_code=404, detail="No active consent found for this purpose"
+        )
     return asdict(record)
 
 
 @router.get("/status")
-async def consent_status(purpose: str = "", user_id: str = Depends(get_current_user_id)):
+async def consent_status(
+    purpose: str = "", user_id: str = Depends(get_current_user_id)
+):
     return {"consented": consent_manager.check_consent(user_id, purpose)}
 
 
 @router.get("/user/{target_user_id}")
-async def list_user_consents(target_user_id: str, user_id: str = Depends(get_current_user_id)):
+async def list_user_consents(
+    target_user_id: str, user_id: str = Depends(get_current_user_id)
+):
     return {"consents": consent_manager.list_consents(target_user_id)}

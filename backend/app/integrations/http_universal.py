@@ -1,4 +1,5 @@
 """HTTP Universal connector — allows agents to call any API."""
+
 import time
 
 import aiohttp
@@ -16,7 +17,10 @@ class HTTPUniversalConnector(BaseConnector):
                 capability="request",
                 description="Execute an arbitrary HTTP request to any URL",
                 inputs={
-                    "method": {"type": "string", "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"]},
+                    "method": {
+                        "type": "string",
+                        "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"],
+                    },
                     "url": {"type": "string"},
                     "headers": {"type": "object"},
                     "body": {"type": "object"},
@@ -61,7 +65,10 @@ class HTTPUniversalConnector(BaseConnector):
         start = time.time()
         try:
             async with aiohttp.ClientSession() as session:
-                kwargs: dict = {"headers": headers or {}, "timeout": aiohttp.ClientTimeout(total=timeout)}
+                kwargs: dict = {
+                    "headers": headers or {},
+                    "timeout": aiohttp.ClientTimeout(total=timeout),
+                }
                 if body and method.upper() in ("POST", "PUT", "PATCH"):
                     kwargs["json"] = body
 
@@ -84,7 +91,9 @@ class HTTPUniversalConnector(BaseConnector):
                     )
         except Exception as exc:
             latency = (time.time() - start) * 1000
-            return ActionResult(success=False, data={}, error=str(exc), latency_ms=latency)
+            return ActionResult(
+                success=False, data={}, error=str(exc), latency_ms=latency
+            )
 
     async def test_connection(self) -> bool:
         """HTTP connector is always available."""

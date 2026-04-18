@@ -1,4 +1,5 @@
 """Tests for retry engine."""
+
 import pytest
 from app.core.retry_engine import RetryEngine
 

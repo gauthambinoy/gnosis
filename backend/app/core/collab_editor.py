@@ -1,4 +1,5 @@
 """Collaborative Agent Editing — track who edited what in agent configs."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -11,7 +12,9 @@ class EditSession:
     agent_id: str
     user_id: str
     changes: List[dict] = field(default_factory=list)
-    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     status: str = "active"  # active / closed
 
 
@@ -28,18 +31,22 @@ class CollabEditorEngine:
         self._sessions[session.id] = session
         return session
 
-    def apply_change(self, session_id: str, field_name: str, old_value: str, new_value: str) -> EditSession:
+    def apply_change(
+        self, session_id: str, field_name: str, old_value: str, new_value: str
+    ) -> EditSession:
         session = self._sessions.get(session_id)
         if not session:
             raise KeyError(f"Session {session_id} not found")
         if session.status != "active":
             raise ValueError("Session is closed")
-        session.changes.append({
-            "field": field_name,
-            "old": old_value,
-            "new": new_value,
-            "at": datetime.now(timezone.utc).isoformat(),
-        })
+        session.changes.append(
+            {
+                "field": field_name,
+                "old": old_value,
+                "new": new_value,
+                "at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         return session
 
     def close_session(self, session_id: str) -> EditSession:

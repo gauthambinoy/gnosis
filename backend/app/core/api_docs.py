@@ -16,7 +16,10 @@ OPENAPI_TAGS = [
     {"name": "search", "description": "Global search across all entities"},
     {"name": "onboarding", "description": "User onboarding flow"},
     {"name": "bulk", "description": "Bulk operations for scale management"},
-    {"name": "config-snapshots", "description": "Immutable agent configuration versioning"},
+    {
+        "name": "config-snapshots",
+        "description": "Immutable agent configuration versioning",
+    },
     {"name": "tools", "description": "Shared tool registry"},
     {"name": "activity", "description": "Workspace activity feed"},
     {"name": "audit", "description": "Request/response audit trail"},
@@ -51,6 +54,7 @@ Authorization: Bearer <your-jwt-token>
 - Burst: 10 additional requests allowed
 - Headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`
 """
+
 
 def get_openapi_config() -> dict:
     return {

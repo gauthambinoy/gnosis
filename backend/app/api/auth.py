@@ -5,17 +5,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from app.core.auth import (
-    hash_password, verify_password,
-    create_access_token, create_refresh_token, decode_token,
+    hash_password,
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
     get_current_user_id,
 )
 from app.core.audit_log import audit_log
 from app.core.rate_limiter import require_rate_limit
-from app.core.database import get_db, db_available
+from app.core.database import get_db
 from app.models.user import User
 from app.schemas.auth import (
-    RegisterRequest, LoginRequest, RefreshRequest,
-    TokenResponse, UserResponse,
+    RegisterRequest,
+    LoginRequest,
+    RefreshRequest,
+    TokenResponse,
+    UserResponse,
 )
 
 router = APIRouter()
@@ -31,12 +37,14 @@ _users_lock = asyncio.Lock()
 def _use_db() -> bool:
     """Return True when PostgreSQL is reachable."""
     from app.core.database import db_available as _flag
+
     return _flag
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _user_dict(user_id: str, email: str, full_name: str | None) -> dict:
     return {"id": str(user_id), "email": email, "full_name": full_name or ""}
@@ -56,8 +64,12 @@ def _token_response(user_id: str, email: str, full_name: str | None) -> TokenRes
 # ---------------------------------------------------------------------------
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED,
-              dependencies=[Depends(require_rate_limit)])
+@router.post(
+    "/register",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_rate_limit)],
+)
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if _use_db():
         result = await db.execute(select(User).where(User.email == data.email))
@@ -72,7 +84,9 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         )
         db.add(user)
         await db.flush()
-        await audit_log.log("auth.register", "system", {"email": data.email}, user_id=str(user.id))
+        await audit_log.log(
+            "auth.register", "system", {"email": data.email}, user_id=str(user.id)
+        )
         return _token_response(user.id, user.email, user.full_name)
 
     # Fallback: in-memory
@@ -81,22 +95,30 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
             raise HTTPException(status_code=400, detail="Email already registered")
         user_id = str(uuid.uuid4())
         _users[user_id] = {
-            "id": user_id, "email": data.email, "full_name": data.full_name,
+            "id": user_id,
+            "email": data.email,
+            "full_name": data.full_name,
             "hashed_password": hash_password(data.password),
         }
         _users_by_email[data.email] = user_id
-    await audit_log.log("auth.register", "system", {"email": data.email}, user_id=user_id)
+    await audit_log.log(
+        "auth.register", "system", {"email": data.email}, user_id=user_id
+    )
     return _token_response(user_id, data.email, data.full_name)
 
 
-@router.post("/login", response_model=TokenResponse, dependencies=[Depends(require_rate_limit)])
+@router.post(
+    "/login", response_model=TokenResponse, dependencies=[Depends(require_rate_limit)]
+)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     if _use_db():
         result = await db.execute(select(User).where(User.email == data.email))
         user = result.scalars().first()
         if not user or not verify_password(data.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Invalid email or password")
-        await audit_log.log("auth.login", "system", {"email": data.email}, user_id=str(user.id))
+        await audit_log.log(
+            "auth.login", "system", {"email": data.email}, user_id=str(user.id)
+        )
         return _token_response(user.id, user.email, user.full_name)
 
     # Fallback
@@ -111,7 +133,9 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return _token_response(uid, u["email"], u["full_name"])
 
 
-@router.post("/refresh", response_model=TokenResponse, dependencies=[Depends(require_rate_limit)])
+@router.post(
+    "/refresh", response_model=TokenResponse, dependencies=[Depends(require_rate_limit)]
+)
 async def refresh_token(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(data.refresh_token)
     if payload.get("type") != "refresh":

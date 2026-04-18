@@ -135,7 +135,7 @@ export default function SecurityPage() {
       const res = await api.post("/security/scan");
       const data = await res.json();
       setScan(data);
-    } catch (e) {
+    } catch {
       setError("Scan failed — is the backend running?");
     } finally {
       setScanning(false);

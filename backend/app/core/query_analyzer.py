@@ -1,22 +1,25 @@
 """Gnosis Query Analyzer — Auto-analyze slow queries with EXPLAIN plans."""
-import time
+
 import logging
 import re
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
-from collections import defaultdict
 
 logger = logging.getLogger("gnosis.query_analyzer")
+
 
 @dataclass
 class QueryRecord:
     query: str
     duration_ms: float
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     explain_plan: Optional[str] = None
     rows_affected: int = 0
     source: str = ""  # Which module initiated the query
+
 
 @dataclass
 class QueryStats:
@@ -25,14 +28,15 @@ class QueryStats:
     total_ms: float = 0
     avg_ms: float = 0
     max_ms: float = 0
-    min_ms: float = float('inf')
+    min_ms: float = float("inf")
     last_called: str = ""
+
 
 class QueryAnalyzer:
     """Tracks and analyzes database query performance."""
-    
+
     SLOW_THRESHOLD_MS = 100  # Queries slower than this are flagged
-    
+
     def __init__(self):
         self._records: List[QueryRecord] = []
         self._patterns: Dict[str, QueryStats] = {}
@@ -40,16 +44,18 @@ class QueryAnalyzer:
 
     def record(self, query: str, duration_ms: float, source: str = "", rows: int = 0):
         """Record a query execution."""
-        record = QueryRecord(query=query, duration_ms=duration_ms, source=source, rows_affected=rows)
+        record = QueryRecord(
+            query=query, duration_ms=duration_ms, source=source, rows_affected=rows
+        )
         self._records.append(record)
         if len(self._records) > self._max_records:
-            self._records = self._records[-self._max_records:]
-        
+            self._records = self._records[-self._max_records :]
+
         # Normalize query for pattern matching
         pattern = self._normalize(query)
         if pattern not in self._patterns:
             self._patterns[pattern] = QueryStats(query_pattern=pattern)
-        
+
         stats = self._patterns[pattern]
         stats.call_count += 1
         stats.total_ms += duration_ms
@@ -57,18 +63,20 @@ class QueryAnalyzer:
         stats.max_ms = max(stats.max_ms, duration_ms)
         stats.min_ms = min(stats.min_ms, duration_ms)
         stats.last_called = record.timestamp
-        
+
         if duration_ms > self.SLOW_THRESHOLD_MS:
             logger.warning(f"Slow query ({duration_ms:.1f}ms): {query[:200]}...")
 
     def _normalize(self, query: str) -> str:
         """Normalize a query to a pattern (replace literals with ?)."""
         normalized = re.sub(r"'[^']*'", "'?'", query)
-        normalized = re.sub(r'\b\d+\b', '?', normalized)
-        normalized = re.sub(r'\s+', ' ', normalized).strip()
+        normalized = re.sub(r"\b\d+\b", "?", normalized)
+        normalized = re.sub(r"\s+", " ", normalized).strip()
         return normalized[:200]
 
-    def get_slow_queries(self, threshold_ms: float = None, limit: int = 20) -> List[dict]:
+    def get_slow_queries(
+        self, threshold_ms: float = None, limit: int = 20
+    ) -> List[dict]:
         threshold = threshold_ms or self.SLOW_THRESHOLD_MS
         slow = [r for r in self._records if r.duration_ms >= threshold]
         slow.sort(key=lambda r: r.duration_ms, reverse=True)
@@ -89,7 +97,9 @@ class QueryAnalyzer:
         if not total:
             return {"total_queries": 0}
         avg = sum(r.duration_ms for r in self._records) / total
-        slow_count = sum(1 for r in self._records if r.duration_ms > self.SLOW_THRESHOLD_MS)
+        slow_count = sum(
+            1 for r in self._records if r.duration_ms > self.SLOW_THRESHOLD_MS
+        )
         return {
             "total_queries": total,
             "unique_patterns": len(self._patterns),
@@ -102,5 +112,6 @@ class QueryAnalyzer:
     def reset(self):
         self._records.clear()
         self._patterns.clear()
+
 
 query_analyzer = QueryAnalyzer()

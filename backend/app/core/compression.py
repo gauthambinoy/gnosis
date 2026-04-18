@@ -1,5 +1,5 @@
 """Gnosis Compression — bandwidth-optimized responses with delta support."""
-from dataclasses import dataclass, field
+
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -12,13 +12,20 @@ class CompressionEngine:
 
     def __init__(self):
         self._hash_cache: dict[str, str] = {}
-        self._stats = {"total_requests": 0, "delta_hits": 0, "bytes_saved": 0, "full_responses": 0}
+        self._stats = {
+            "total_requests": 0,
+            "delta_hits": 0,
+            "bytes_saved": 0,
+            "full_responses": 0,
+        }
 
     def compute_hash(self, data: dict | list | str) -> str:
         serialized = json.dumps(data, sort_keys=True, default=str)
         return hashlib.sha256(serialized.encode()).hexdigest()
 
-    def compress_response(self, data: dict | list | str, previous_hash: str | None = None) -> dict:
+    def compress_response(
+        self, data: dict | list | str, previous_hash: str | None = None
+    ) -> dict:
         self._stats["total_requests"] += 1
         serialized = json.dumps(data, sort_keys=True, default=str)
         current_hash = hashlib.sha256(serialized.encode()).hexdigest()

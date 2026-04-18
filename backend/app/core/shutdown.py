@@ -1,4 +1,5 @@
 """Graceful shutdown handler for Gnosis."""
+
 import asyncio
 import signal
 from typing import Set, Optional
@@ -48,9 +49,7 @@ class ShutdownManager:
         self._shutdown_event.set()
         logger.info("shutdown_complete")
 
-    def install_signal_handlers(
-        self, loop: Optional[asyncio.AbstractEventLoop] = None
-    ):
+    def install_signal_handlers(self, loop: Optional[asyncio.AbstractEventLoop] = None):
         loop = loop or asyncio.get_event_loop()
         for sig in (signal.SIGTERM, signal.SIGINT):
             loop.add_signal_handler(

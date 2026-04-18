@@ -3,7 +3,9 @@ import os
 # Set test environment variables BEFORE any app imports
 os.environ.setdefault("DEBUG", "true")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///test.db")
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-minimum-32-chars-long")
+os.environ.setdefault(
+    "SECRET_KEY", "test-secret-key-for-testing-only-minimum-32-chars-long"
+)
 
 import pytest
 import uuid
@@ -12,6 +14,7 @@ from unittest.mock import AsyncMock
 try:
     from httpx import AsyncClient, ASGITransport
     from app.main import app
+
     _APP_AVAILABLE = True
 except Exception:
     _APP_AVAILABLE = False
@@ -100,5 +103,8 @@ def sample_agent():
 def auth_headers():
     """Generate test auth headers with a valid JWT."""
     from app.core.auth import create_access_token
-    token = create_access_token({"sub": "00000000-0000-0000-0000-000000000001", "type": "access"})
+
+    token = create_access_token(
+        {"sub": "00000000-0000-0000-0000-000000000001", "type": "access"}
+    )
     return {"Authorization": f"Bearer {token}"}

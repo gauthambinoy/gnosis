@@ -1,4 +1,5 @@
 """PWA manifest and configuration API."""
+
 from fastapi import APIRouter
 
 router = APIRouter()

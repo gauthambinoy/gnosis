@@ -13,6 +13,17 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // React 19 / React-Compiler advisory rule. It flags legitimate patterns
+      // (loading initial state from localStorage on mount, syncing state to
+      // a changed prop/route, standard data-fetching effects). We keep it on
+      // as a warning so it still surfaces in editor + CI logs but does not
+      // block builds. Re-evaluate once we adopt useSyncExternalStore /
+      // React Compiler everywhere.
+      "react-hooks/set-state-in-effect": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

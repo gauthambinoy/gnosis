@@ -1,5 +1,5 @@
 """Tests for prompt injection protection."""
-import pytest
+
 from app.core.input_sanitizer import sanitize_for_prompt, detect_injection
 
 

@@ -1,5 +1,6 @@
 """Gnosis Inbound Webhooks — accept external webhooks to trigger agents."""
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
 import hashlib
@@ -45,7 +46,9 @@ class InboundWebhookEngine:
         hook = self._hooks.get(hook_id)
         if not hook:
             return False
-        expected = hmac.new(hook.secret.encode(), payload.encode(), hashlib.sha256).hexdigest()
+        expected = hmac.new(
+            hook.secret.encode(), payload.encode(), hashlib.sha256
+        ).hexdigest()
         return hmac.compare_digest(expected, signature)
 
     def trigger(self, hook_id: str, payload: dict) -> dict | None:

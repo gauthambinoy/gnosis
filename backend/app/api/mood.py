@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from app.core.mood_ring import mood_ring_engine
 from app.core.auth import get_current_user_id
 from pydantic import BaseModel
@@ -18,6 +18,8 @@ async def get_mood(agent_id: str, user_id: str = Depends(get_current_user_id)):
 
 
 @router.post("/{agent_id}/update")
-async def update_mood(agent_id: str, req: MoodUpdateRequest, user_id: str = Depends(get_current_user_id)):
+async def update_mood(
+    agent_id: str, req: MoodUpdateRequest, user_id: str = Depends(get_current_user_id)
+):
     mood = mood_ring_engine.update_mood(agent_id, req.success)
     return asdict(mood)

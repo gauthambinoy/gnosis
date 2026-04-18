@@ -1,9 +1,21 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Float, JSON, Text, ForeignKey, Enum as SAEnum, Boolean, Numeric
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Float,
+    JSON,
+    Text,
+    ForeignKey,
+    Enum as SAEnum,
+    Boolean,
+    Numeric,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.models.base import Base, TimestampMixin
+
 
 class ExecutionStatus(str, enum.Enum):
     queued = "queued"
@@ -13,19 +25,32 @@ class ExecutionStatus(str, enum.Enum):
     cancelled = "cancelled"
     awaiting_approval = "awaiting_approval"
 
+
 class Execution(Base, TimestampMixin):
     __tablename__ = "executions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    agent_id = Column(UUID(as_uuid=True), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("agents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     trigger_type = Column(String(50), nullable=False)
     trigger_data = Column(JSON, default=dict)
 
-    status = Column(SAEnum(ExecutionStatus), default=ExecutionStatus.queued, nullable=False, index=True)
+    status = Column(
+        SAEnum(ExecutionStatus),
+        default=ExecutionStatus.queued,
+        nullable=False,
+        index=True,
+    )
 
     # Cortex phases (stored as JSON steps)
-    steps = Column(JSON, default=list)  # [{phase, content, confidence, latency_ms, cost_usd, timestamp}]
+    steps = Column(
+        JSON, default=list
+    )  # [{phase, content, confidence, latency_ms, cost_usd, timestamp}]
 
     # Results
     result_summary = Column(Text, nullable=True)

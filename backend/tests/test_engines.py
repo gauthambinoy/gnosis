@@ -1,4 +1,5 @@
 """Unit tests for core engines: memory, context, builder, cost, trust, guardrails."""
+
 import pytest
 
 pytestmark = pytest.mark.anyio
@@ -6,8 +7,10 @@ pytestmark = pytest.mark.anyio
 
 # ── Memory Engine ────────────────────────────────────────────────────
 
+
 async def test_memory_engine_store_search():
     from app.core.memory_engine import MemoryEngine
+
     engine = MemoryEngine()
     entry = await engine.store("agent-unit-1", "semantic", "The sky is blue")
     assert entry.agent_id == "agent-unit-1"
@@ -19,16 +22,39 @@ async def test_memory_engine_store_search():
 
 # ── Context Assembler ────────────────────────────────────────────────
 
+
 def test_context_assembler():
-    from app.core.context_assembler import ContextAssembler, MAX_CONTEXT_TOKENS, CHARS_PER_TOKEN
+    from app.core.context_assembler import (
+        ContextAssembler,
+        MAX_CONTEXT_TOKENS,
+        CHARS_PER_TOKEN,
+    )
     from app.core.memory_engine import MemoryEntry, MemoryContext
 
     ctx = MemoryContext(
-        corrections=[MemoryEntry(id="c1", agent_id="a", tier="correction", content="Never delete files")],
-        recent=[MemoryEntry(id="r1", agent_id="a", tier="sensory", content="User said hello")],
-        relevant_past=[MemoryEntry(id="e1", agent_id="a", tier="episodic", content="Handled ticket #42")],
-        knowledge=[MemoryEntry(id="k1", agent_id="a", tier="semantic", content="CEO is Alice")],
-        procedures=[MemoryEntry(id="p1", agent_id="a", tier="procedural", content="Always greet first")],
+        corrections=[
+            MemoryEntry(
+                id="c1", agent_id="a", tier="correction", content="Never delete files"
+            )
+        ],
+        recent=[
+            MemoryEntry(
+                id="r1", agent_id="a", tier="sensory", content="User said hello"
+            )
+        ],
+        relevant_past=[
+            MemoryEntry(
+                id="e1", agent_id="a", tier="episodic", content="Handled ticket #42"
+            )
+        ],
+        knowledge=[
+            MemoryEntry(id="k1", agent_id="a", tier="semantic", content="CEO is Alice")
+        ],
+        procedures=[
+            MemoryEntry(
+                id="p1", agent_id="a", tier="procedural", content="Always greet first"
+            )
+        ],
     )
     assembler = ContextAssembler()
     result = assembler.assemble(ctx, trigger_summary="New email from Bob")
@@ -39,6 +65,7 @@ def test_context_assembler():
 
 def test_context_assembler_token_estimate():
     from app.core.context_assembler import ContextAssembler
+
     assembler = ContextAssembler()
     tokens = assembler.estimate_tokens("hello world test string")
     assert tokens > 0
@@ -46,8 +73,10 @@ def test_context_assembler_token_estimate():
 
 # ── Agent Builder ────────────────────────────────────────────────────
 
+
 async def test_agent_builder():
     from app.core.builder import AgentBuilder
+
     builder = AgentBuilder()
     config = await builder.build_from_description(
         "Monitor my Gmail inbox every day and log invoices to Google Sheets"
@@ -61,8 +90,10 @@ async def test_agent_builder():
 
 # ── Cost Tracker ─────────────────────────────────────────────────────
 
+
 def test_cost_tracker():
     from app.core.cost_tracker import CostTracker
+
     tracker = CostTracker()
     tracker.record("agent-x", "L2", "gpt-4", 100, 50, 0.005)
     tracker.record("agent-x", "L1", "gpt-3.5", 50, 25, 0.001)
@@ -77,8 +108,10 @@ def test_cost_tracker():
 
 # ── Trust Engine ─────────────────────────────────────────────────────
 
+
 def test_trust_engine_levels():
     from app.core.trust_engine import TrustEngine
+
     engine = TrustEngine()
     assert engine.get_trust_level("new-agent") == 0
     engine.set_trust_level("new-agent", 2)
@@ -91,6 +124,7 @@ def test_trust_engine_levels():
 
 def test_trust_engine_record():
     from app.core.trust_engine import TrustEngine
+
     engine = TrustEngine()
     for _ in range(5):
         engine.record_execution("rec-agent", success=True)
@@ -103,8 +137,10 @@ def test_trust_engine_record():
 
 # ── Guardrail Engine ─────────────────────────────────────────────────
 
+
 async def test_guardrail_check_mass_email():
     from app.core.guardrails import GuardrailEngine
+
     engine = GuardrailEngine()
     result = await engine.check("agent-g", {"email_recipients": 15})
     assert result["passed"] is False
@@ -114,6 +150,7 @@ async def test_guardrail_check_mass_email():
 
 async def test_guardrail_check_safe_action():
     from app.core.guardrails import GuardrailEngine
+
     engine = GuardrailEngine()
     result = await engine.check("agent-g", {"type": "read", "email_recipients": 3})
     assert result["passed"] is True
@@ -121,6 +158,7 @@ async def test_guardrail_check_safe_action():
 
 async def test_guardrail_pii_detection():
     from app.core.guardrails import GuardrailEngine
+
     engine = GuardrailEngine()
     result = await engine.check("agent-g", {"output": "SSN is 123-45-6789"})
     assert result["passed"] is False
@@ -129,6 +167,7 @@ async def test_guardrail_pii_detection():
 
 async def test_guardrail_delete_action():
     from app.core.guardrails import GuardrailEngine
+
     engine = GuardrailEngine()
     result = await engine.check("agent-g", {"type": "delete"})
     assert result["passed"] is False

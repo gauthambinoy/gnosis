@@ -26,7 +26,9 @@ async def approve_gate(gate_id: str, user_id: str = Depends(get_current_user_id)
 
 
 @router.post("/{gate_id}/reject")
-async def reject_gate(gate_id: str, data: dict = None, user_id: str = Depends(get_current_user_id)):
+async def reject_gate(
+    gate_id: str, data: dict = None, user_id: str = Depends(get_current_user_id)
+):
     data = data or {}
     try:
         gate = approval_engine.reject(gate_id, user_id, reason=data.get("reason", ""))
@@ -36,5 +38,7 @@ async def reject_gate(gate_id: str, data: dict = None, user_id: str = Depends(ge
 
 
 @router.get("/pipeline/{pipeline_id}")
-async def list_pipeline_gates(pipeline_id: str, user_id: str = Depends(get_current_user_id)):
+async def list_pipeline_gates(
+    pipeline_id: str, user_id: str = Depends(get_current_user_id)
+):
     return {"gates": approval_engine.list_pipeline_gates(pipeline_id)}

@@ -1,5 +1,5 @@
 """Gnosis Drift Detector — Detect when agent behavior drifts from baseline."""
-import uuid
+
 import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field, asdict
@@ -17,7 +17,9 @@ class DriftReport:
     current: float = 0.0
     drift_pct: float = 0.0
     severity: str = "low"  # low/medium/high/critical
-    detected_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    detected_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class DriftDetectorEngine:
@@ -25,16 +27,22 @@ class DriftDetectorEngine:
     BASELINE_WINDOW = 20  # number of initial samples to establish baseline
 
     def __init__(self):
-        self._metrics: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+        self._metrics: Dict[str, Dict[str, List[float]]] = defaultdict(
+            lambda: defaultdict(list)
+        )
 
     def record_metric(self, agent_id: str, metric: str, value: float) -> dict:
         self._metrics[agent_id][metric].append(value)
         logger.info(f"Recorded metric {metric}={value} for agent {agent_id}")
-        return {"agent_id": agent_id, "metric": metric, "value": value,
-                "total_samples": len(self._metrics[agent_id][metric])}
+        return {
+            "agent_id": agent_id,
+            "metric": metric,
+            "value": value,
+            "total_samples": len(self._metrics[agent_id][metric]),
+        }
 
     def _get_baseline(self, values: List[float]) -> float:
-        baseline_values = values[:self.BASELINE_WINDOW]
+        baseline_values = values[: self.BASELINE_WINDOW]
         return sum(baseline_values) / len(baseline_values) if baseline_values else 0.0
 
     def _get_current(self, values: List[float], window: int = 5) -> float:
@@ -67,9 +75,12 @@ class DriftDetectorEngine:
             severity = self._classify_severity(drift_pct)
             if abs(drift_pct) >= self.SEVERITY_THRESHOLDS["low"]:
                 report = DriftReport(
-                    agent_id=agent_id, metric=metric,
-                    baseline=round(baseline, 4), current=round(current, 4),
-                    drift_pct=drift_pct, severity=severity,
+                    agent_id=agent_id,
+                    metric=metric,
+                    baseline=round(baseline, 4),
+                    current=round(current, 4),
+                    drift_pct=drift_pct,
+                    severity=severity,
                 )
                 reports.append(asdict(report))
         return reports
@@ -81,7 +92,9 @@ class DriftDetectorEngine:
         for metric, values in self._metrics[agent_id].items():
             summary[metric] = {
                 "count": len(values),
-                "baseline": round(self._get_baseline(values), 4) if len(values) >= self.BASELINE_WINDOW else None,
+                "baseline": round(self._get_baseline(values), 4)
+                if len(values) >= self.BASELINE_WINDOW
+                else None,
                 "current": round(self._get_current(values), 4),
             }
         return {"agent_id": agent_id, "metrics": summary}

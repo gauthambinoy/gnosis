@@ -1,5 +1,5 @@
 """Gnosis Docker Exporter — generate Dockerfile and docker-compose for agents."""
-from dataclasses import dataclass, field
+
 from datetime import datetime, timezone
 
 

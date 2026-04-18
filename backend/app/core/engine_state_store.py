@@ -1,4 +1,5 @@
 """Shared persistence helpers for stateful in-memory engines."""
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,9 @@ def _to_payload(value: Any) -> Any:
     return value
 
 
-async def load_states(engine_name: str, group_id: str | None = None) -> list[EngineState]:
+async def load_states(
+    engine_name: str, group_id: str | None = None
+) -> list[EngineState]:
     if not db_available:
         return []
     async with async_session_factory() as session:

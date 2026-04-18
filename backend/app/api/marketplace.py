@@ -34,8 +34,20 @@ async def browse_marketplace(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
-    agents, total = marketplace_engine.browse(category=category, search=search, featured_only=featured, sort_by=sort_by, limit=limit, offset=offset)
-    return {"agents": [asdict(a) for a in agents], "total": total, "limit": limit, "offset": offset}
+    agents, total = marketplace_engine.browse(
+        category=category,
+        search=search,
+        featured_only=featured,
+        sort_by=sort_by,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "agents": [asdict(a) for a in agents],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
 
 
 @router.get("/stats")
@@ -45,7 +57,13 @@ async def marketplace_stats():
 
 @router.post("/publish")
 async def publish_agent(req: PublishRequest):
-    agent = marketplace_engine.publish(name=req.name, description=req.description, category=req.category, config=req.config, tags=req.tags)
+    agent = marketplace_engine.publish(
+        name=req.name,
+        description=req.description,
+        category=req.category,
+        config=req.config,
+        tags=req.tags,
+    )
     return asdict(agent)
 
 
@@ -67,7 +85,9 @@ async def clone_agent(agent_id: str):
 
 @router.post("/{agent_id}/reviews")
 async def add_review(agent_id: str, req: ReviewRequest):
-    review = marketplace_engine.add_review(agent_id, user_id="anonymous", rating=req.rating, comment=req.comment)
+    review = marketplace_engine.add_review(
+        agent_id, user_id="anonymous", rating=req.rating, comment=req.comment
+    )
     if not review:
         raise HTTPException(status_code=404, detail="Agent not found")
     return asdict(review)

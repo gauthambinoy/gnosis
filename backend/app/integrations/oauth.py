@@ -1,4 +1,5 @@
 """OAuth2 flow manager for all integrations — supports PKCE, token refresh, revocation."""
+
 import hashlib
 import secrets
 import time
@@ -126,10 +127,13 @@ class OAuthManager:
                 data = await resp.json()
 
         if "error" in data:
-            raise RuntimeError(f"Token exchange failed: {data.get('error_description', data['error'])}")
+            raise RuntimeError(
+                f"Token exchange failed: {data.get('error_description', data['error'])}"
+            )
 
         token_data = {
-            "access_token": data.get("access_token") or data.get("authed_user", {}).get("access_token", ""),
+            "access_token": data.get("access_token")
+            or data.get("authed_user", {}).get("access_token", ""),
             "refresh_token": data.get("refresh_token", ""),
             "expires_at": time.time() + int(data.get("expires_in", 3600)),
             "token_type": data.get("token_type", "Bearer"),
@@ -146,7 +150,9 @@ class OAuthManager:
         key = self._key(provider, user_id)
         token_data = self.tokens.get(key)
         if token_data is None:
-            raise RuntimeError(f"No token stored for {key}. User must authenticate first.")
+            raise RuntimeError(
+                f"No token stored for {key}. User must authenticate first."
+            )
 
         if time.time() >= token_data.get("expires_at", 0) - 60:
             token_data = await self.refresh_token(provider, user_id)
@@ -176,7 +182,9 @@ class OAuthManager:
                 data = await resp.json()
 
         if "error" in data:
-            raise RuntimeError(f"Token refresh failed: {data.get('error_description', data['error'])}")
+            raise RuntimeError(
+                f"Token refresh failed: {data.get('error_description', data['error'])}"
+            )
 
         token_data["access_token"] = data["access_token"]
         token_data["expires_at"] = time.time() + int(data.get("expires_in", 3600))

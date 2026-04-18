@@ -11,8 +11,10 @@ from app.core.rate_limiter import rate_limiter
 from app.core.tracing import tracer
 from app.core.sentry_integration import error_tracker
 from app.core.metrics import (
-    ACTIVE_AGENTS, ACTIVE_CONNECTIONS,
-    MEMORY_VECTORS, TASK_WORKER_TASKS,
+    ACTIVE_AGENTS,
+    ACTIVE_CONNECTIONS,
+    MEMORY_VECTORS,
+    TASK_WORKER_TASKS,
 )
 
 router = APIRouter()
@@ -46,6 +48,7 @@ async def system_status():
 
 # --- Task Queue ---
 
+
 @router.get("/queue/stats")
 async def queue_stats():
     """Distributed task queue statistics."""
@@ -53,6 +56,7 @@ async def queue_stats():
 
 
 # --- Webhooks ---
+
 
 class WebhookSubscribeRequest(BaseModel):
     url: str
@@ -88,6 +92,7 @@ async def webhook_delivery_log(limit: int = 50):
 
 # --- DB Pool ---
 
+
 @router.get("/pool")
 async def pool_status():
     """Database connection pool status."""
@@ -96,6 +101,7 @@ async def pool_status():
 
 # --- Rate Limiter ---
 
+
 @router.get("/rate-limits")
 async def rate_limit_stats():
     """Rate limiter statistics."""
@@ -103,6 +109,7 @@ async def rate_limit_stats():
 
 
 # --- Observability ---
+
 
 @router.get("/traces")
 async def recent_traces(limit: int = 20):
@@ -113,7 +120,10 @@ async def recent_traces(limit: int = 20):
 @router.get("/errors")
 async def recent_errors(limit: int = 20):
     """Recent captured errors."""
-    return {"errors": error_tracker.get_recent(limit=limit), "stats": error_tracker.get_stats()}
+    return {
+        "errors": error_tracker.get_recent(limit=limit),
+        "stats": error_tracker.get_stats(),
+    }
 
 
 @router.get("/errors/top")

@@ -1,5 +1,7 @@
 """Gnosis Execution Recorder — Records execution steps for replay."""
-import uuid, time, logging
+
+import uuid
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -15,7 +17,9 @@ class ExecutionStep:
     output_summary: str = ""
     duration_ms: float = 0
     metadata: dict = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 @dataclass
@@ -27,7 +31,9 @@ class ExecutionRecording:
     total_duration_ms: float = 0
     token_usage: dict = field(default_factory=dict)
     status: str = "running"  # running, completed, failed
-    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     completed_at: Optional[str] = None
 
 
@@ -53,21 +59,33 @@ class ExecutionRecorder:
 
         return recording
 
-    def add_step(self, recording_id: str, phase: str, status: str,
-                 input_summary: str = "", output_summary: str = "",
-                 duration_ms: float = 0, metadata: dict = None):
+    def add_step(
+        self,
+        recording_id: str,
+        phase: str,
+        status: str,
+        input_summary: str = "",
+        output_summary: str = "",
+        duration_ms: float = 0,
+        metadata: dict = None,
+    ):
         recording = self._recordings.get(recording_id)
         if not recording:
             return
-        recording.steps.append(ExecutionStep(
-            phase=phase, status=status,
-            input_summary=input_summary[:300],
-            output_summary=output_summary[:300],
-            duration_ms=duration_ms,
-            metadata=metadata or {},
-        ))
+        recording.steps.append(
+            ExecutionStep(
+                phase=phase,
+                status=status,
+                input_summary=input_summary[:300],
+                output_summary=output_summary[:300],
+                duration_ms=duration_ms,
+                metadata=metadata or {},
+            )
+        )
 
-    def complete_recording(self, recording_id: str, status: str = "completed", token_usage: dict = None):
+    def complete_recording(
+        self, recording_id: str, status: str = "completed", token_usage: dict = None
+    ):
         recording = self._recordings.get(recording_id)
         if not recording:
             return
@@ -80,12 +98,20 @@ class ExecutionRecorder:
     def get_recording(self, recording_id: str) -> Optional[ExecutionRecording]:
         return self._recordings.get(recording_id)
 
-    def list_recordings(self, agent_id: str = None, limit: int = 50) -> List[ExecutionRecording]:
+    def list_recordings(
+        self, agent_id: str = None, limit: int = 50
+    ) -> List[ExecutionRecording]:
         if agent_id:
             ids = self._agent_recordings.get(agent_id, [])
-            recordings = [self._recordings[rid] for rid in reversed(ids) if rid in self._recordings]
+            recordings = [
+                self._recordings[rid]
+                for rid in reversed(ids)
+                if rid in self._recordings
+            ]
         else:
-            recordings = sorted(self._recordings.values(), key=lambda r: r.started_at, reverse=True)
+            recordings = sorted(
+                self._recordings.values(), key=lambda r: r.started_at, reverse=True
+            )
         return recordings[:limit]
 
     @property

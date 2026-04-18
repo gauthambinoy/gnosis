@@ -4,7 +4,6 @@ import logging
 import re
 import time
 from datetime import datetime, timezone
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -13,23 +12,47 @@ class GuardrailEngine:
     """Pre-execution safety checks for all agent actions."""
 
     BUILTIN_RULES = [
-        {"id": "no-mass-email", "check": "email_recipients <= 10", "severity": "block",
-         "description": "Block sending emails to more than 10 recipients."},
-        {"id": "cost-limit", "check": "estimated_cost <= 1.0", "severity": "warn",
-         "description": "Warn when estimated cost exceeds $1.00."},
-        {"id": "no-delete", "check": "action != 'delete'", "severity": "approval_required",
-         "description": "Require approval for delete operations."},
-        {"id": "pii-check", "check": "no_pii_in_output", "severity": "block",
-         "description": "Block actions that expose PII in output."},
-        {"id": "rate-limit", "check": "actions_per_minute <= 30", "severity": "block",
-         "description": "Block agents exceeding 30 actions per minute."},
+        {
+            "id": "no-mass-email",
+            "check": "email_recipients <= 10",
+            "severity": "block",
+            "description": "Block sending emails to more than 10 recipients.",
+        },
+        {
+            "id": "cost-limit",
+            "check": "estimated_cost <= 1.0",
+            "severity": "warn",
+            "description": "Warn when estimated cost exceeds $1.00.",
+        },
+        {
+            "id": "no-delete",
+            "check": "action != 'delete'",
+            "severity": "approval_required",
+            "description": "Require approval for delete operations.",
+        },
+        {
+            "id": "pii-check",
+            "check": "no_pii_in_output",
+            "severity": "block",
+            "description": "Block actions that expose PII in output.",
+        },
+        {
+            "id": "rate-limit",
+            "check": "actions_per_minute <= 30",
+            "severity": "block",
+            "description": "Block agents exceeding 30 actions per minute.",
+        },
     ]
 
     PII_PATTERNS = [
-        re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),           # SSN
-        re.compile(r"\b\d{16}\b"),                        # credit card (16 digits)
-        re.compile(r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"),  # credit card formatted
-        re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"),  # email in output
+        re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),  # SSN
+        re.compile(r"\b\d{16}\b"),  # credit card (16 digits)
+        re.compile(
+            r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"
+        ),  # credit card formatted
+        re.compile(
+            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
+        ),  # email in output
     ]
 
     def __init__(self):
@@ -37,7 +60,9 @@ class GuardrailEngine:
         self._violations_log: list[dict] = []
         self._action_timestamps: dict[str, list[float]] = {}  # agent_id -> timestamps
 
-    async def check(self, agent_id: str, action: dict, context: dict | None = None) -> dict:
+    async def check(
+        self, agent_id: str, action: dict, context: dict | None = None
+    ) -> dict:
         """Run all guardrails against an action.
 
         Returns {passed: bool, violations: list, warnings: list}
@@ -66,12 +91,14 @@ class GuardrailEngine:
         # Log violations
         if violations:
             for v in violations:
-                self._violations_log.append({
-                    **v,
-                    "agent_id": agent_id,
-                    "action": action.get("type", str(action)),
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                })
+                self._violations_log.append(
+                    {
+                        **v,
+                        "agent_id": agent_id,
+                        "action": action.get("type", str(action)),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
 
         passed = len([v for v in violations if v["severity"] == "block"]) == 0
         needs_approval = any(v["severity"] == "approval_required" for v in violations)
@@ -99,7 +126,9 @@ class GuardrailEngine:
         """Return all active rules."""
         return list(self._rules)
 
-    async def get_violations_log(self, agent_id: str | None = None, limit: int = 50) -> list:
+    async def get_violations_log(
+        self, agent_id: str | None = None, limit: int = 50
+    ) -> list:
         """Get recent violations, optionally filtered by agent."""
         log = self._violations_log
         if agent_id:
@@ -110,7 +139,9 @@ class GuardrailEngine:
     # Rule evaluation
     # ------------------------------------------------------------------
 
-    def _evaluate_rule(self, rule: dict, agent_id: str, action: dict, context: dict) -> dict | None:
+    def _evaluate_rule(
+        self, rule: dict, agent_id: str, action: dict, context: dict
+    ) -> dict | None:
         """Evaluate a single rule. Returns None if rule doesn't apply."""
         rule_id = rule["id"]
         check = rule["check"]
@@ -134,7 +165,10 @@ class GuardrailEngine:
         if rule_id == "no-delete" or check == "action != 'delete'":
             action_type = action.get("type", action.get("action", ""))
             if "delete" in str(action_type).lower():
-                return {"passed": False, "details": f"Delete action detected: {action_type}"}
+                return {
+                    "passed": False,
+                    "details": f"Delete action detected: {action_type}",
+                }
             return None
 
         if rule_id == "pii-check" or check == "no_pii_in_output":
@@ -165,7 +199,10 @@ class GuardrailEngine:
 
         count = len(timestamps)
         passed = count <= max_per_minute
-        return {"passed": passed, "details": f"Actions in last minute: {count}/{max_per_minute}"}
+        return {
+            "passed": passed,
+            "details": f"Actions in last minute: {count}/{max_per_minute}",
+        }
 
     @staticmethod
     def _evaluate_generic(check_expr: str, action: dict, context: dict) -> dict | None:
@@ -184,11 +221,19 @@ class GuardrailEngine:
                 except (ValueError, TypeError):
                     return None
 
-                ops = {"<=": lambda a, b: a <= b, ">=": lambda a, b: a >= b,
-                       "<": lambda a, b: a < b, ">": lambda a, b: a > b,
-                       "==": lambda a, b: a == b, "!=": lambda a, b: a != b}
+                ops = {
+                    "<=": lambda a, b: a <= b,
+                    ">=": lambda a, b: a >= b,
+                    "<": lambda a, b: a < b,
+                    ">": lambda a, b: a > b,
+                    "==": lambda a, b: a == b,
+                    "!=": lambda a, b: a != b,
+                }
                 passed = ops[op](field_val, compare_val)
-                return {"passed": passed, "details": f"{field}={field_val} {op} {val_str.strip()}"}
+                return {
+                    "passed": passed,
+                    "details": f"{field}={field_val} {op} {val_str.strip()}",
+                }
         except Exception:
             logger.warning("Guardrail check failed", exc_info=True)
         return None

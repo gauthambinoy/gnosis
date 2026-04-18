@@ -1,4 +1,5 @@
 """Compliance Report Generator — generate GDPR, SOC2, HIPAA compliance reports."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -37,7 +38,9 @@ class ComplianceReport:
     id: str
     type: str  # gdpr / soc2 / hipaa
     workspace_id: str
-    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    generated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     sections: List[dict] = field(default_factory=list)
     score: int = 0
     issues: List[str] = field(default_factory=list)
@@ -49,7 +52,9 @@ class ComplianceReportEngine:
 
     def generate_report(self, workspace_id: str, report_type: str) -> ComplianceReport:
         if report_type not in REPORT_TYPES:
-            raise ValueError(f"Invalid report type: {report_type}. Must be one of {REPORT_TYPES}")
+            raise ValueError(
+                f"Invalid report type: {report_type}. Must be one of {REPORT_TYPES}"
+            )
         checks = CHECKS.get(report_type, [])
         sections = []
         issues = []

@@ -1,4 +1,5 @@
 """Gnosis Swarm Intelligence API — Agent teams that self-organize."""
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -8,6 +9,7 @@ router = APIRouter(prefix="/api/v1/swarm", tags=["swarm"])
 
 
 # ─── Request Models ───
+
 
 class RegisterAgentRequest(BaseModel):
     agent_id: str = Field(min_length=1, max_length=100)
@@ -29,6 +31,7 @@ class SubmitResultRequest(BaseModel):
 
 
 # ─── Agent Registry ───
+
 
 @router.post("/register")
 async def register_agent(req: RegisterAgentRequest):
@@ -53,7 +56,9 @@ async def discover_agents(
 ):
     """Discover agents by skills or specialization."""
     skill_list = [s.strip() for s in skills.split(",") if s.strip()] if skills else None
-    agents = swarm_engine.discover_agents(skills=skill_list, specialization=specialization or "")
+    agents = swarm_engine.discover_agents(
+        skills=skill_list, specialization=specialization or ""
+    )
     return {"agents": agents, "count": len(agents)}
 
 
@@ -65,6 +70,7 @@ async def get_registry():
 
 
 # ─── Swarm Tasks ───
+
 
 @router.post("/tasks")
 async def create_swarm_task(req: CreateSwarmTaskRequest):
@@ -100,6 +106,7 @@ async def submit_result(task_id: str, req: SubmitResultRequest):
 
 # ─── Messaging ───
 
+
 @router.get("/inbox/{agent_id}")
 async def get_inbox(agent_id: str, limit: int = Query(20, ge=1, le=100)):
     """Get an agent's message inbox."""
@@ -108,6 +115,7 @@ async def get_inbox(agent_id: str, limit: int = Query(20, ge=1, le=100)):
 
 
 # ─── Stats ───
+
 
 @router.get("/stats")
 async def get_stats():

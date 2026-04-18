@@ -1,9 +1,19 @@
 import uuid
-from sqlalchemy import Column, String, Integer, Float, JSON, Text, ForeignKey, Enum as SAEnum
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    Float,
+    JSON,
+    Text,
+    ForeignKey,
+    Enum as SAEnum,
+)
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
 from app.models.base import Base, TimestampMixin
+
 
 class MemoryTier(str, enum.Enum):
     correction = "correction"
@@ -11,11 +21,17 @@ class MemoryTier(str, enum.Enum):
     semantic = "semantic"
     procedural = "procedural"
 
+
 class Memory(Base, TimestampMixin):
     __tablename__ = "memories"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    agent_id = Column(UUID(as_uuid=True), ForeignKey("agents.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("agents.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
 
     tier = Column(SAEnum(MemoryTier), nullable=False, index=True)
     content = Column(Text, nullable=False)

@@ -1,6 +1,7 @@
 """Gnosis Cost Tracker — tracks token usage and costs per user/agent."""
+
 from datetime import datetime, date, timezone
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -22,19 +23,37 @@ class CostTracker:
         self._records: list[UsageRecord] = []
         self._daily_totals: dict[str, dict] = {}  # date_str -> {tokens, cost, requests}
 
-    def record(self, agent_id: str, tier: str, model: str, input_tokens: int, output_tokens: int, cost_usd: float, cached: bool = False):
+    def record(
+        self,
+        agent_id: str,
+        tier: str,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        cost_usd: float,
+        cached: bool = False,
+    ):
         record = UsageRecord(
             timestamp=datetime.now(timezone.utc).isoformat(),
-            agent_id=agent_id, tier=tier, model=model,
-            input_tokens=input_tokens, output_tokens=output_tokens,
-            cost_usd=cost_usd, cached=cached,
+            agent_id=agent_id,
+            tier=tier,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=cost_usd,
+            cached=cached,
         )
         self._records.append(record)
 
         # Update daily totals
         today = date.today().isoformat()
         if today not in self._daily_totals:
-            self._daily_totals[today] = {"tokens": 0, "cost": 0.0, "requests": 0, "cached": 0}
+            self._daily_totals[today] = {
+                "tokens": 0,
+                "cost": 0.0,
+                "requests": 0,
+                "cached": 0,
+            }
         self._daily_totals[today]["tokens"] += input_tokens + output_tokens
         self._daily_totals[today]["cost"] += cost_usd
         self._daily_totals[today]["requests"] += 1
@@ -44,7 +63,9 @@ class CostTracker:
     @property
     def today_stats(self) -> dict:
         today = date.today().isoformat()
-        return self._daily_totals.get(today, {"tokens": 0, "cost": 0.0, "requests": 0, "cached": 0})
+        return self._daily_totals.get(
+            today, {"tokens": 0, "cost": 0.0, "requests": 0, "cached": 0}
+        )
 
     @property
     def total_stats(self) -> dict:
@@ -80,9 +101,15 @@ class CostTracker:
 
     def recent_records(self, limit: int = 50) -> list[dict]:
         return [
-            {"timestamp": r.timestamp, "agent_id": r.agent_id, "tier": r.tier,
-             "model": r.model, "tokens": r.input_tokens + r.output_tokens,
-             "cost_usd": r.cost_usd, "cached": r.cached}
+            {
+                "timestamp": r.timestamp,
+                "agent_id": r.agent_id,
+                "tier": r.tier,
+                "model": r.model,
+                "tokens": r.input_tokens + r.output_tokens,
+                "cost_usd": r.cost_usd,
+                "cached": r.cached,
+            }
             for r in self._records[-limit:]
         ]
 

@@ -1,6 +1,8 @@
 """CORS configuration from environment variables."""
+
 import os
 import warnings
+
 
 def get_cors_origins() -> list:
     """Get CORS origins from environment. Defaults to localhost for dev."""
@@ -20,13 +22,24 @@ def get_cors_origins() -> list:
         "http://127.0.0.1:3000",
     ]
 
+
 def get_cors_config() -> dict:
     """Get full CORS middleware config."""
     return {
         "allow_origins": get_cors_origins(),
         "allow_credentials": True,
         "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization", "X-Request-ID", "X-Idempotency-Key"],
-        "expose_headers": ["X-Request-ID", "X-RateLimit-Limit", "X-RateLimit-Remaining", "X-API-Version"],
+        "allow_headers": [
+            "Content-Type",
+            "Authorization",
+            "X-Request-ID",
+            "X-Idempotency-Key",
+        ],
+        "expose_headers": [
+            "X-Request-ID",
+            "X-RateLimit-Limit",
+            "X-RateLimit-Remaining",
+            "X-API-Version",
+        ],
         "max_age": 3600,
     }

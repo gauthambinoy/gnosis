@@ -1,4 +1,5 @@
 """Gnosis Auto-API Discovery — Connect to any API by name."""
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import Optional
@@ -8,6 +9,7 @@ router = APIRouter(prefix="/api/v1/apis", tags=["auto-api"])
 
 
 # ─── Request Models ───
+
 
 class ConnectRequest(BaseModel):
     api_name: str = Field(min_length=1, max_length=100)
@@ -24,6 +26,7 @@ class CallAPIRequest(BaseModel):
 
 # ─── Catalog ───
 
+
 @router.get("/catalog")
 async def list_catalog(category: Optional[str] = Query(None)):
     """List all known APIs in the catalog."""
@@ -36,7 +39,9 @@ async def get_api_info(name: str):
     """Get detailed info about a specific API."""
     info = auto_api.get_api_info(name)
     if not info:
-        raise HTTPException(status_code=404, detail=f"API '{name}' not found in catalog")
+        raise HTTPException(
+            status_code=404, detail=f"API '{name}' not found in catalog"
+        )
     return info
 
 
@@ -55,6 +60,7 @@ async def list_categories():
 
 
 # ─── Connections ───
+
 
 @router.post("/connect")
 async def connect_api(req: ConnectRequest):
@@ -116,6 +122,7 @@ async def delete_connection(connection_id: str):
 
 # ─── Code Generation ───
 
+
 @router.get("/generate/{name}")
 async def generate_connector(name: str):
     """Generate a Python connector class for an API."""
@@ -126,6 +133,7 @@ async def generate_connector(name: str):
 
 
 # ─── Stats ───
+
 
 @router.get("/stats")
 async def get_stats():

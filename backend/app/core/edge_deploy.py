@@ -1,5 +1,6 @@
 """Gnosis Edge Deployment — manage lightweight edge deployment configs."""
-from dataclasses import dataclass, field
+
+from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
 
@@ -27,9 +28,13 @@ class EdgeDeployEngine:
     def __init__(self):
         self._deployments: dict[str, EdgeDeployment] = {}
 
-    def create_deployment(self, agent_id: str, target: str, config: dict | None = None) -> EdgeDeployment:
+    def create_deployment(
+        self, agent_id: str, target: str, config: dict | None = None
+    ) -> EdgeDeployment:
         if target not in VALID_TARGETS:
-            raise ValueError(f"Invalid target '{target}'. Must be one of {VALID_TARGETS}")
+            raise ValueError(
+                f"Invalid target '{target}'. Must be one of {VALID_TARGETS}"
+            )
         dep = EdgeDeployment(
             id=str(uuid.uuid4()),
             agent_id=agent_id,
@@ -51,10 +56,29 @@ class EdgeDeployEngine:
     def generate_edge_config(self, agent_id: str, target: str) -> dict:
         base = {"agent_id": agent_id, "target": target, "runtime": "python3.11"}
         configs = {
-            "raspberry_pi": {"memory_limit": "512MB", "cpu_cores": 4, "arch": "arm64", "runtime": "python3.11-slim"},
-            "jetson": {"memory_limit": "4GB", "gpu": True, "cuda": "11.8", "arch": "arm64"},
-            "lambda": {"memory_limit": "256MB", "timeout": 30, "runtime": "python3.11", "handler": "main.handler"},
-            "cloudflare": {"runtime": "workers", "memory_limit": "128MB", "cpu_time_ms": 50},
+            "raspberry_pi": {
+                "memory_limit": "512MB",
+                "cpu_cores": 4,
+                "arch": "arm64",
+                "runtime": "python3.11-slim",
+            },
+            "jetson": {
+                "memory_limit": "4GB",
+                "gpu": True,
+                "cuda": "11.8",
+                "arch": "arm64",
+            },
+            "lambda": {
+                "memory_limit": "256MB",
+                "timeout": 30,
+                "runtime": "python3.11",
+                "handler": "main.handler",
+            },
+            "cloudflare": {
+                "runtime": "workers",
+                "memory_limit": "128MB",
+                "cpu_time_ms": 50,
+            },
         }
         base.update(configs.get(target, {}))
         return base

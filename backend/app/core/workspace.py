@@ -1,5 +1,7 @@
 """Gnosis Workspaces — Multi-user organizations with role-based access."""
-import uuid, logging
+
+import uuid
+import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
@@ -16,7 +18,14 @@ class Role(str, Enum):
 
 
 ROLE_PERMISSIONS = {
-    Role.OWNER: {"read", "write", "delete", "manage_members", "manage_workspace", "billing"},
+    Role.OWNER: {
+        "read",
+        "write",
+        "delete",
+        "manage_members",
+        "manage_workspace",
+        "billing",
+    },
     Role.ADMIN: {"read", "write", "delete", "manage_members"},
     Role.EDITOR: {"read", "write"},
     Role.VIEWER: {"read"},
@@ -28,7 +37,9 @@ class WorkspaceMember:
     user_id: str
     email: str
     role: Role
-    joined_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    joined_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     invited_by: Optional[str] = None
 
 
@@ -39,7 +50,9 @@ class WorkspaceInvite:
     email: str
     role: Role
     status: str = "pending"  # pending, accepted, expired
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     expires_at: Optional[str] = None
 
 
@@ -53,8 +66,12 @@ class Workspace:
     members: List[WorkspaceMember] = field(default_factory=list)
     agent_ids: List[str] = field(default_factory=list)
     settings: dict = field(default_factory=dict)
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class WorkspaceEngine:
@@ -63,13 +80,19 @@ class WorkspaceEngine:
         self._user_workspaces: Dict[str, List[str]] = {}  # user_id -> workspace_ids
         self._invites: Dict[str, WorkspaceInvite] = {}
 
-    def create(self, name: str, owner_id: str, owner_email: str, description: str = "") -> Workspace:
+    def create(
+        self, name: str, owner_id: str, owner_email: str, description: str = ""
+    ) -> Workspace:
         slug = name.lower().replace(" ", "-")[:50]
         workspace = Workspace(
             id=str(uuid.uuid4()),
-            name=name, slug=slug, description=description,
+            name=name,
+            slug=slug,
+            description=description,
             owner_id=owner_id,
-            members=[WorkspaceMember(user_id=owner_id, email=owner_email, role=Role.OWNER)],
+            members=[
+                WorkspaceMember(user_id=owner_id, email=owner_email, role=Role.OWNER)
+            ],
         )
         self._workspaces[workspace.id] = workspace
         self._user_workspaces.setdefault(owner_id, []).append(workspace.id)
@@ -88,7 +111,7 @@ class WorkspaceEngine:
         if not ws:
             return None
         for k, v in kwargs.items():
-            if hasattr(ws, k) and k not in ('id', 'created_at', 'owner_id'):
+            if hasattr(ws, k) and k not in ("id", "created_at", "owner_id"):
                 setattr(ws, k, v)
         ws.updated_at = datetime.now(timezone.utc).isoformat()
         return ws
@@ -102,13 +125,17 @@ class WorkspaceEngine:
             return True
         return False
 
-    def invite_member(self, workspace_id: str, email: str, role: Role, invited_by: str) -> Optional[WorkspaceInvite]:
+    def invite_member(
+        self, workspace_id: str, email: str, role: Role, invited_by: str
+    ) -> Optional[WorkspaceInvite]:
         ws = self._workspaces.get(workspace_id)
         if not ws:
             return None
         invite = WorkspaceInvite(
-            id=str(uuid.uuid4()), workspace_id=workspace_id,
-            email=email, role=role,
+            id=str(uuid.uuid4()),
+            workspace_id=workspace_id,
+            email=email,
+            role=role,
         )
         self._invites[invite.id] = invite
         return invite
@@ -137,7 +164,9 @@ class WorkspaceEngine:
             self._user_workspaces[user_id].remove(workspace_id)
         return True
 
-    def update_member_role(self, workspace_id: str, user_id: str, new_role: Role) -> bool:
+    def update_member_role(
+        self, workspace_id: str, user_id: str, new_role: Role
+    ) -> bool:
         ws = self._workspaces.get(workspace_id)
         if not ws:
             return False
@@ -147,7 +176,9 @@ class WorkspaceEngine:
                 return True
         return False
 
-    def check_permission(self, workspace_id: str, user_id: str, permission: str) -> bool:
+    def check_permission(
+        self, workspace_id: str, user_id: str, permission: str
+    ) -> bool:
         ws = self._workspaces.get(workspace_id)
         if not ws:
             return False
@@ -168,7 +199,10 @@ class WorkspaceEngine:
     @property
     def stats(self) -> dict:
         total_members = sum(len(ws.members) for ws in self._workspaces.values())
-        return {"total_workspaces": len(self._workspaces), "total_members": total_members}
+        return {
+            "total_workspaces": len(self._workspaces),
+            "total_members": total_members,
+        }
 
 
 workspace_engine = WorkspaceEngine()

@@ -1,4 +1,5 @@
 """Bandwidth optimization API."""
+
 from fastapi import APIRouter, Depends
 from app.core.auth import get_current_user_id
 from app.core.compression import compression_engine

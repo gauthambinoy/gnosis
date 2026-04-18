@@ -10,6 +10,7 @@ router = APIRouter(prefix="/api/v1/billing", tags=["billing"])
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
 
+
 class SubscribeRequest(BaseModel):
     plan: str = Field(min_length=1, max_length=50)
 
@@ -20,6 +21,7 @@ class RecordUsageRequest(BaseModel):
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @router.get("/plans")
 async def list_plans():
@@ -33,7 +35,9 @@ async def get_subscription(user_id: str = Depends(get_current_user_id)):
 
 
 @router.post("/subscribe")
-async def subscribe(body: SubscribeRequest, user_id: str = Depends(get_current_user_id)):
+async def subscribe(
+    body: SubscribeRequest, user_id: str = Depends(get_current_user_id)
+):
     try:
         plan = PlanTier(body.plan)
     except ValueError:
@@ -48,7 +52,9 @@ async def get_usage(user_id: str = Depends(get_current_user_id)):
 
 
 @router.post("/usage/record")
-async def record_usage(body: RecordUsageRequest, user_id: str = Depends(get_current_user_id)):
+async def record_usage(
+    body: RecordUsageRequest, user_id: str = Depends(get_current_user_id)
+):
     billing_engine.record_usage(user_id, body.metric, body.value)
     return {"recorded": True, "metric": body.metric, "value": body.value}
 
