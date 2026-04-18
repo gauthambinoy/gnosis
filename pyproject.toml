@@ -1,0 +1,121 @@
+[tool.mypy]
+# Phase 5 scope: mypy is enabled for the 75 clean modules in app/core.
+# The files below are excluded because they need deeper fixes (SQLAlchemy Column
+# type inference, broad dict[str,object] patterns, etc.) — tracked for Phase 6.
+# To expand coverage, remove a module from the exclude/overrides list and fix its errors.
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+strict_equality = true
+# not yet: disallow_untyped_defs (start scoped, expand later)
+
+# Prevent mypy from directly scanning these problematic modules.
+# Also combined with ignore_errors overrides below so they don't surface errors
+# when imported by clean modules (mypy follows imports transitively).
+exclude = """(?x)
+  app/(
+    core/(
+      activity_feed|agent_factory|audit_log|auth|auto_api|aws_services
+      |billing|bundle_analyzer|changelog|collaboration|command_registry
+      |config_snapshots|database|db_pool|dlq|dream_engine|embeddings
+      |emotion_engine|engine_state_store|env_validator|error_handlers
+      |execution_recorder|feature_flags|file_manager|flamegraph|gdpr_engine
+      |help_system|knowledge_graph|llm_gateway|marketplace|oracle_engine
+      |pagination|persona_inheritance|pii_detector|pii_scrubber|pipeline
+      |pool_monitor|predictive_engine|progressive_reasoning|prompt_optimizer
+      |query_analyzer|queue|rag_engine|rate_limiter|recipes|redis_batcher
+      |redis_client|retention_engine|retry_engine|retry|rpa_engine|scheduler
+      |sentry_integration|session_store|shutdown|skill_badges|swarm_engine
+      |system_control|time_travel|tool_registry|trust_engine|tutorials
+      |vector_store|webhook_dispatcher|webhooks|webhook_triggers
+    )
+    |llm/.*
+    |ws/.*
+    |api/.*
+    |models/.*
+  )\\.py$
+"""
+
+[[tool.mypy.overrides]]
+module = ["sqlalchemy.*", "boto3.*"]
+ignore_missing_imports = true
+
+# Phase 5 deferred modules — silence errors when imported by clean app/core modules.
+# Each module here has unresolved type issues deferred to a future phase.
+[[tool.mypy.overrides]]
+module = [
+  "app.core.activity_feed",
+  "app.core.agent_factory",
+  "app.core.audit_log",
+  "app.core.auth",
+  "app.core.auto_api",
+  "app.core.aws_services",
+  "app.core.billing",
+  "app.core.bundle_analyzer",
+  "app.core.changelog",
+  "app.core.collaboration",
+  "app.core.command_registry",
+  "app.core.config_snapshots",
+  "app.core.database",
+  "app.core.db_pool",
+  "app.core.dlq",
+  "app.core.dream_engine",
+  "app.core.embeddings",
+  "app.core.emotion_engine",
+  "app.core.engine_state_store",
+  "app.core.env_validator",
+  "app.core.error_handlers",
+  "app.core.execution_recorder",
+  "app.core.feature_flags",
+  "app.core.file_manager",
+  "app.core.flamegraph",
+  "app.core.gdpr_engine",
+  "app.core.help_system",
+  "app.core.knowledge_graph",
+  "app.core.llm_gateway",
+  "app.core.marketplace",
+  "app.core.oracle_engine",
+  "app.core.pagination",
+  "app.core.persona_inheritance",
+  "app.core.pii_detector",
+  "app.core.pii_scrubber",
+  "app.core.pipeline",
+  "app.core.pool_monitor",
+  "app.core.predictive_engine",
+  "app.core.progressive_reasoning",
+  "app.core.prompt_optimizer",
+  "app.core.query_analyzer",
+  "app.core.queue",
+  "app.core.rag_engine",
+  "app.core.rate_limiter",
+  "app.core.recipes",
+  "app.core.redis_batcher",
+  "app.core.redis_client",
+  "app.core.retention_engine",
+  "app.core.retry_engine",
+  "app.core.retry",
+  "app.core.rpa_engine",
+  "app.core.scheduler",
+  "app.core.sentry_integration",
+  "app.core.session_store",
+  "app.core.shutdown",
+  "app.core.skill_badges",
+  "app.core.swarm_engine",
+  "app.core.system_control",
+  "app.core.time_travel",
+  "app.core.tool_registry",
+  "app.core.trust_engine",
+  "app.core.tutorials",
+  "app.core.vector_store",
+  "app.core.webhook_dispatcher",
+  "app.core.webhooks",
+  "app.core.webhook_triggers",
+  "app.llm.*",
+  "app.ws.*",
+  "app.api.*",
+  "app.models.*",
+]
+ignore_errors = true
