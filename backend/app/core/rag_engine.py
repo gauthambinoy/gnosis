@@ -118,7 +118,7 @@ class RAGEngine:
             # Fallback: simple hash-based embedding
             import numpy as np
 
-            h = hashlib.md5(text.encode()).hexdigest()
+            h = hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()
             np.random.seed(int(h[:8], 16))
             vec = np.random.randn(384).astype(float)
             vec = vec / np.linalg.norm(vec)
