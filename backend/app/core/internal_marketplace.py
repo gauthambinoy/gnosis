@@ -1,4 +1,5 @@
 """Gnosis Internal Agent Marketplace — Publish and discover reusable agents."""
+
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -19,7 +20,9 @@ class MarketplaceListing:
     version: str
     downloads: int = 0
     rating: float = 0.0
-    published_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    published_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     tags: List[str] = field(default_factory=list)
 
 
@@ -28,8 +31,16 @@ class InternalMarketplaceEngine:
         self._listings: Dict[str, MarketplaceListing] = {}
         self._ratings: Dict[str, List[float]] = {}
 
-    def publish(self, agent_id: str, title: str, description: str, category: str,
-                author: str, version: str, tags: Optional[List[str]] = None) -> MarketplaceListing:
+    def publish(
+        self,
+        agent_id: str,
+        title: str,
+        description: str,
+        category: str,
+        author: str,
+        version: str,
+        tags: Optional[List[str]] = None,
+    ) -> MarketplaceListing:
         listing = MarketplaceListing(
             id=uuid.uuid4().hex[:12],
             agent_id=agent_id,
@@ -53,14 +64,17 @@ class InternalMarketplaceEngine:
         logger.info(f"Unpublished listing {listing_id}")
         return True
 
-    def search(self, query: Optional[str] = None, category: Optional[str] = None) -> List[MarketplaceListing]:
+    def search(
+        self, query: Optional[str] = None, category: Optional[str] = None
+    ) -> List[MarketplaceListing]:
         results = list(self._listings.values())
         if category:
             results = [r for r in results if r.category.lower() == category.lower()]
         if query:
             q = query.lower()
             results = [
-                r for r in results
+                r
+                for r in results
                 if q in r.title.lower()
                 or q in r.description.lower()
                 or any(q in t.lower() for t in r.tags)

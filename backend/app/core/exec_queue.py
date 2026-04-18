@@ -1,4 +1,5 @@
 """Gnosis Execution Queue — priority-based execution scheduling."""
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import uuid
@@ -28,7 +29,9 @@ class ExecutionQueue:
         self._items: dict[str, QueuedExecution] = {}
         self._heap: list[tuple[int, str, str]] = []  # (-priority, queued_at, id)
 
-    def enqueue(self, agent_id: str, task: str, priority: int = 5, user_id: str = "") -> QueuedExecution:
+    def enqueue(
+        self, agent_id: str, task: str, priority: int = 5, user_id: str = ""
+    ) -> QueuedExecution:
         priority = max(1, min(10, priority))
         item = QueuedExecution(
             id=str(uuid.uuid4()),

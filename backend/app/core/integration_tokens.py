@@ -1,4 +1,5 @@
 """Gnosis Time-Boxed Integration Tokens — Scoped, expiring API tokens."""
+
 import uuid
 import hashlib
 import logging
@@ -27,11 +28,19 @@ class IntegrationTokenEngine:
         self._tokens: Dict[str, IntegrationToken] = {}
         self._token_map: Dict[str, str] = {}  # raw_token -> token_id
 
-    def generate_token(self, name: str, scopes: List[str], ttl_hours: int,
-                       max_uses: int, created_by: str) -> Tuple[IntegrationToken, str]:
+    def generate_token(
+        self,
+        name: str,
+        scopes: List[str],
+        ttl_hours: int,
+        max_uses: int,
+        created_by: str,
+    ) -> Tuple[IntegrationToken, str]:
         raw_token = uuid.uuid4().hex
         token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
-        expires_at = (datetime.now(timezone.utc) + timedelta(hours=ttl_hours)).isoformat()
+        expires_at = (
+            datetime.now(timezone.utc) + timedelta(hours=ttl_hours)
+        ).isoformat()
         token = IntegrationToken(
             id=uuid.uuid4().hex[:12],
             name=name,
@@ -43,7 +52,9 @@ class IntegrationTokenEngine:
         )
         self._tokens[token.id] = token
         self._token_map[raw_token] = token.id
-        logger.info(f"Token {token.id} generated for {created_by}, expires {expires_at}")
+        logger.info(
+            f"Token {token.id} generated for {created_by}, expires {expires_at}"
+        )
         return token, raw_token
 
     def validate_token(self, raw_token: str) -> dict:

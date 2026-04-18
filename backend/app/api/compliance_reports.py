@@ -21,7 +21,9 @@ async def generate_report(data: dict, user_id: str = Depends(get_current_user_id
 
 
 @router.get("")
-async def list_reports(workspace_id: Optional[str] = None, user_id: str = Depends(get_current_user_id)):
+async def list_reports(
+    workspace_id: Optional[str] = None, user_id: str = Depends(get_current_user_id)
+):
     return {"reports": compliance_engine.list_reports(workspace_id or "")}
 
 

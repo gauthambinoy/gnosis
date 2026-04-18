@@ -1,4 +1,5 @@
 """Gnosis Mood Ring — Track agent mood based on recent success/failure rates."""
+
 import logging
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
@@ -14,7 +15,9 @@ class AgentMood:
     energy: float = 0.5  # 0-1
     recent_successes: int = 0
     recent_failures: int = 0
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class MoodRingEngine:
@@ -46,10 +49,13 @@ class MoodRingEngine:
         else:
             mood_data.recent_failures += 1
         mood_data.mood, mood_data.energy = self._calculate_mood(
-            mood_data.recent_successes, mood_data.recent_failures)
+            mood_data.recent_successes, mood_data.recent_failures
+        )
         mood_data.energy = round(mood_data.energy, 2)
         mood_data.updated_at = datetime.now(timezone.utc).isoformat()
-        logger.info(f"Agent {agent_id} mood: {mood_data.mood} (energy={mood_data.energy})")
+        logger.info(
+            f"Agent {agent_id} mood: {mood_data.mood} (energy={mood_data.energy})"
+        )
         return mood_data
 
     def get_mood(self, agent_id: str) -> AgentMood:

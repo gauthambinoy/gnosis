@@ -14,9 +14,13 @@ async def minds_eye_ws(websocket: WebSocket, agent_id: str):
             data = await websocket.receive_text()
             msg = json.loads(data)
             if msg.get("type") == "ping":
-                await websocket.send_text(json.dumps({
-                    "type": "pong",
-                    "watchers": ws_manager.agent_watcher_count(agent_id),
-                }))
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "type": "pong",
+                            "watchers": ws_manager.agent_watcher_count(agent_id),
+                        }
+                    )
+                )
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket)

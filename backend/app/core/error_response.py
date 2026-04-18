@@ -39,6 +39,7 @@ class ErrorResponse(BaseModel):
 # Exception hierarchy
 # ---------------------------------------------------------------------------
 
+
 class GnosisException(Exception):
     """Base exception for all Gnosis-specific errors."""
 

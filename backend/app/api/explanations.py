@@ -7,7 +7,9 @@ router = APIRouter(prefix="/api/v1/explanations", tags=["explanations"])
 
 
 @router.get("/{execution_id}")
-async def get_explanation(execution_id: str, user_id: str = Depends(get_current_user_id)):
+async def get_explanation(
+    execution_id: str, user_id: str = Depends(get_current_user_id)
+):
     results = explanation_engine.get_explanation(execution_id)
     if not results:
         raise HTTPException(status_code=404, detail="No explanation found")

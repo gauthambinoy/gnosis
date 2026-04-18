@@ -1,4 +1,5 @@
 """Gnosis Progressive Reasoning — escalates through complexity levels on demand."""
+
 import hashlib
 import json
 import time
@@ -116,7 +117,9 @@ class ProgressiveReasoner:
             self._stats["level_hits"][0] += 1
             self._stats["total_tokens_saved"] += budget_tokens
             return ReasoningResult(
-                level=0, level_name="cache", content=cached["content"],
+                level=0,
+                level_name="cache",
+                content=cached["content"],
                 confidence=cached.get("confidence", 1.0),
                 tokens_used=0,
                 latency_ms=(time.time() - start) * 1000,
@@ -127,12 +130,16 @@ class ProgressiveReasoner:
         agent_id = context.get("agent_id", "default")
         procedures = await self._load_procedures(agent_id)
         pattern_result = self._pattern_match(context, procedures)
-        if pattern_result is not None and pattern_result.get("confidence", 0) >= self.confidence_threshold:
+        if (
+            pattern_result is not None
+            and pattern_result.get("confidence", 0) >= self.confidence_threshold
+        ):
             self._stats["level_hits"][1] += 1
             self._stats["total_tokens_saved"] += budget_tokens
             self._cache.set(context, pattern_result)
             return ReasoningResult(
-                level=1, level_name="pattern_match",
+                level=1,
+                level_name="pattern_match",
                 content=pattern_result["content"],
                 confidence=pattern_result["confidence"],
                 tokens_used=0,
@@ -145,10 +152,11 @@ class ProgressiveReasoner:
             classify_result = await self._classify(context)
             if classify_result["confidence"] >= self.confidence_threshold:
                 self._stats["level_hits"][2] += 1
-                self._stats["total_tokens_saved"] += (budget_tokens - 50)
+                self._stats["total_tokens_saved"] += budget_tokens - 50
                 self._cache.set(context, classify_result)
                 return ReasoningResult(
-                    level=2, level_name="classify",
+                    level=2,
+                    level_name="classify",
                     content=classify_result["content"],
                     confidence=classify_result["confidence"],
                     tokens_used=classify_result.get("tokens", 50),
@@ -161,10 +169,11 @@ class ProgressiveReasoner:
             standard_result = await self._standard_reason(context)
             if standard_result["confidence"] >= self.confidence_threshold:
                 self._stats["level_hits"][3] += 1
-                self._stats["total_tokens_saved"] += (budget_tokens - 300)
+                self._stats["total_tokens_saved"] += budget_tokens - 300
                 self._cache.set(context, standard_result)
                 return ReasoningResult(
-                    level=3, level_name="standard",
+                    level=3,
+                    level_name="standard",
                     content=standard_result["content"],
                     confidence=standard_result["confidence"],
                     tokens_used=standard_result.get("tokens", 300),
@@ -177,7 +186,8 @@ class ProgressiveReasoner:
             self._stats["level_hits"][4] += 1
             self._cache.set(context, deep_result)
             return ReasoningResult(
-                level=4, level_name="deep",
+                level=4,
+                level_name="deep",
                 content=deep_result["content"],
                 confidence=deep_result["confidence"],
                 tokens_used=deep_result.get("tokens", 800),
@@ -189,7 +199,8 @@ class ProgressiveReasoner:
         fallback = await self._classify(context)
         self._stats["level_hits"][2] += 1
         return ReasoningResult(
-            level=2, level_name="classify_fallback",
+            level=2,
+            level_name="classify_fallback",
             content=fallback["content"],
             confidence=fallback["confidence"],
             tokens_used=fallback.get("tokens", 50),
@@ -215,7 +226,9 @@ class ProgressiveReasoner:
 
         # Check registered pattern rules first
         for rule in self._pattern_rules:
-            if rule.match_keywords and all(kw in query_text for kw in rule.match_keywords):
+            if rule.match_keywords and all(
+                kw in query_text for kw in rule.match_keywords
+            ):
                 return {
                     "content": rule.action,
                     "confidence": rule.confidence,
@@ -254,7 +267,9 @@ class ProgressiveReasoner:
     async def _load_procedures(self, agent_id: str) -> list[dict]:
         """Load procedural memories for pattern matching."""
         try:
-            memories = await memory_engine.get_agent_memories(agent_id, tier="procedural", limit=50)
+            memories = await memory_engine.get_agent_memories(
+                agent_id, tier="procedural", limit=50
+            )
             return [{"content": m.content, "metadata": m.metadata} for m in memories]
         except Exception:
             return []
@@ -270,11 +285,20 @@ class ProgressiveReasoner:
         # Intent classification via keyword matching
         intent_map = {
             "send": (["send", "email", "message", "notify", "post"], "action_send"),
-            "query": (["find", "search", "look", "get", "fetch", "list", "show"], "action_query"),
-            "create": (["create", "new", "add", "make", "generate", "build"], "action_create"),
+            "query": (
+                ["find", "search", "look", "get", "fetch", "list", "show"],
+                "action_query",
+            ),
+            "create": (
+                ["create", "new", "add", "make", "generate", "build"],
+                "action_create",
+            ),
             "update": (["update", "edit", "change", "modify", "fix"], "action_update"),
             "delete": (["delete", "remove", "cancel", "revoke"], "action_delete"),
-            "analyze": (["analyze", "compare", "review", "evaluate", "assess"], "action_analyze"),
+            "analyze": (
+                ["analyze", "compare", "review", "evaluate", "assess"],
+                "action_analyze",
+            ),
             "greet": (["hello", "hi", "hey", "thanks", "ok", "ack"], "greeting"),
         }
 
@@ -306,9 +330,11 @@ class ProgressiveReasoner:
         # Retrieve relevant memories
         try:
             memories = await memory_engine.search_memories(agent_id, text, limit=5)
-            memory_context = "\n".join(
-                f"- {m.content}" for m in memories
-            ) if memories else "No relevant memories found."
+            memory_context = (
+                "\n".join(f"- {m.content}" for m in memories)
+                if memories
+                else "No relevant memories found."
+            )
         except Exception:
             memory_context = "Memory unavailable."
 
@@ -344,7 +370,9 @@ class ProgressiveReasoner:
         # Get broader memory context
         try:
             memories = await memory_engine.search_memories(agent_id, text, limit=10)
-            corrections = await memory_engine.get_agent_memories(agent_id, tier="correction", limit=5)
+            corrections = await memory_engine.get_agent_memories(
+                agent_id, tier="correction", limit=5
+            )
         except Exception:
             memories = []
             corrections = []
@@ -357,18 +385,24 @@ class ProgressiveReasoner:
 
         # Step 2: Check corrections
         if corrections:
-            steps.append(f"Corrections to respect: {len(corrections)} active corrections")
+            steps.append(
+                f"Corrections to respect: {len(corrections)} active corrections"
+            )
             for c in corrections[:3]:
                 steps.append(f"  ⚠ {c.content[:100]}")
 
         # Step 3: Relevant experience
         if memories:
-            steps.append(f"Relevant experience: {len(memories)} similar situations found")
+            steps.append(
+                f"Relevant experience: {len(memories)} similar situations found"
+            )
             avg_score = sum(m.relevance_score for m in memories) / len(memories)
             steps.append(f"  Average relevance: {avg_score:.2f}")
 
         # Step 4: Synthesize
-        steps.append("Synthesis: combining corrections, experience, and request to form response")
+        steps.append(
+            "Synthesis: combining corrections, experience, and request to form response"
+        )
 
         # Step 5: Confidence assessment
         correction_boost = 0.1 if corrections else 0.0
@@ -392,12 +426,18 @@ class ProgressiveReasoner:
     # ------------------------------------------------------------------
     # Pattern management
     # ------------------------------------------------------------------
-    def add_pattern(self, pattern: str, action: str, keywords: list[str], confidence: float = 0.9):
+    def add_pattern(
+        self, pattern: str, action: str, keywords: list[str], confidence: float = 0.9
+    ):
         """Register a pattern rule for Level 1 matching."""
-        self._pattern_rules.append(PatternRule(
-            pattern=pattern, action=action,
-            confidence=confidence, match_keywords=keywords,
-        ))
+        self._pattern_rules.append(
+            PatternRule(
+                pattern=pattern,
+                action=action,
+                confidence=confidence,
+                match_keywords=keywords,
+            )
+        )
 
     # ------------------------------------------------------------------
     # Stats

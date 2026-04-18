@@ -25,7 +25,12 @@ class TestRequest(BaseModel):
 async def list_models(provider: str = ""):
     """List available models from the configured provider."""
     models = await llm_gateway.list_available_models(provider)
-    return {"models": models, "provider": provider or llm_gateway.settings.default_llm_provider or "openrouter"}
+    return {
+        "models": models,
+        "provider": provider
+        or llm_gateway.settings.default_llm_provider
+        or "openrouter",
+    }
 
 
 @router.post("/complete")
@@ -91,14 +96,35 @@ async def get_tiers():
 async def get_providers():
     return {
         "providers": [
-            {"id": "openrouter", "name": "OpenRouter", "description": "200+ models via single API", "recommended": True},
-            {"id": "anthropic", "name": "Anthropic", "description": "Claude models direct"},
+            {
+                "id": "openrouter",
+                "name": "OpenRouter",
+                "description": "200+ models via single API",
+                "recommended": True,
+            },
+            {
+                "id": "anthropic",
+                "name": "Anthropic",
+                "description": "Claude models direct",
+            },
             {"id": "openai", "name": "OpenAI", "description": "GPT models direct"},
             {"id": "google", "name": "Google AI", "description": "Gemini models"},
             {"id": "groq", "name": "Groq", "description": "Ultra-fast inference"},
-            {"id": "ollama", "name": "Ollama", "description": "Local models, zero cost"},
-            {"id": "together", "name": "Together AI", "description": "Open source models"},
-            {"id": "custom", "name": "Custom Endpoint", "description": "Any OpenAI-compatible API"},
+            {
+                "id": "ollama",
+                "name": "Ollama",
+                "description": "Local models, zero cost",
+            },
+            {
+                "id": "together",
+                "name": "Together AI",
+                "description": "Open source models",
+            },
+            {
+                "id": "custom",
+                "name": "Custom Endpoint",
+                "description": "Any OpenAI-compatible API",
+            },
         ]
     }
 

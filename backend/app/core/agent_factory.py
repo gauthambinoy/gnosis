@@ -2,6 +2,7 @@
 Gnosis Agent Factory — Create complete AI agents from natural language.
 The killer feature: "Describe it → Gnosis builds it"
 """
+
 import time
 import uuid
 import re
@@ -11,55 +12,133 @@ from typing import Optional
 # Intent categories the factory can handle
 INTENT_TEMPLATES = {
     "monitor": {
-        "keywords": ["monitor", "watch", "track", "check", "alert", "notify when", "keep eye"],
+        "keywords": [
+            "monitor",
+            "watch",
+            "track",
+            "check",
+            "alert",
+            "notify when",
+            "keep eye",
+        ],
         "description": "Continuously monitor something and alert on changes",
         "requires": ["schedule", "notification"],
         "default_schedule": "0 */6 * * *",  # Every 6 hours
     },
     "scrape": {
-        "keywords": ["scrape", "extract", "pull data", "get info from", "crawl", "collect from website"],
+        "keywords": [
+            "scrape",
+            "extract",
+            "pull data",
+            "get info from",
+            "crawl",
+            "collect from website",
+        ],
         "description": "Extract data from websites or APIs",
         "requires": ["web_access"],
         "default_schedule": "0 0 * * *",  # Daily
     },
     "automate_email": {
-        "keywords": ["email", "send mail", "inbox", "reply to", "forward", "summarize emails"],
+        "keywords": [
+            "email",
+            "send mail",
+            "inbox",
+            "reply to",
+            "forward",
+            "summarize emails",
+        ],
         "description": "Email automation — read, send, summarize, auto-reply",
         "requires": ["email_integration"],
     },
     "data_pipeline": {
-        "keywords": ["transform", "convert", "process data", "clean data", "merge", "analyze data", "csv", "spreadsheet"],
+        "keywords": [
+            "transform",
+            "convert",
+            "process data",
+            "clean data",
+            "merge",
+            "analyze data",
+            "csv",
+            "spreadsheet",
+        ],
         "description": "Process, transform, or analyze data",
         "requires": ["file_access"],
     },
     "social_media": {
-        "keywords": ["tweet", "post", "social media", "linkedin", "twitter", "instagram", "schedule post"],
+        "keywords": [
+            "tweet",
+            "post",
+            "social media",
+            "linkedin",
+            "twitter",
+            "instagram",
+            "schedule post",
+        ],
         "description": "Social media management and posting",
         "requires": ["social_integration"],
     },
     "report": {
-        "keywords": ["report", "summary", "digest", "dashboard", "weekly report", "daily summary", "compile"],
+        "keywords": [
+            "report",
+            "summary",
+            "digest",
+            "dashboard",
+            "weekly report",
+            "daily summary",
+            "compile",
+        ],
         "description": "Generate periodic reports or summaries",
         "requires": ["schedule", "notification"],
         "default_schedule": "0 9 * * 1",  # Monday 9 AM
     },
     "chatbot": {
-        "keywords": ["chatbot", "answer questions", "customer support", "help desk", "FAQ", "respond to"],
+        "keywords": [
+            "chatbot",
+            "answer questions",
+            "customer support",
+            "help desk",
+            "FAQ",
+            "respond to",
+        ],
         "description": "Interactive chatbot for Q&A or support",
         "requires": ["knowledge_base"],
     },
     "workflow": {
-        "keywords": ["when", "if", "then", "trigger", "whenever", "automatically", "on event"],
+        "keywords": [
+            "when",
+            "if",
+            "then",
+            "trigger",
+            "whenever",
+            "automatically",
+            "on event",
+        ],
         "description": "Event-driven workflow automation",
         "requires": ["webhook"],
     },
     "research": {
-        "keywords": ["research", "find", "search for", "look up", "investigate", "compare", "analyze"],
+        "keywords": [
+            "research",
+            "find",
+            "search for",
+            "look up",
+            "investigate",
+            "compare",
+            "analyze",
+        ],
         "description": "Research and analysis tasks",
         "requires": [],
     },
     "content": {
-        "keywords": ["write", "create content", "blog", "article", "generate", "draft", "copywriting"],
+        "keywords": [
+            "write",
+            "create content",
+            "blog",
+            "article",
+            "generate",
+            "draft",
+            "copywriting",
+        ],
         "description": "Content creation and writing",
         "requires": [],
     },
@@ -69,10 +148,13 @@ INTENT_TEMPLATES = {
 @dataclass
 class FactoryAnalysis:
     """Result of analyzing a user's natural language request."""
+
     raw_input: str = ""
     detected_intents: list[str] = field(default_factory=list)
     confidence: float = 0.0
-    entities: dict = field(default_factory=dict)  # Extracted: urls, emails, schedules, etc.
+    entities: dict = field(
+        default_factory=dict
+    )  # Extracted: urls, emails, schedules, etc.
     suggested_name: str = ""
     suggested_description: str = ""
 
@@ -80,6 +162,7 @@ class FactoryAnalysis:
 @dataclass
 class AgentBlueprint:
     """Blueprint for an agent to be created."""
+
     name: str = ""
     description: str = ""
     system_prompt: str = ""
@@ -91,6 +174,7 @@ class AgentBlueprint:
 @dataclass
 class DeploymentPlan:
     """Complete plan for what the factory will create."""
+
     id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     status: str = "draft"  # draft, approved, deploying, deployed, failed
     user_input: str = ""
@@ -137,7 +221,9 @@ class AgentFactory:
                 intent_scores[intent_name] = score
 
         if intent_scores:
-            sorted_intents = sorted(intent_scores.items(), key=lambda x: x[1], reverse=True)
+            sorted_intents = sorted(
+                intent_scores.items(), key=lambda x: x[1], reverse=True
+            )
             analysis.detected_intents = [i[0] for i in sorted_intents[:3]]
             analysis.confidence = min(sorted_intents[0][1] / 3.0, 1.0)
         else:
@@ -163,7 +249,7 @@ class AgentFactory:
             entities["urls"] = urls
 
         # Emails
-        emails = re.findall(r'[\w.+-]+@[\w-]+\.[\w.-]+', text)
+        emails = re.findall(r"[\w.+-]+@[\w-]+\.[\w.-]+", text)
         if emails:
             entities["emails"] = emails
 
@@ -193,7 +279,7 @@ class AgentFactory:
                 break
 
         # Numbers
-        numbers = re.findall(r'\b(\d+)\b', text)
+        numbers = re.findall(r"\b(\d+)\b", text)
         if numbers:
             entities["numbers"] = numbers[:5]
 
@@ -222,18 +308,24 @@ class AgentFactory:
 
         return f"{prefix} Agent — {clean}"
 
-    def _generate_plan(self, user_input: str, analysis: FactoryAnalysis) -> DeploymentPlan:
+    def _generate_plan(
+        self, user_input: str, analysis: FactoryAnalysis
+    ) -> DeploymentPlan:
         """Generate a complete deployment plan from analysis."""
         plan = DeploymentPlan(
             user_input=user_input,
             analysis=asdict(analysis),
         )
 
-        primary_intent = analysis.detected_intents[0] if analysis.detected_intents else "workflow"
+        primary_intent = (
+            analysis.detected_intents[0] if analysis.detected_intents else "workflow"
+        )
         intent_config = INTENT_TEMPLATES.get(primary_intent, {})
 
         # Build system prompt based on intent
-        system_prompt = self._build_system_prompt(user_input, primary_intent, analysis.entities)
+        system_prompt = self._build_system_prompt(
+            user_input, primary_intent, analysis.entities
+        )
 
         # Create main agent blueprint
         main_agent = {
@@ -264,12 +356,14 @@ class AgentFactory:
         if len(plan.agents) > 1:
             steps = []
             for i, agent in enumerate(plan.agents):
-                steps.append({
-                    "name": agent["name"],
-                    "agent_index": i,
-                    "order": i,
-                    "pass_output_to_next": True,
-                })
+                steps.append(
+                    {
+                        "name": agent["name"],
+                        "agent_index": i,
+                        "order": i,
+                        "pass_output_to_next": True,
+                    }
+                )
             plan.pipeline = {
                 "name": f"Pipeline — {analysis.suggested_name}",
                 "steps": steps,
@@ -285,31 +379,43 @@ class AgentFactory:
         if schedule_cron:
             plan.schedule = {
                 "cron": schedule_cron,
-                "description": analysis.entities.get("schedule_description", "Scheduled run"),
+                "description": analysis.entities.get(
+                    "schedule_description", "Scheduled run"
+                ),
                 "timezone": "UTC",
                 "enabled": True,
             }
 
         # Integrations
         if analysis.entities.get("urls"):
-            plan.integrations.append({
-                "type": "web_access",
-                "config": {"urls": analysis.entities["urls"]},
-            })
-        if analysis.entities.get("emails") or "email" in str(intent_config.get("requires", [])):
-            plan.integrations.append({
-                "type": "email",
-                "config": {"recipients": analysis.entities.get("emails", [])},
-            })
+            plan.integrations.append(
+                {
+                    "type": "web_access",
+                    "config": {"urls": analysis.entities["urls"]},
+                }
+            )
+        if analysis.entities.get("emails") or "email" in str(
+            intent_config.get("requires", [])
+        ):
+            plan.integrations.append(
+                {
+                    "type": "email",
+                    "config": {"recipients": analysis.entities.get("emails", [])},
+                }
+            )
         if "notification" in intent_config.get("requires", []):
-            plan.integrations.append({
-                "type": "notification",
-                "config": {"channels": ["email", "in_app"]},
-            })
+            plan.integrations.append(
+                {
+                    "type": "notification",
+                    "config": {"channels": ["email", "in_app"]},
+                }
+            )
 
         # Cost estimate
         tokens_per_run = 500 * len(plan.agents)
-        plan.estimated_cost_per_run = f"~{tokens_per_run} tokens (~${tokens_per_run * 0.000002:.4f})"
+        plan.estimated_cost_per_run = (
+            f"~{tokens_per_run} tokens (~${tokens_per_run * 0.000002:.4f})"
+        )
 
         return plan
 
@@ -317,7 +423,7 @@ class AgentFactory:
         """Build an optimized system prompt for the agent with injection protection."""
         from app.core.input_sanitizer import build_safe_system_prompt, detect_injection
 
-        desc = INTENT_TEMPLATES.get(intent, {}).get('description', 'general automation')
+        desc = INTENT_TEMPLATES.get(intent, {}).get("description", "general automation")
 
         base_instructions = f"""You are a Gnosis AI agent specialized in: {desc}.
 
@@ -330,12 +436,15 @@ Guidelines:
         if entities.get("urls"):
             base_instructions += f"\n- Target URLs: {', '.join(entities['urls'])}"
         if entities.get("emails"):
-            base_instructions += f"\n- Notification emails: {', '.join(entities['emails'])}"
+            base_instructions += (
+                f"\n- Notification emails: {', '.join(entities['emails'])}"
+            )
 
         # Log potential injection attempts (advisory, does not block)
         injection_warning = detect_injection(user_input)
         if injection_warning:
             import logging
+
             logging.getLogger("gnosis.security").warning(
                 "Prompt injection attempt in agent factory: %s", injection_warning
             )
@@ -377,6 +486,7 @@ Guidelines:
         try:
             # Create agents
             from app.api.agents import _agents
+
             for agent_data in plan.agents:
                 agent_id = uuid.uuid4().hex[:12]
                 _agents[agent_id] = {
@@ -397,8 +507,12 @@ Guidelines:
             # Create pipeline if defined
             if plan.pipeline and len(plan.created_agent_ids) > 1:
                 from app.core.pipeline import pipeline_engine
+
                 steps = [
-                    {"agent_id": plan.created_agent_ids[step["agent_index"]], "name": step["name"]}
+                    {
+                        "agent_id": plan.created_agent_ids[step["agent_index"]],
+                        "name": step["name"],
+                    }
                     for step in plan.pipeline["steps"]
                 ]
                 pipeline = pipeline_engine.create_pipeline(
@@ -410,6 +524,7 @@ Guidelines:
             # Create schedule if defined
             if plan.schedule and plan.created_agent_ids:
                 from app.core.scheduler import scheduler_engine
+
                 schedule = scheduler_engine.create(
                     agent_id=plan.created_agent_ids[0],
                     name=plan.schedule["description"],
@@ -449,7 +564,9 @@ Guidelines:
             "total_plans": len(self._plans),
             "deployed": sum(1 for p in self._plans.values() if p.status == "deployed"),
             "draft": sum(1 for p in self._plans.values() if p.status == "draft"),
-            "total_agents_created": sum(len(p.created_agent_ids) for p in self._plans.values()),
+            "total_agents_created": sum(
+                len(p.created_agent_ids) for p in self._plans.values()
+            ),
             "available_intents": list(INTENT_TEMPLATES.keys()),
         }
 

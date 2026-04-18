@@ -78,7 +78,10 @@ async def deploy_template(template_id: str, body: DeployRequest = DeployRequest(
         "updated_at": now,
     }
 
-    await event_bus.emit(Events.AGENT_CREATED, {"agent_id": agent_id, "name": agent["name"], "template": template_id})
+    await event_bus.emit(
+        Events.AGENT_CREATED,
+        {"agent_id": agent_id, "name": agent["name"], "template": template_id},
+    )
 
     return {
         "status": "deployed",

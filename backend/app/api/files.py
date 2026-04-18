@@ -71,7 +71,9 @@ async def download_file(
     path = file_manager.get_path(file_id)
     if not path:
         raise HTTPException(status_code=404, detail="File not found on disk")
-    return FileResponse(path, filename=record.original_name, media_type=record.mime_type)
+    return FileResponse(
+        path, filename=record.original_name, media_type=record.mime_type
+    )
 
 
 @router.get("/{file_id}/content")
@@ -82,7 +84,9 @@ async def get_file_content(
     """Get text content of a file (for text-based files only)."""
     text = await file_manager.read_text(file_id)
     if text is None:
-        raise HTTPException(status_code=400, detail="File is not text-readable or not found")
+        raise HTTPException(
+            status_code=400, detail="File is not text-readable or not found"
+        )
     record = file_manager.get(file_id)
     return {"file_id": file_id, "filename": record.original_name, "content": text}
 

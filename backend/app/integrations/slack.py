@@ -1,4 +1,5 @@
 """Slack connector — UAP compliant, real Slack Web API integration."""
+
 import logging
 import time
 
@@ -32,31 +33,44 @@ class SlackConnector(BaseConnector):
     def get_actions(self) -> list[ActionDefinition]:
         return [
             ActionDefinition(
-                service="slack", capability="send_message",
+                service="slack",
+                capability="send_message",
                 description="Send a message to a Slack channel",
-                inputs={"channel": {"type": "string"}, "text": {"type": "string"}, "thread_ts": {"type": "string"}},
+                inputs={
+                    "channel": {"type": "string"},
+                    "text": {"type": "string"},
+                    "thread_ts": {"type": "string"},
+                },
                 outputs={"ts": {"type": "string"}, "channel": {"type": "string"}},
             ),
             ActionDefinition(
-                service="slack", capability="list_channels",
+                service="slack",
+                capability="list_channels",
                 description="List Slack channels",
                 inputs={},
                 outputs={"channels": {"type": "array"}},
             ),
             ActionDefinition(
-                service="slack", capability="get_channel_history",
+                service="slack",
+                capability="get_channel_history",
                 description="Read messages from a channel",
                 inputs={"channel": {"type": "string"}, "limit": {"type": "integer"}},
                 outputs={"messages": {"type": "array"}},
             ),
             ActionDefinition(
-                service="slack", capability="add_reaction",
+                service="slack",
+                capability="add_reaction",
                 description="Add emoji reaction to a message",
-                inputs={"channel": {"type": "string"}, "timestamp": {"type": "string"}, "emoji": {"type": "string"}},
+                inputs={
+                    "channel": {"type": "string"},
+                    "timestamp": {"type": "string"},
+                    "emoji": {"type": "string"},
+                },
                 outputs={"ok": {"type": "boolean"}},
             ),
             ActionDefinition(
-                service="slack", capability="search_messages",
+                service="slack",
+                capability="search_messages",
                 description="Search Slack messages",
                 inputs={"query": {"type": "string"}},
                 outputs={"messages": {"type": "array"}},
@@ -65,7 +79,10 @@ class SlackConnector(BaseConnector):
 
     async def _get_headers(self, user_id: str) -> dict:
         token = await oauth_manager.get_valid_token("slack", user_id)
-        return {"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=utf-8"}
+        return {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=utf-8",
+        }
 
     # ------------------------------------------------------------------
     # Real Slack API methods
@@ -80,7 +97,9 @@ class SlackConnector(BaseConnector):
             payload["thread_ts"] = thread_ts
 
         session = await self._get_session()
-        async with session.post(f"{SLACK_API}/chat.postMessage", headers=headers, json=payload) as resp:
+        async with session.post(
+            f"{SLACK_API}/chat.postMessage", headers=headers, json=payload
+        ) as resp:
             data = await resp.json()
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
@@ -98,7 +117,12 @@ class SlackConnector(BaseConnector):
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         return [
-            {"id": ch["id"], "name": ch.get("name", ""), "is_member": ch.get("is_member", False), "topic": ch.get("topic", {}).get("value", "")}
+            {
+                "id": ch["id"],
+                "name": ch.get("name", ""),
+                "is_member": ch.get("is_member", False),
+                "topic": ch.get("topic", {}).get("value", ""),
+            }
             for ch in data.get("channels", [])
         ]
 
@@ -116,7 +140,12 @@ class SlackConnector(BaseConnector):
         if not data.get("ok"):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         return [
-            {"ts": m.get("ts"), "user": m.get("user"), "text": m.get("text", ""), "type": m.get("type")}
+            {
+                "ts": m.get("ts"),
+                "user": m.get("user"),
+                "text": m.get("text", ""),
+                "type": m.get("type"),
+            }
             for m in data.get("messages", [])
         ]
 
@@ -148,7 +177,12 @@ class SlackConnector(BaseConnector):
             raise RuntimeError(f"Slack error: {data.get('error', 'unknown')}")
         raw_matches = data.get("messages", {}).get("matches", [])
         return [
-            {"ts": m.get("ts"), "channel": m.get("channel", {}).get("name", ""), "user": m.get("user"), "text": m.get("text", "")}
+            {
+                "ts": m.get("ts"),
+                "channel": m.get("channel", {}).get("name", ""),
+                "user": m.get("user"),
+                "text": m.get("text", ""),
+            }
             for m in raw_matches
         ]
 
@@ -161,20 +195,30 @@ class SlackConnector(BaseConnector):
         try:
             dispatch = {
                 "send_message": lambda: self.send_message(
-                    inputs["user_id"], inputs["channel"], inputs["text"], inputs.get("thread_ts")
+                    inputs["user_id"],
+                    inputs["channel"],
+                    inputs["text"],
+                    inputs.get("thread_ts"),
                 ),
                 "list_channels": lambda: self.list_channels(inputs["user_id"]),
                 "get_channel_history": lambda: self.get_channel_history(
                     inputs["user_id"], inputs["channel"], inputs.get("limit", 20)
                 ),
                 "add_reaction": lambda: self.add_reaction(
-                    inputs["user_id"], inputs["channel"], inputs["timestamp"], inputs["emoji"]
+                    inputs["user_id"],
+                    inputs["channel"],
+                    inputs["timestamp"],
+                    inputs["emoji"],
                 ),
-                "search_messages": lambda: self.search_messages(inputs["user_id"], inputs["query"]),
+                "search_messages": lambda: self.search_messages(
+                    inputs["user_id"], inputs["query"]
+                ),
             }
             handler = dispatch.get(capability)
             if not handler:
-                return ActionResult(success=False, data={}, error=f"Unknown capability: {capability}")
+                return ActionResult(
+                    success=False, data={}, error=f"Unknown capability: {capability}"
+                )
             result = await handler()
             latency = (time.time() - start) * 1000
             return ActionResult(
@@ -184,7 +228,9 @@ class SlackConnector(BaseConnector):
             )
         except Exception as exc:
             latency = (time.time() - start) * 1000
-            return ActionResult(success=False, data={}, error=str(exc), latency_ms=latency)
+            return ActionResult(
+                success=False, data={}, error=str(exc), latency_ms=latency
+            )
 
     async def test_connection(self) -> bool:
         try:

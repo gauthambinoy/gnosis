@@ -1,4 +1,5 @@
 """Execution Comment Threads — threaded comments on executions."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
@@ -12,8 +13,12 @@ class Comment:
     parent_id: Optional[str]
     user_id: str
     text: str
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    updated_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
     reactions: dict = field(default_factory=dict)
 
 
@@ -48,9 +53,7 @@ class CommentThreadEngine:
 
     def list_thread(self, execution_id: str) -> List[dict]:
         return [
-            asdict(c)
-            for c in self._comments.values()
-            if c.execution_id == execution_id
+            asdict(c) for c in self._comments.values() if c.execution_id == execution_id
         ]
 
     def add_reaction(self, comment_id: str, emoji: str, user_id: str) -> Comment:

@@ -1,4 +1,5 @@
 """Gnosis Orchestrator — Perceive → Reason → Decide → Act execution engine."""
+
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -23,16 +24,39 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 URGENCY_KEYWORDS: dict[str, list[str]] = {
     "critical": [
-        "urgent", "emergency", "critical", "outage", "down", "breach",
-        "security", "attack", "p0", "sev0", "incident",
+        "urgent",
+        "emergency",
+        "critical",
+        "outage",
+        "down",
+        "breach",
+        "security",
+        "attack",
+        "p0",
+        "sev0",
+        "incident",
     ],
     "high": [
-        "important", "asap", "deadline", "blocker", "escalate", "p1",
-        "sev1", "broken", "failure", "crash",
+        "important",
+        "asap",
+        "deadline",
+        "blocker",
+        "escalate",
+        "p1",
+        "sev1",
+        "broken",
+        "failure",
+        "crash",
     ],
     "medium": [
-        "request", "review", "update", "check", "follow-up", "task",
-        "question", "p2",
+        "request",
+        "review",
+        "update",
+        "check",
+        "follow-up",
+        "task",
+        "question",
+        "p2",
     ],
 }
 
@@ -95,12 +119,16 @@ class Orchestrator:
         """Lazy import to avoid circular dependency at module load."""
         try:
             from app.core.aws_services import aws_services
+
             return aws_services
         except Exception:
             return None
 
     async def execute(
-        self, agent_id: str, trigger_type: str, trigger_data: dict,
+        self,
+        agent_id: str,
+        trigger_type: str,
+        trigger_data: dict,
         async_execution: bool = False,
     ) -> ExecutionResult:
         # If async_execution requested, try to queue via SQS
@@ -114,7 +142,11 @@ class Orchestrator:
                     return ExecutionResult(
                         execution_id=msg_id,
                         agent_id=agent_id,
-                        steps=[ExecutionStep(phase="queued", content=f"Queued via SQS: {msg_id}")],
+                        steps=[
+                            ExecutionStep(
+                                phase="queued", content=f"Queued via SQS: {msg_id}"
+                            )
+                        ],
                         status="queued",
                     )
 
@@ -123,71 +155,157 @@ class Orchestrator:
         total_start = time.time()
 
         # Start execution recording for replay
-        task_summary = str(trigger_data.get("subject", trigger_data.get("title", str(trigger_type))))
+        task_summary = str(
+            trigger_data.get("subject", trigger_data.get("title", str(trigger_type)))
+        )
         recording = execution_recorder.start_recording(agent_id, task_summary)
 
-        await event_bus.emit(Events.EXECUTION_STARTED, {
-            "execution_id": execution_id,
-            "agent_id": agent_id,
-            "trigger_type": trigger_type,
-        })
+        await event_bus.emit(
+            Events.EXECUTION_STARTED,
+            {
+                "execution_id": execution_id,
+                "agent_id": agent_id,
+                "trigger_type": trigger_type,
+            },
+        )
 
         try:
             # Phase 1 — Perceive
-            await execution_stream.broadcast_phase(agent_id, "perceive", {"status": "started", "input": str(trigger_data)[:200]})
+            await execution_stream.broadcast_phase(
+                agent_id,
+                "perceive",
+                {"status": "started", "input": str(trigger_data)[:200]},
+            )
             perception = await self._perceive(trigger_type, trigger_data)
             steps.append(perception)
-            execution_recorder.add_step(recording.id, "perceive", "completed", input_summary=str(trigger_data)[:200], output_summary=perception.content[:200], duration_ms=perception.latency_ms)
-            await execution_stream.broadcast_phase(agent_id, "perceive", {"status": "completed", "duration_ms": perception.latency_ms})
+            execution_recorder.add_step(
+                recording.id,
+                "perceive",
+                "completed",
+                input_summary=str(trigger_data)[:200],
+                output_summary=perception.content[:200],
+                duration_ms=perception.latency_ms,
+            )
+            await execution_stream.broadcast_phase(
+                agent_id,
+                "perceive",
+                {"status": "completed", "duration_ms": perception.latency_ms},
+            )
 
             # Phase 2 — Memory Retrieval (parallel across tiers)
-            await execution_stream.broadcast_phase(agent_id, "memory", {"status": "started"})
+            await execution_stream.broadcast_phase(
+                agent_id, "memory", {"status": "started"}
+            )
             memory_step = await self._retrieve_memory(agent_id, trigger_data)
             steps.append(memory_step)
-            execution_recorder.add_step(recording.id, "memory", "completed", output_summary=memory_step.content[:200], duration_ms=memory_step.latency_ms)
-            await execution_stream.broadcast_phase(agent_id, "memory", {"status": "completed", "duration_ms": memory_step.latency_ms})
+            execution_recorder.add_step(
+                recording.id,
+                "memory",
+                "completed",
+                output_summary=memory_step.content[:200],
+                duration_ms=memory_step.latency_ms,
+            )
+            await execution_stream.broadcast_phase(
+                agent_id,
+                "memory",
+                {"status": "completed", "duration_ms": memory_step.latency_ms},
+            )
 
             # Phase 3 — Context Assembly
-            await execution_stream.broadcast_phase(agent_id, "context", {"status": "started"})
+            await execution_stream.broadcast_phase(
+                agent_id, "context", {"status": "started"}
+            )
             context_step = await self._assemble_context(
                 memory_step.metadata.get("memory_context"),
                 perception.metadata.get("summary", ""),
             )
             steps.append(context_step)
-            execution_recorder.add_step(recording.id, "context", "completed", output_summary=f"Assembled {context_step.metadata.get('estimated_tokens', 0)} tokens", duration_ms=context_step.latency_ms)
-            await execution_stream.broadcast_phase(agent_id, "context", {"status": "completed", "duration_ms": context_step.latency_ms})
+            execution_recorder.add_step(
+                recording.id,
+                "context",
+                "completed",
+                output_summary=f"Assembled {context_step.metadata.get('estimated_tokens', 0)} tokens",
+                duration_ms=context_step.latency_ms,
+            )
+            await execution_stream.broadcast_phase(
+                agent_id,
+                "context",
+                {"status": "completed", "duration_ms": context_step.latency_ms},
+            )
 
             # Phase 4 — Reasoning via LLM
-            await execution_stream.broadcast_phase(agent_id, "reason", {"status": "started"})
+            await execution_stream.broadcast_phase(
+                agent_id, "reason", {"status": "started"}
+            )
             urgency = perception.metadata.get("urgency", "low")
             reasoning = await self._reason(agent_id, context_step, urgency)
             steps.append(reasoning)
-            execution_recorder.add_step(recording.id, "reason", "completed", output_summary=reasoning.content[:200], duration_ms=reasoning.latency_ms, metadata={"tier": reasoning.metadata.get("tier")})
-            await execution_stream.broadcast_phase(agent_id, "reason", {"status": "completed", "duration_ms": reasoning.latency_ms})
+            execution_recorder.add_step(
+                recording.id,
+                "reason",
+                "completed",
+                output_summary=reasoning.content[:200],
+                duration_ms=reasoning.latency_ms,
+                metadata={"tier": reasoning.metadata.get("tier")},
+            )
+            await execution_stream.broadcast_phase(
+                agent_id,
+                "reason",
+                {"status": "completed", "duration_ms": reasoning.latency_ms},
+            )
 
             # Phase 5 — Meta-cognition (confidence check)
-            await execution_stream.broadcast_phase(agent_id, "meta", {"status": "started"})
+            await execution_stream.broadcast_phase(
+                agent_id, "meta", {"status": "started"}
+            )
             meta_step = self._meta_cognition(reasoning)
             steps.append(meta_step)
-            execution_recorder.add_step(recording.id, "meta", "completed", output_summary=meta_step.content[:200], duration_ms=meta_step.latency_ms, metadata={"confidence": meta_step.confidence})
-            await execution_stream.broadcast_phase(agent_id, "meta", {"status": "completed", "confidence": meta_step.confidence})
+            execution_recorder.add_step(
+                recording.id,
+                "meta",
+                "completed",
+                output_summary=meta_step.content[:200],
+                duration_ms=meta_step.latency_ms,
+                metadata={"confidence": meta_step.confidence},
+            )
+            await execution_stream.broadcast_phase(
+                agent_id,
+                "meta",
+                {"status": "completed", "confidence": meta_step.confidence},
+            )
 
             # Phase 6 — Action execution
-            await execution_stream.broadcast_phase(agent_id, "act", {"status": "started"})
+            await execution_stream.broadcast_phase(
+                agent_id, "act", {"status": "started"}
+            )
             actions = await self._act(agent_id, meta_step)
             steps.extend(actions)
             act_latency = sum(a.latency_ms for a in actions)
-            execution_recorder.add_step(recording.id, "act", "completed", output_summary=f"Executed {len(actions)} action(s)", duration_ms=act_latency)
-            await execution_stream.broadcast_phase(agent_id, "act", {"status": "completed", "duration_ms": act_latency})
+            execution_recorder.add_step(
+                recording.id,
+                "act",
+                "completed",
+                output_summary=f"Executed {len(actions)} action(s)",
+                duration_ms=act_latency,
+            )
+            await execution_stream.broadcast_phase(
+                agent_id, "act", {"status": "completed", "duration_ms": act_latency}
+            )
 
             status = "completed"
         except Exception as exc:
-            steps.append(ExecutionStep(
-                phase="error", content=str(exc), confidence=0.0,
-                latency_ms=0.0,
-            ))
+            steps.append(
+                ExecutionStep(
+                    phase="error",
+                    content=str(exc),
+                    confidence=0.0,
+                    latency_ms=0.0,
+                )
+            )
             status = "failed"
-            execution_recorder.add_step(recording.id, "error", "failed", output_summary=str(exc)[:200])
+            execution_recorder.add_step(
+                recording.id, "error", "failed", output_summary=str(exc)[:200]
+            )
 
         total_ms = (time.time() - total_start) * 1000
         total_cost = sum(s.cost_usd for s in steps)
@@ -204,9 +322,17 @@ class Orchestrator:
         # Compute confidence scoring
         mem_ctx = memory_step.metadata.get("memory_context")
         confidence = confidence_engine.score(
-            memory_results=len(mem_ctx.relevant_past) if hasattr(mem_ctx, 'relevant_past') and mem_ctx else 0,
-            memory_max_score=max((m.relevance_score for m in mem_ctx.relevant_past), default=0) if hasattr(mem_ctx, 'relevant_past') and mem_ctx else 0,
-            context_tokens=len(str(context_step.content)) // 4 if context_step.content else 0,
+            memory_results=len(mem_ctx.relevant_past)
+            if hasattr(mem_ctx, "relevant_past") and mem_ctx
+            else 0,
+            memory_max_score=max(
+                (m.relevance_score for m in mem_ctx.relevant_past), default=0
+            )
+            if hasattr(mem_ctx, "relevant_past") and mem_ctx
+            else 0,
+            context_tokens=len(str(context_step.content)) // 4
+            if context_step.content
+            else 0,
             reasoning_level=2,
             response_length=len(str(reasoning.content)) if reasoning.content else 0,
         )
@@ -222,9 +348,19 @@ class Orchestrator:
         # Phase 7 — Post-execution
         await execution_stream.broadcast_phase(agent_id, "post", {"status": "started"})
         await self._post_execution(agent_id, result)
-        execution_recorder.add_step(recording.id, "post", "completed", output_summary=f"status={status} latency={total_ms:.0f}ms", duration_ms=result.total_latency_ms)
+        execution_recorder.add_step(
+            recording.id,
+            "post",
+            "completed",
+            output_summary=f"status={status} latency={total_ms:.0f}ms",
+            duration_ms=result.total_latency_ms,
+        )
         execution_recorder.complete_recording(recording.id, status)
-        await execution_stream.broadcast_phase(agent_id, "post", {"status": "completed", "duration_ms": result.total_latency_ms})
+        await execution_stream.broadcast_phase(
+            agent_id,
+            "post",
+            {"status": "completed", "duration_ms": result.total_latency_ms},
+        )
 
         # Log execution to DynamoDB (best-effort, never blocks return)
         try:
@@ -249,9 +385,7 @@ class Orchestrator:
     # ------------------------------------------------------------------
     # Phase 1 — Perceive
     # ------------------------------------------------------------------
-    async def _perceive(
-        self, trigger_type: str, trigger_data: dict
-    ) -> ExecutionStep:
+    async def _perceive(self, trigger_type: str, trigger_data: dict) -> ExecutionStep:
         start = time.time()
 
         sender = trigger_data.get("sender", trigger_data.get("from", "unknown"))
@@ -260,10 +394,9 @@ class Orchestrator:
 
         # Extract simple intent keywords from text
         text_blob = f"{subject} {body}".lower()
-        intent_keywords = [
-            w for w in re.findall(r"[a-z]+", text_blob)
-            if len(w) > 3
-        ][:10]
+        intent_keywords = [w for w in re.findall(r"[a-z]+", text_blob) if len(w) > 3][
+            :10
+        ]
 
         urgency = self._classify_urgency(text_blob)
 
@@ -288,9 +421,14 @@ class Orchestrator:
                 "trigger_data": trigger_data,
             },
         )
-        await event_bus.emit("orchestrator.phase", {
-            "phase": "perceive", "latency_ms": latency, "urgency": urgency,
-        })
+        await event_bus.emit(
+            "orchestrator.phase",
+            {
+                "phase": "perceive",
+                "latency_ms": latency,
+                "urgency": urgency,
+            },
+        )
         return step
 
     @staticmethod
@@ -313,17 +451,22 @@ class Orchestrator:
 
         async def _search(tier: str):
             try:
-                return await self.memory.search_memories(agent_id, f"{tier}: {query}", limit=5)
+                return await self.memory.search_memories(
+                    agent_id, f"{tier}: {query}", limit=5
+                )
             except Exception:
                 return []
 
-        correction_hits, episodic_hits, semantic_hits, procedural_hits = (
-            await asyncio.gather(
-                _search("correction"),
-                _search("episodic"),
-                _search("semantic"),
-                _search("procedural"),
-            )
+        (
+            correction_hits,
+            episodic_hits,
+            semantic_hits,
+            procedural_hits,
+        ) = await asyncio.gather(
+            _search("correction"),
+            _search("episodic"),
+            _search("semantic"),
+            _search("procedural"),
         )
 
         # Also fetch full context (vector search across all tiers)
@@ -331,8 +474,10 @@ class Orchestrator:
 
         latency = (time.time() - start) * 1000
         total_hits = (
-            len(correction_hits) + len(episodic_hits)
-            + len(semantic_hits) + len(procedural_hits)
+            len(correction_hits)
+            + len(episodic_hits)
+            + len(semantic_hits)
+            + len(procedural_hits)
         )
 
         step = ExecutionStep(
@@ -348,17 +493,20 @@ class Orchestrator:
                 "procedural_count": len(procedural_hits),
             },
         )
-        await event_bus.emit("orchestrator.phase", {
-            "phase": "memory", "latency_ms": latency, "total_hits": total_hits,
-        })
+        await event_bus.emit(
+            "orchestrator.phase",
+            {
+                "phase": "memory",
+                "latency_ms": latency,
+                "total_hits": total_hits,
+            },
+        )
         return step
 
     # ------------------------------------------------------------------
     # Phase 3 — Context Assembly
     # ------------------------------------------------------------------
-    async def _assemble_context(
-        self, mem_ctx, trigger_summary: str
-    ) -> ExecutionStep:
+    async def _assemble_context(self, mem_ctx, trigger_summary: str) -> ExecutionStep:
         start = time.time()
 
         if mem_ctx is None:
@@ -376,9 +524,14 @@ class Orchestrator:
             latency_ms=latency,
             metadata={"estimated_tokens": token_est},
         )
-        await event_bus.emit("orchestrator.phase", {
-            "phase": "context", "latency_ms": latency, "tokens": token_est,
-        })
+        await event_bus.emit(
+            "orchestrator.phase",
+            {
+                "phase": "context",
+                "latency_ms": latency,
+                "tokens": token_est,
+            },
+        )
         return step
 
     # ------------------------------------------------------------------
@@ -391,12 +544,15 @@ class Orchestrator:
 
         tier = URGENCY_TIER_MAP.get(urgency, "L1")
         messages = [
-            {"role": "system", "content": (
-                "You are a Gnosis AI agent. Analyze the context and decide "
-                "what actions to take. Respond with JSON: "
-                '{"reasoning": "...", "confidence": 0.0-1.0, '
-                '"actions": [{"type": "...", "params": {...}}]}'
-            )},
+            {
+                "role": "system",
+                "content": (
+                    "You are a Gnosis AI agent. Analyze the context and decide "
+                    "what actions to take. Respond with JSON: "
+                    '{"reasoning": "...", "confidence": 0.0-1.0, '
+                    '"actions": [{"type": "...", "params": {...}}]}'
+                ),
+            },
             {"role": "user", "content": context_step.content},
         ]
 
@@ -418,9 +574,14 @@ class Orchestrator:
             latency_ms=latency,
             metadata={"tier": tier, "urgency": urgency},
         )
-        await event_bus.emit("orchestrator.phase", {
-            "phase": "reason", "latency_ms": latency, "tier": tier,
-        })
+        await event_bus.emit(
+            "orchestrator.phase",
+            {
+                "phase": "reason",
+                "latency_ms": latency,
+                "tier": tier,
+            },
+        )
         return step
 
     # ------------------------------------------------------------------
@@ -465,13 +626,15 @@ class Orchestrator:
         start = time.time()
 
         if not meta_step.metadata.get("trust_approved", False):
-            return [ExecutionStep(
-                phase="act",
-                content="Action blocked — confidence below trust threshold",
-                confidence=meta_step.confidence,
-                latency_ms=(time.time() - start) * 1000,
-                metadata={"blocked": True},
-            )]
+            return [
+                ExecutionStep(
+                    phase="act",
+                    content="Action blocked — confidence below trust threshold",
+                    confidence=meta_step.confidence,
+                    latency_ms=(time.time() - start) * 1000,
+                    metadata={"blocked": True},
+                )
+            ]
 
         # In production this would dispatch to real integrations.
         # For now, return a placeholder action list.
@@ -483,17 +646,19 @@ class Orchestrator:
             latency_ms=latency,
             metadata={"actions": [], "blocked": False},
         )
-        await event_bus.emit("orchestrator.phase", {
-            "phase": "act", "latency_ms": latency,
-        })
+        await event_bus.emit(
+            "orchestrator.phase",
+            {
+                "phase": "act",
+                "latency_ms": latency,
+            },
+        )
         return [action_step]
 
     # ------------------------------------------------------------------
     # Phase 7 — Post-execution
     # ------------------------------------------------------------------
-    async def _post_execution(
-        self, agent_id: str, result: ExecutionResult
-    ) -> None:
+    async def _post_execution(self, agent_id: str, result: ExecutionResult) -> None:
         # Store as episodic memory
         try:
             summary = (
@@ -515,9 +680,14 @@ class Orchestrator:
             logger.warning("Orchestrator action execution failed", exc_info=True)
 
         # Update agent metrics
-        metrics = self._metrics.setdefault(agent_id, {
-            "executions": 0, "total_latency_ms": 0.0, "failures": 0,
-        })
+        metrics = self._metrics.setdefault(
+            agent_id,
+            {
+                "executions": 0,
+                "total_latency_ms": 0.0,
+                "failures": 0,
+            },
+        )
         metrics["executions"] += 1
         metrics["total_latency_ms"] += result.total_latency_ms
         if result.status == "failed":
@@ -529,19 +699,27 @@ class Orchestrator:
             if result.status == "completed"
             else Events.EXECUTION_FAILED
         )
-        await event_bus.emit(event_type, {
-            "execution_id": result.execution_id,
-            "agent_id": agent_id,
-            "status": result.status,
-            "total_latency_ms": result.total_latency_ms,
-            "total_cost_usd": result.total_cost_usd,
-            "step_count": len(result.steps),
-        })
+        await event_bus.emit(
+            event_type,
+            {
+                "execution_id": result.execution_id,
+                "agent_id": agent_id,
+                "status": result.status,
+                "total_latency_ms": result.total_latency_ms,
+                "total_cost_usd": result.total_cost_usd,
+                "step_count": len(result.steps),
+            },
+        )
 
     # ------------------------------------------------------------------
     # Stats
     # ------------------------------------------------------------------
     def agent_metrics(self, agent_id: str) -> dict:
-        return self._metrics.get(agent_id, {
-            "executions": 0, "total_latency_ms": 0.0, "failures": 0,
-        })
+        return self._metrics.get(
+            agent_id,
+            {
+                "executions": 0,
+                "total_latency_ms": 0.0,
+                "failures": 0,
+            },
+        )

@@ -8,7 +8,11 @@ router = APIRouter(prefix="/api/v1/bookmarks", tags=["bookmarks"])
 
 
 @router.get("")
-async def list_bookmarks(tag: Optional[str] = None, q: Optional[str] = None, user_id: str = Depends(get_current_user_id)):
+async def list_bookmarks(
+    tag: Optional[str] = None,
+    q: Optional[str] = None,
+    user_id: str = Depends(get_current_user_id),
+):
     if q:
         return {"bookmarks": bookmark_engine.search_bookmarks(q)}
     if tag:
@@ -29,7 +33,9 @@ async def create_bookmark(data: dict, user_id: str = Depends(get_current_user_id
 
 
 @router.delete("/{bookmark_id}")
-async def delete_bookmark(bookmark_id: str, user_id: str = Depends(get_current_user_id)):
+async def delete_bookmark(
+    bookmark_id: str, user_id: str = Depends(get_current_user_id)
+):
     if not bookmark_engine.delete(bookmark_id):
         raise HTTPException(status_code=404, detail="Bookmark not found")
     return {"status": "deleted"}

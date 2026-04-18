@@ -1,4 +1,5 @@
 """Google Sheets connector — UAP compliant, real Sheets API v4 integration."""
+
 import logging
 import time
 from urllib.parse import quote
@@ -32,34 +33,56 @@ class SheetsConnector(BaseConnector):
     def get_actions(self) -> list[ActionDefinition]:
         return [
             ActionDefinition(
-                service="sheets", capability="read_range",
+                service="sheets",
+                capability="read_range",
                 description="Read data from a spreadsheet range",
-                inputs={"spreadsheet_id": {"type": "string"}, "range": {"type": "string"}},
+                inputs={
+                    "spreadsheet_id": {"type": "string"},
+                    "range": {"type": "string"},
+                },
                 outputs={"values": {"type": "array"}},
             ),
             ActionDefinition(
-                service="sheets", capability="write_range",
+                service="sheets",
+                capability="write_range",
                 description="Write data to a spreadsheet range",
-                inputs={"spreadsheet_id": {"type": "string"}, "range": {"type": "string"}, "values": {"type": "array"}},
+                inputs={
+                    "spreadsheet_id": {"type": "string"},
+                    "range": {"type": "string"},
+                    "values": {"type": "array"},
+                },
                 outputs={"updatedCells": {"type": "integer"}},
             ),
             ActionDefinition(
-                service="sheets", capability="append_rows",
+                service="sheets",
+                capability="append_rows",
                 description="Append rows to a spreadsheet",
-                inputs={"spreadsheet_id": {"type": "string"}, "range": {"type": "string"}, "rows": {"type": "array"}},
+                inputs={
+                    "spreadsheet_id": {"type": "string"},
+                    "range": {"type": "string"},
+                    "rows": {"type": "array"},
+                },
                 outputs={"updates": {"type": "object"}},
             ),
             ActionDefinition(
-                service="sheets", capability="search_cells",
+                service="sheets",
+                capability="search_cells",
                 description="Search for a value across all cells",
-                inputs={"spreadsheet_id": {"type": "string"}, "query": {"type": "string"}},
+                inputs={
+                    "spreadsheet_id": {"type": "string"},
+                    "query": {"type": "string"},
+                },
                 outputs={"matches": {"type": "array"}},
             ),
             ActionDefinition(
-                service="sheets", capability="create_spreadsheet",
+                service="sheets",
+                capability="create_spreadsheet",
                 description="Create a new spreadsheet",
                 inputs={"title": {"type": "string"}},
-                outputs={"spreadsheetId": {"type": "string"}, "spreadsheetUrl": {"type": "string"}},
+                outputs={
+                    "spreadsheetId": {"type": "string"},
+                    "spreadsheetUrl": {"type": "string"},
+                },
             ),
         ]
 
@@ -71,7 +94,9 @@ class SheetsConnector(BaseConnector):
     # Real Sheets API methods
     # ------------------------------------------------------------------
 
-    async def read_range(self, user_id: str, spreadsheet_id: str, range_: str) -> list[list]:
+    async def read_range(
+        self, user_id: str, spreadsheet_id: str, range_: str
+    ) -> list[list]:
         headers = await self._get_headers(user_id)
         url = f"{SHEETS_API}/{spreadsheet_id}/values/{quote(range_)}"
         session = await self._get_session()
@@ -87,8 +112,10 @@ class SheetsConnector(BaseConnector):
         params = {"valueInputOption": "USER_ENTERED"}
         session = await self._get_session()
         async with session.put(
-            url, headers={**headers, "Content-Type": "application/json"},
-            params=params, json={"range": range_, "majorDimension": "ROWS", "values": values},
+            url,
+            headers={**headers, "Content-Type": "application/json"},
+            params=params,
+            json={"range": range_, "majorDimension": "ROWS", "values": values},
         ) as resp:
             data = await resp.json()
         return {
@@ -105,8 +132,10 @@ class SheetsConnector(BaseConnector):
         params = {"valueInputOption": "USER_ENTERED", "insertDataOption": "INSERT_ROWS"}
         session = await self._get_session()
         async with session.post(
-            url, headers={**headers, "Content-Type": "application/json"},
-            params=params, json={"majorDimension": "ROWS", "values": rows},
+            url,
+            headers={**headers, "Content-Type": "application/json"},
+            params=params,
+            json={"majorDimension": "ROWS", "values": rows},
         ) as resp:
             data = await resp.json()
         updates = data.get("updates", {})
@@ -122,7 +151,9 @@ class SheetsConnector(BaseConnector):
         """Read entire spreadsheet and search for matching cells."""
         headers = await self._get_headers(user_id)
         session = await self._get_session()
-        async with session.get(f"{SHEETS_API}/{spreadsheet_id}", headers=headers) as resp:
+        async with session.get(
+            f"{SHEETS_API}/{spreadsheet_id}", headers=headers
+        ) as resp:
             meta = await resp.json()
 
         sheets = [s["properties"]["title"] for s in meta.get("sheets", [])]
@@ -134,12 +165,14 @@ class SheetsConnector(BaseConnector):
             for row_idx, row in enumerate(values):
                 for col_idx, cell in enumerate(row):
                     if query_lower in str(cell).lower():
-                        matches.append({
-                            "sheet": sheet_name,
-                            "row": row_idx + 1,
-                            "column": col_idx + 1,
-                            "value": cell,
-                        })
+                        matches.append(
+                            {
+                                "sheet": sheet_name,
+                                "row": row_idx + 1,
+                                "column": col_idx + 1,
+                                "value": cell,
+                            }
+                        )
         return matches
 
     async def create_spreadsheet(self, user_id: str, title: str) -> dict:
@@ -168,10 +201,16 @@ class SheetsConnector(BaseConnector):
                     inputs["user_id"], inputs["spreadsheet_id"], inputs["range"]
                 ),
                 "write_range": lambda: self.write_range(
-                    inputs["user_id"], inputs["spreadsheet_id"], inputs["range"], inputs["values"]
+                    inputs["user_id"],
+                    inputs["spreadsheet_id"],
+                    inputs["range"],
+                    inputs["values"],
                 ),
                 "append_rows": lambda: self.append_rows(
-                    inputs["user_id"], inputs["spreadsheet_id"], inputs["range"], inputs["rows"]
+                    inputs["user_id"],
+                    inputs["spreadsheet_id"],
+                    inputs["range"],
+                    inputs["rows"],
                 ),
                 "search_cells": lambda: self.search_cells(
                     inputs["user_id"], inputs["spreadsheet_id"], inputs["query"]
@@ -182,7 +221,9 @@ class SheetsConnector(BaseConnector):
             }
             handler = dispatch.get(capability)
             if not handler:
-                return ActionResult(success=False, data={}, error=f"Unknown capability: {capability}")
+                return ActionResult(
+                    success=False, data={}, error=f"Unknown capability: {capability}"
+                )
             result = await handler()
             latency = (time.time() - start) * 1000
             return ActionResult(
@@ -192,7 +233,9 @@ class SheetsConnector(BaseConnector):
             )
         except Exception as exc:
             latency = (time.time() - start) * 1000
-            return ActionResult(success=False, data={}, error=str(exc), latency_ms=latency)
+            return ActionResult(
+                success=False, data={}, error=str(exc), latency_ms=latency
+            )
 
     async def test_connection(self) -> bool:
         try:

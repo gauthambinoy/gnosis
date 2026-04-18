@@ -1,4 +1,5 @@
 """Embedding service — generates vector embeddings for memory storage and retrieval."""
+
 import hashlib
 import numpy as np
 
@@ -18,6 +19,7 @@ class EmbeddingService:
         if self._model is None:
             try:
                 from sentence_transformers import SentenceTransformer
+
                 self._model = SentenceTransformer(self.model_name)
             except ImportError:
                 self._model = "fallback"
@@ -80,13 +82,20 @@ class EmbeddingService:
 
     def _fallback_embed(self, text: str) -> np.ndarray:
         """Simple hash-based embedding when sentence-transformers isn't available."""
-        np.random.seed(int(hashlib.md5(text.lower().encode()).hexdigest()[:8], 16) % (2**31))
+        np.random.seed(
+            int(hashlib.md5(text.lower().encode()).hexdigest()[:8], 16) % (2**31)
+        )
         vec = np.random.randn(self.dimension).astype(np.float32)
         return vec / (np.linalg.norm(vec) + 1e-8)
 
     @property
     def cache_stats(self) -> dict:
-        return {"cached": len(self._cache), "max": self._max_cache, "model": self.model_name, "dimension": self.dimension}
+        return {
+            "cached": len(self._cache),
+            "max": self._max_cache,
+            "model": self.model_name,
+            "dimension": self.dimension,
+        }
 
 
 # Global singleton

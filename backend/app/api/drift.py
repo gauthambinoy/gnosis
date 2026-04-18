@@ -13,7 +13,9 @@ class RecordMetricRequest(BaseModel):
 
 
 @router.post("/record")
-async def record_metric(req: RecordMetricRequest, user_id: str = Depends(get_current_user_id)):
+async def record_metric(
+    req: RecordMetricRequest, user_id: str = Depends(get_current_user_id)
+):
     return drift_detector_engine.record_metric(req.agent_id, req.metric, req.value)
 
 

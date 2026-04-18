@@ -1,8 +1,10 @@
 """Reusable pagination utilities for all list endpoints."""
+
 from dataclasses import dataclass
 from typing import List, Any, TypeVar
 
 T = TypeVar("T")
+
 
 @dataclass
 class PaginationParams:
@@ -41,11 +43,25 @@ def paginate(items: List[Any], page: int = 1, per_page: int = 20) -> dict:
     }
 
 
-def paginate_query(items: List[Any], page: int = 1, per_page: int = 20, sort_key: str = None, reverse: bool = True) -> dict:
+def paginate_query(
+    items: List[Any],
+    page: int = 1,
+    per_page: int = 20,
+    sort_key: str = None,
+    reverse: bool = True,
+) -> dict:
     """Paginate with optional sorting."""
     if sort_key:
         try:
-            items = sorted(items, key=lambda x: getattr(x, sort_key, x.get(sort_key, "")) if isinstance(x, dict) else getattr(x, sort_key, ""), reverse=reverse)
+            items = sorted(
+                items,
+                key=lambda x: (
+                    getattr(x, sort_key, x.get(sort_key, ""))
+                    if isinstance(x, dict)
+                    else getattr(x, sort_key, "")
+                ),
+                reverse=reverse,
+            )
         except (AttributeError, TypeError):
             pass
     return paginate(items, page, per_page)

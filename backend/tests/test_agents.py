@@ -6,12 +6,15 @@ pytestmark = pytest.mark.anyio
 
 
 async def test_create_agent(client, api_prefix):
-    resp = await client.post(f"{api_prefix}/agents", json={
-        "name": "Email Bot",
-        "description": "Handles emails",
-        "personality": "professional",
-        "trigger_type": "manual",
-    })
+    resp = await client.post(
+        f"{api_prefix}/agents",
+        json={
+            "name": "Email Bot",
+            "description": "Handles emails",
+            "personality": "professional",
+            "trigger_type": "manual",
+        },
+    )
     assert resp.status_code == 201
     data = resp.json()
     assert data["name"] == "Email Bot"
@@ -23,9 +26,13 @@ async def test_create_agent(client, api_prefix):
 async def test_list_agents(client, api_prefix):
     # Create 2 agents
     for name in ("Agent A", "Agent B"):
-        await client.post(f"{api_prefix}/agents", json={
-            "name": name, "description": f"Desc for {name}",
-        })
+        await client.post(
+            f"{api_prefix}/agents",
+            json={
+                "name": name,
+                "description": f"Desc for {name}",
+            },
+        )
     resp = await client.get(f"{api_prefix}/agents")
     assert resp.status_code == 200
     data = resp.json()
@@ -49,10 +56,13 @@ async def test_get_agent_not_found(client, api_prefix):
 
 async def test_update_agent(client, api_prefix, created_agent):
     agent_id = created_agent["id"]
-    resp = await client.patch(f"{api_prefix}/agents/{agent_id}", json={
-        "name": "Updated Agent",
-        "description": "New description",
-    })
+    resp = await client.patch(
+        f"{api_prefix}/agents/{agent_id}",
+        json={
+            "name": "Updated Agent",
+            "description": "New description",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["name"] == "Updated Agent"
@@ -71,9 +81,9 @@ async def test_delete_agent(client, api_prefix, created_agent):
 
 async def test_execute_agent(client, api_prefix, created_agent):
     agent_id = created_agent["id"]
-    resp = await client.post(f"{api_prefix}/agents/{agent_id}/execute", json={
-        "subject": "Test trigger"
-    })
+    resp = await client.post(
+        f"{api_prefix}/agents/{agent_id}/execute", json={"subject": "Test trigger"}
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "completed"
@@ -83,9 +93,12 @@ async def test_execute_agent(client, api_prefix, created_agent):
 
 async def test_correct_agent(client, api_prefix, created_agent):
     agent_id = created_agent["id"]
-    resp = await client.post(f"{api_prefix}/agents/{agent_id}/correct", json={
-        "correction": "Use formal tone in replies",
-    })
+    resp = await client.post(
+        f"{api_prefix}/agents/{agent_id}/correct",
+        json={
+            "correction": "Use formal tone in replies",
+        },
+    )
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] == "correction_stored"

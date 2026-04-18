@@ -1,4 +1,5 @@
 """Startup environment validation — fail fast with clear messages."""
+
 import os
 import sys
 import logging
@@ -29,10 +30,16 @@ OPTIONAL_VARS = {
 
 def validate_environment(strict: bool = False) -> dict:
     """Validate environment variables. Returns status report.
-    
+
     If strict=True, exits the process on missing required vars.
     """
-    report = {"required": {}, "recommended": {}, "optional": {}, "errors": [], "warnings": []}
+    report = {
+        "required": {},
+        "recommended": {},
+        "optional": {},
+        "errors": [],
+        "warnings": [],
+    }
 
     # Check required
     for var, desc in REQUIRED_VARS.items():
@@ -55,7 +62,10 @@ def validate_environment(strict: bool = False) -> dict:
     # Check optional
     for var, desc in OPTIONAL_VARS.items():
         val = os.getenv(var, "")
-        report["optional"][var] = {"status": "SET" if val else "UNSET", "description": desc}
+        report["optional"][var] = {
+            "status": "SET" if val else "UNSET",
+            "description": desc,
+        }
 
     # Log results
     if report["errors"]:
@@ -64,13 +74,19 @@ def validate_environment(strict: bool = False) -> dict:
         if strict:
             logger.critical("Exiting due to missing required environment variables.")
             sys.exit(1)
-    
+
     if report["warnings"]:
         for warn in report["warnings"]:
             logger.warning(f"ENV VALIDATION: {warn}")
 
-    configured = sum(1 for v in {**REQUIRED_VARS, **RECOMMENDED_VARS, **OPTIONAL_VARS} if os.getenv(v))
+    configured = sum(
+        1
+        for v in {**REQUIRED_VARS, **RECOMMENDED_VARS, **OPTIONAL_VARS}
+        if os.getenv(v)
+    )
     total = len(REQUIRED_VARS) + len(RECOMMENDED_VARS) + len(OPTIONAL_VARS)
-    logger.info(f"Environment: {configured}/{total} vars configured, {len(report['errors'])} errors, {len(report['warnings'])} warnings")
+    logger.info(
+        f"Environment: {configured}/{total} vars configured, {len(report['errors'])} errors, {len(report['warnings'])} warnings"
+    )
 
     return report

@@ -1,4 +1,5 @@
 """Gnosis Delegated Agent Permissions — Role-based access control for agents."""
+
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -8,7 +9,12 @@ from typing import Dict, List
 logger = logging.getLogger("gnosis.agent_permissions")
 
 ROLE_HIERARCHY = {"viewer": 0, "operator": 1, "editor": 2, "admin": 3}
-ACTION_REQUIREMENTS = {"view": "viewer", "execute": "operator", "edit": "editor", "manage": "admin"}
+ACTION_REQUIREMENTS = {
+    "view": "viewer",
+    "execute": "operator",
+    "edit": "editor",
+    "manage": "admin",
+}
 
 
 @dataclass
@@ -18,16 +24,22 @@ class AgentPermission:
     user_id: str
     role: str
     granted_by: str
-    granted_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    granted_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class AgentPermissionEngine:
     def __init__(self):
         self._permissions: Dict[str, AgentPermission] = {}
 
-    def grant_permission(self, agent_id: str, user_id: str, role: str, granted_by: str) -> AgentPermission:
+    def grant_permission(
+        self, agent_id: str, user_id: str, role: str, granted_by: str
+    ) -> AgentPermission:
         if role not in ROLE_HIERARCHY:
-            raise ValueError(f"Invalid role. Must be one of {list(ROLE_HIERARCHY.keys())}")
+            raise ValueError(
+                f"Invalid role. Must be one of {list(ROLE_HIERARCHY.keys())}"
+            )
         # Replace existing permission for same agent+user
         for pid, perm in list(self._permissions.items()):
             if perm.agent_id == agent_id and perm.user_id == user_id:
@@ -40,7 +52,9 @@ class AgentPermissionEngine:
             granted_by=granted_by,
         )
         self._permissions[permission.id] = permission
-        logger.info(f"Permission {permission.id}: {user_id} granted {role} on {agent_id}")
+        logger.info(
+            f"Permission {permission.id}: {user_id} granted {role} on {agent_id}"
+        )
         return permission
 
     def revoke_permission(self, permission_id: str) -> bool:
@@ -52,7 +66,9 @@ class AgentPermissionEngine:
 
     def check_permission(self, agent_id: str, user_id: str, action: str) -> bool:
         if action not in ACTION_REQUIREMENTS:
-            raise ValueError(f"Invalid action. Must be one of {list(ACTION_REQUIREMENTS.keys())}")
+            raise ValueError(
+                f"Invalid action. Must be one of {list(ACTION_REQUIREMENTS.keys())}"
+            )
         required_role = ACTION_REQUIREMENTS[action]
         required_level = ROLE_HIERARCHY[required_role]
         for perm in self._permissions.values():

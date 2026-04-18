@@ -1,4 +1,5 @@
 """Agent Explanation Mode — break agent responses into reasoning steps."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -11,23 +12,29 @@ class Explanation:
     execution_id: str
     steps: List[dict] = field(default_factory=list)  # [{step, reasoning, confidence}]
     summary: str = ""
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class ExplanationEngine:
     def __init__(self):
         self._explanations: Dict[str, Explanation] = {}
 
-    def generate_explanation(self, execution_id: str, response_text: str) -> Explanation:
+    def generate_explanation(
+        self, execution_id: str, response_text: str
+    ) -> Explanation:
         sentences = [s.strip() for s in response_text.split(".") if s.strip()]
         steps = []
         for i, sentence in enumerate(sentences):
             confidence = round(max(0.5, 1.0 - i * 0.05), 2)
-            steps.append({
-                "step": i + 1,
-                "reasoning": sentence,
-                "confidence": confidence,
-            })
+            steps.append(
+                {
+                    "step": i + 1,
+                    "reasoning": sentence,
+                    "confidence": confidence,
+                }
+            )
         summary = sentences[0] if sentences else "No reasoning available"
         explanation = Explanation(
             id=str(uuid.uuid4()),

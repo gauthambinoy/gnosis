@@ -4,7 +4,9 @@ from typing import Optional
 
 class ExecuteRequest(BaseModel):
     agent_id: str
-    trigger_type: str = Field(default="manual", pattern="^(manual|webhook|schedule|pipeline)$")
+    trigger_type: str = Field(
+        default="manual", pattern="^(manual|webhook|schedule|pipeline)$"
+    )
     trigger_data: dict = Field(default_factory=dict)
 
 

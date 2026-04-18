@@ -1,4 +1,5 @@
 """Universal Action Protocol — base interface and central registry for all connectors."""
+
 import asyncio
 import inspect
 import time
@@ -42,13 +43,16 @@ class BaseConnector(ABC):
 # Universal Action Protocol — central registry
 # ---------------------------------------------------------------------------
 
+
 class UniversalActionProtocol:
     """Central registry for all agent actions across all integrations."""
 
     def __init__(self):
         self.connectors: dict[str, BaseConnector] = {}
         self.action_registry: dict[str, Callable] = {}  # "gmail.send_email" → method
-        self._action_definitions: dict[str, ActionDefinition] = {}  # "gmail.send_email" → def
+        self._action_definitions: dict[
+            str, ActionDefinition
+        ] = {}  # "gmail.send_email" → def
         self._action_connector_map: dict[str, str] = {}  # "gmail.send_email" → "gmail"
 
     # ------------------------------------------------------------------
@@ -71,7 +75,9 @@ class UniversalActionProtocol:
         """Introspect connector to find all public async methods and register them."""
         base_methods = {"execute", "test_connection", "get_actions"}
 
-        for method_name, method in inspect.getmembers(connector, predicate=inspect.ismethod):
+        for method_name, method in inspect.getmembers(
+            connector, predicate=inspect.ismethod
+        ):
             if method_name.startswith("_"):
                 continue
             if method_name in base_methods:
@@ -120,7 +126,8 @@ class UniversalActionProtocol:
         connector_name = self._action_connector_map.get(action)
         if not connector_name:
             return ActionResult(
-                success=False, data=None,
+                success=False,
+                data=None,
                 error=f"Unknown action: {action}",
                 latency_ms=(time.time() - start) * 1000,
             )
@@ -128,7 +135,8 @@ class UniversalActionProtocol:
         connector = self.connectors.get(connector_name)
         if not connector:
             return ActionResult(
-                success=False, data=None,
+                success=False,
+                data=None,
                 error=f"Connector not found: {connector_name}",
                 latency_ms=(time.time() - start) * 1000,
             )
@@ -156,8 +164,10 @@ class UniversalActionProtocol:
             except Exception as exc:
                 latency = (time.time() - start) * 1000
                 return ActionResult(
-                    success=False, data=None,
-                    error=str(exc), latency_ms=latency,
+                    success=False,
+                    data=None,
+                    error=str(exc),
+                    latency_ms=latency,
                     retryable=_is_retryable(exc),
                 )
 
@@ -173,8 +183,10 @@ class UniversalActionProtocol:
         except Exception as exc:
             latency = (time.time() - start) * 1000
             return ActionResult(
-                success=False, data=None,
-                error=str(exc), latency_ms=latency,
+                success=False,
+                data=None,
+                error=str(exc),
+                latency_ms=latency,
                 retryable=_is_retryable(exc),
             )
 
@@ -185,15 +197,17 @@ class UniversalActionProtocol:
         """List all available actions with their parameter schemas."""
         actions = []
         for key, defn in self._action_definitions.items():
-            actions.append({
-                "action": key,
-                "service": defn.service,
-                "capability": defn.capability,
-                "description": defn.description,
-                "inputs": defn.inputs,
-                "outputs": defn.outputs,
-                "auth_type": defn.auth_type,
-            })
+            actions.append(
+                {
+                    "action": key,
+                    "service": defn.service,
+                    "capability": defn.capability,
+                    "description": defn.description,
+                    "inputs": defn.inputs,
+                    "outputs": defn.outputs,
+                    "auth_type": defn.auth_type,
+                }
+            )
         return actions
 
     def get_action_schema(self, action: str) -> dict:

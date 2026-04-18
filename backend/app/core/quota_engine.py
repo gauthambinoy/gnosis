@@ -1,10 +1,12 @@
 """Gnosis Quota Engine — Per-workspace resource limits enforcement."""
+
 import logging
 from dataclasses import dataclass, field
 from typing import Dict
 from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.quotas")
+
 
 @dataclass
 class QuotaLimits:
@@ -15,6 +17,7 @@ class QuotaLimits:
     max_pipelines: int = 5
     max_file_uploads: int = 100
 
+
 @dataclass
 class QuotaUsage:
     agents: int = 0
@@ -23,23 +26,52 @@ class QuotaUsage:
     tokens_today: int = 0
     pipelines: int = 0
     file_uploads: int = 0
-    last_reset: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_reset: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
 
 TIER_LIMITS = {
-    "free": QuotaLimits(max_agents=3, max_executions_per_day=20, max_storage_mb=100, max_tokens_per_day=100_000, max_pipelines=2, max_file_uploads=20),
-    "pro": QuotaLimits(max_agents=25, max_executions_per_day=500, max_storage_mb=2000, max_tokens_per_day=5_000_000, max_pipelines=20, max_file_uploads=500),
-    "enterprise": QuotaLimits(max_agents=999, max_executions_per_day=10000, max_storage_mb=50000, max_tokens_per_day=100_000_000, max_pipelines=999, max_file_uploads=10000),
+    "free": QuotaLimits(
+        max_agents=3,
+        max_executions_per_day=20,
+        max_storage_mb=100,
+        max_tokens_per_day=100_000,
+        max_pipelines=2,
+        max_file_uploads=20,
+    ),
+    "pro": QuotaLimits(
+        max_agents=25,
+        max_executions_per_day=500,
+        max_storage_mb=2000,
+        max_tokens_per_day=5_000_000,
+        max_pipelines=20,
+        max_file_uploads=500,
+    ),
+    "enterprise": QuotaLimits(
+        max_agents=999,
+        max_executions_per_day=10000,
+        max_storage_mb=50000,
+        max_tokens_per_day=100_000_000,
+        max_pipelines=999,
+        max_file_uploads=10000,
+    ),
 }
+
 
 class QuotaEngine:
     def __init__(self):
         self._workspace_tiers: Dict[str, str] = {}  # workspace_id -> tier
         self._usage: Dict[str, QuotaUsage] = {}  # workspace_id -> usage
-        self._custom_limits: Dict[str, QuotaLimits] = {}  # workspace_id -> custom overrides
+        self._custom_limits: Dict[
+            str, QuotaLimits
+        ] = {}  # workspace_id -> custom overrides
 
     def set_tier(self, workspace_id: str, tier: str):
         if tier not in TIER_LIMITS:
-            raise ValueError(f"Invalid tier: {tier}. Must be one of: {list(TIER_LIMITS.keys())}")
+            raise ValueError(
+                f"Invalid tier: {tier}. Must be one of: {list(TIER_LIMITS.keys())}"
+            )
         self._workspace_tiers[workspace_id] = tier
         logger.info(f"Workspace {workspace_id} set to tier: {tier}")
 
@@ -58,26 +90,31 @@ class QuotaEngine:
         """Check if a resource action would exceed quota. Returns {"allowed": bool, "remaining": int, ...}."""
         limits = self.get_limits(workspace_id)
         usage = self.get_usage(workspace_id)
-        
+
         checks = {
             "agents": (usage.agents + amount, limits.max_agents),
-            "executions": (usage.executions_today + amount, limits.max_executions_per_day),
+            "executions": (
+                usage.executions_today + amount,
+                limits.max_executions_per_day,
+            ),
             "storage_mb": (usage.storage_mb + amount, limits.max_storage_mb),
             "tokens": (usage.tokens_today + amount, limits.max_tokens_per_day),
             "pipelines": (usage.pipelines + amount, limits.max_pipelines),
             "file_uploads": (usage.file_uploads + amount, limits.max_file_uploads),
         }
-        
+
         if resource not in checks:
             return {"allowed": True, "remaining": 999, "resource": resource}
-        
+
         new_val, limit = checks[resource]
         allowed = new_val <= limit
         remaining = max(0, limit - (new_val - amount))
-        
+
         if not allowed:
-            logger.warning(f"Quota exceeded: workspace={workspace_id}, resource={resource}, usage={new_val-amount}, limit={limit}")
-        
+            logger.warning(
+                f"Quota exceeded: workspace={workspace_id}, resource={resource}, usage={new_val - amount}, limit={limit}"
+            )
+
         return {
             "allowed": allowed,
             "resource": resource,
@@ -120,10 +157,20 @@ class QuotaEngine:
             "usage": usage.__dict__,
             "percentages": {
                 "agents": round(usage.agents / max(limits.max_agents, 1) * 100, 1),
-                "executions": round(usage.executions_today / max(limits.max_executions_per_day, 1) * 100, 1),
-                "storage": round(usage.storage_mb / max(limits.max_storage_mb, 1) * 100, 1),
-                "tokens": round(usage.tokens_today / max(limits.max_tokens_per_day, 1) * 100, 1),
+                "executions": round(
+                    usage.executions_today
+                    / max(limits.max_executions_per_day, 1)
+                    * 100,
+                    1,
+                ),
+                "storage": round(
+                    usage.storage_mb / max(limits.max_storage_mb, 1) * 100, 1
+                ),
+                "tokens": round(
+                    usage.tokens_today / max(limits.max_tokens_per_day, 1) * 100, 1
+                ),
             },
         }
+
 
 quota_engine = QuotaEngine()

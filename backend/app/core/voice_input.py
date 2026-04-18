@@ -1,4 +1,5 @@
 """Voice Input Transcription — handle transcribed voice commands with intent detection."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -21,14 +22,18 @@ class VoiceCommand:
     confidence: float
     intent: str  # execute / search / navigate / create
     parsed_action: dict = field(default_factory=dict)
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class VoiceInputEngine:
     def __init__(self):
         self._commands: Dict[str, VoiceCommand] = {}
 
-    def parse_intent(self, transcript: str, user_id: str, confidence: float = 1.0) -> VoiceCommand:
+    def parse_intent(
+        self, transcript: str, user_id: str, confidence: float = 1.0
+    ) -> VoiceCommand:
         words = transcript.lower().split()
         detected_intent = "execute"  # default
         for intent, keywords in INTENT_KEYWORDS.items():
@@ -52,11 +57,7 @@ class VoiceInputEngine:
         return cmd
 
     def history(self, user_id: str) -> List[dict]:
-        return [
-            asdict(c)
-            for c in self._commands.values()
-            if c.user_id == user_id
-        ]
+        return [asdict(c) for c in self._commands.values() if c.user_id == user_id]
 
 
 voice_engine = VoiceInputEngine()

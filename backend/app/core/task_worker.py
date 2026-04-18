@@ -23,7 +23,13 @@ class TaskWorker:
         self.tasks: dict[str, dict] = {}
         self._running = False
 
-    def register(self, name: str, func, interval_seconds: int, timeout_seconds: int = DEFAULT_TASK_TIMEOUT):
+    def register(
+        self,
+        name: str,
+        func,
+        interval_seconds: int,
+        timeout_seconds: int = DEFAULT_TASK_TIMEOUT,
+    ):
         """Register a periodic task."""
         self.tasks[name] = {
             "func": func,
@@ -41,15 +47,19 @@ class TaskWorker:
         while self._running:
             now = datetime.now(timezone.utc)
             for name, task in self.tasks.items():
-                if task["last_run"] is None or \
-                   (now - task["last_run"]).total_seconds() >= task["interval"]:
+                if (
+                    task["last_run"] is None
+                    or (now - task["last_run"]).total_seconds() >= task["interval"]
+                ):
                     try:
                         await execute_with_timeout(task["func"](), task["timeout"])
                         task["last_run"] = now
                         task["run_count"] += 1
                     except asyncio.TimeoutError:
                         task["errors"] += 1
-                        logger.error(f"⚠ Task {name} timed out after {task['timeout']}s")
+                        logger.error(
+                            f"⚠ Task {name} timed out after {task['timeout']}s"
+                        )
                     except Exception as e:
                         task["errors"] += 1
                         print(f"⚠ Task {name} failed: {e}")

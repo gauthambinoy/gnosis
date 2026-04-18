@@ -3,7 +3,11 @@ from typing import Optional
 
 
 class MemoryCreate(BaseModel):
-    tier: str = Field(..., min_length=1, description="Memory tier: sensory, short_term, long_term, correction")
+    tier: str = Field(
+        ...,
+        min_length=1,
+        description="Memory tier: sensory, short_term, long_term, correction",
+    )
     content: str = Field(..., min_length=1, description="Memory content")
     metadata: dict = Field(default_factory=dict)
 

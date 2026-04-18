@@ -11,12 +11,18 @@ async def list_recordings(agent_id: str = None, limit: int = 50):
     # Return summaries without full steps for list view
     summaries = []
     for r in recordings:
-        summaries.append({
-            "id": r.id, "agent_id": r.agent_id, "task": r.task,
-            "status": r.status, "total_duration_ms": r.total_duration_ms,
-            "step_count": len(r.steps), "started_at": r.started_at,
-            "completed_at": r.completed_at,
-        })
+        summaries.append(
+            {
+                "id": r.id,
+                "agent_id": r.agent_id,
+                "task": r.task,
+                "status": r.status,
+                "total_duration_ms": r.total_duration_ms,
+                "step_count": len(r.steps),
+                "started_at": r.started_at,
+                "completed_at": r.completed_at,
+            }
+        )
     return {"recordings": summaries, "total": len(summaries)}
 
 

@@ -1,4 +1,5 @@
 """Inline Response Annotations — highlight, note, correct, or question agent responses."""
+
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List
 from datetime import datetime, timezone
@@ -14,7 +15,9 @@ class Annotation:
     selection_start: int
     selection_end: int
     type: str  # highlight / note / correction / question
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 VALID_TYPES = {"highlight", "note", "correction", "question"}
@@ -34,7 +37,9 @@ class AnnotationEngine:
         annotation_type: str,
     ) -> Annotation:
         if annotation_type not in VALID_TYPES:
-            raise ValueError(f"Invalid type: {annotation_type}. Must be one of {VALID_TYPES}")
+            raise ValueError(
+                f"Invalid type: {annotation_type}. Must be one of {VALID_TYPES}"
+            )
         ann = Annotation(
             id=str(uuid.uuid4()),
             execution_id=execution_id,

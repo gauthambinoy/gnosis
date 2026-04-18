@@ -1,4 +1,5 @@
 """Gnosis Voice & Tone Profiles — Manage agent voice and tone settings."""
+
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -17,7 +18,9 @@ class VoiceProfile:
     response_style: str = "balanced"  # concise/detailed/balanced
     example_phrases: List[str] = field(default_factory=list)
     agent_id: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 class VoiceProfileEngine:
@@ -29,16 +32,27 @@ class VoiceProfileEngine:
         self._profiles: Dict[str, VoiceProfile] = {}
         self._agent_map: Dict[str, str] = {}  # agent_id -> profile_id
 
-    def create_profile(self, name: str, tone: str = "friendly", vocabulary_level: str = "intermediate",
-                       response_style: str = "balanced", example_phrases: List[str] = None) -> VoiceProfile:
+    def create_profile(
+        self,
+        name: str,
+        tone: str = "friendly",
+        vocabulary_level: str = "intermediate",
+        response_style: str = "balanced",
+        example_phrases: List[str] = None,
+    ) -> VoiceProfile:
         if tone not in self.VALID_TONES:
             raise ValueError(f"Invalid tone: {tone}. Must be one of {self.VALID_TONES}")
         if vocabulary_level not in self.VALID_VOCAB:
             raise ValueError(f"Invalid vocabulary_level: {vocabulary_level}")
         if response_style not in self.VALID_STYLES:
             raise ValueError(f"Invalid response_style: {response_style}")
-        profile = VoiceProfile(name=name, tone=tone, vocabulary_level=vocabulary_level,
-                               response_style=response_style, example_phrases=example_phrases or [])
+        profile = VoiceProfile(
+            name=name,
+            tone=tone,
+            vocabulary_level=vocabulary_level,
+            response_style=response_style,
+            example_phrases=example_phrases or [],
+        )
         self._profiles[profile.id] = profile
         logger.info(f"Created voice profile: {profile.id} ({name})")
         return profile
@@ -61,7 +75,9 @@ class VoiceProfileEngine:
     def delete_profile(self, profile_id: str) -> bool:
         if profile_id in self._profiles:
             del self._profiles[profile_id]
-            self._agent_map = {a: p for a, p in self._agent_map.items() if p != profile_id}
+            self._agent_map = {
+                a: p for a, p in self._agent_map.items() if p != profile_id
+            }
             return True
         return False
 

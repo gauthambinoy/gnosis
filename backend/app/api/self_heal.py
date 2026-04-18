@@ -30,11 +30,15 @@ async def match_error(req: MatchRequest, user_id: str = Depends(get_current_user
 
 
 @router.post("/patterns")
-async def create_pattern(req: PatternCreate, user_id: str = Depends(get_current_user_id)):
+async def create_pattern(
+    req: PatternCreate, user_id: str = Depends(get_current_user_id)
+):
     try:
         from dataclasses import asdict
-        pattern = self_healer_engine.register_pattern(req.pattern, req.fix_description,
-                                                       req.auto_fixable, req.category)
+
+        pattern = self_healer_engine.register_pattern(
+            req.pattern, req.fix_description, req.auto_fixable, req.category
+        )
         return asdict(pattern)
     except ValueError as e:
         safe_http_error(e, "Operation failed", 400)

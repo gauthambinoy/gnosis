@@ -1,4 +1,5 @@
 """Safe error response helper — never leak internal details to clients."""
+
 from fastapi import HTTPException
 from app.core.logger import get_logger
 

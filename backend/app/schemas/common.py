@@ -27,6 +27,7 @@ class PaginationParams(BaseModel):
 
 class PaginatedResponse(BaseModel):
     """Generic paginated response base."""
+
     total: int
     page: int = 1
     per_page: int = 20

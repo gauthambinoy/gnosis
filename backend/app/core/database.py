@@ -35,7 +35,10 @@ if _is_real_db and settings.debug:
     def _on_checkin(dbapi_conn, connection_record):
         _logger.debug("Pool checkin: %s", id(dbapi_conn))
 
-async_session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+async_session_factory = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
 # Flag set at startup: True if PostgreSQL is reachable
 db_available: bool = False

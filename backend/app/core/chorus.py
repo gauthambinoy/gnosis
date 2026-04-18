@@ -1,4 +1,5 @@
 """Gnosis Chorus — agent-to-agent communication and collaboration."""
+
 import asyncio
 import uuid
 from datetime import datetime, timezone
@@ -21,7 +22,9 @@ class AgentChorus:
         self.message_log: list[dict] = []
         self._max_log = 5000
         self._agent_handlers: dict[str, MessageHandler] = {}  # agent_id → handler
-        self._knowledge_providers: dict[str, Callable[[str], Awaitable[list[dict]]]] = {}
+        self._knowledge_providers: dict[
+            str, Callable[[str], Awaitable[list[dict]]]
+        ] = {}
 
     # ------------------------------------------------------------------
     # Channel management
@@ -36,7 +39,9 @@ class AgentChorus:
     def unsubscribe(self, agent_id: str, channel: str):
         """Unsubscribe agent from a channel."""
         if channel in self.channels:
-            self.channels[channel] = [a for a in self.channels[channel] if a != agent_id]
+            self.channels[channel] = [
+                a for a in self.channels[channel] if a != agent_id
+            ]
 
     def list_channels(self) -> dict[str, list[str]]:
         """Return all channels with their subscribers."""
@@ -61,7 +66,7 @@ class AgentChorus:
     def _log_message(self, msg: dict):
         self.message_log.append(msg)
         if len(self.message_log) > self._max_log:
-            self.message_log = self.message_log[-self._max_log:]
+            self.message_log = self.message_log[-self._max_log :]
 
     async def broadcast(self, sender_id: str, channel: str, message: dict):
         """Broadcast message to all agents in a channel."""
@@ -75,9 +80,7 @@ class AgentChorus:
         }
         self._log_message(msg_record)
 
-        recipients = [
-            aid for aid in self.channels.get(channel, []) if aid != sender_id
-        ]
+        recipients = [aid for aid in self.channels.get(channel, []) if aid != sender_id]
 
         # Fire handlers concurrently
         tasks = []
@@ -90,12 +93,15 @@ class AgentChorus:
             await asyncio.gather(*tasks)
 
         # Also emit on event bus for real-time WebSocket push
-        await event_bus.emit("chorus.broadcast", {
-            "sender": sender_id,
-            "channel": channel,
-            "message": message,
-            "recipients": recipients,
-        })
+        await event_bus.emit(
+            "chorus.broadcast",
+            {
+                "sender": sender_id,
+                "channel": channel,
+                "message": message,
+                "recipients": recipients,
+            },
+        )
 
     async def send(self, sender_id: str, recipient_id: str, message: dict) -> dict:
         """Direct message from one agent to another."""
@@ -139,12 +145,14 @@ class AgentChorus:
         handler = self._agent_handlers.get(to_agent)
         if handler:
             try:
-                result = await handler({
-                    "type": "delegation",
-                    "delegation_id": delegation_id,
-                    "from": from_agent,
-                    "task": task,
-                })
+                result = await handler(
+                    {
+                        "type": "delegation",
+                        "delegation_id": delegation_id,
+                        "from": from_agent,
+                        "task": task,
+                    }
+                )
                 msg_record["status"] = "completed"
                 msg_record["result"] = result
             except Exception as exc:
@@ -156,12 +164,15 @@ class AgentChorus:
 
         self._log_message(msg_record)
 
-        await event_bus.emit("chorus.delegation", {
-            "delegation_id": delegation_id,
-            "from": from_agent,
-            "to": to_agent,
-            "status": msg_record["status"],
-        })
+        await event_bus.emit(
+            "chorus.delegation",
+            {
+                "delegation_id": delegation_id,
+                "from": from_agent,
+                "to": to_agent,
+                "status": msg_record["status"],
+            },
+        )
 
         return msg_record
 
@@ -190,14 +201,16 @@ class AgentChorus:
             elif resp is not None:
                 results.append({"source_agent": agent_id, "data": resp})
 
-        self._log_message({
-            "id": str(uuid.uuid4()),
-            "type": "knowledge_request",
-            "requester": requester,
-            "query": query,
-            "results_count": len(results),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self._log_message(
+            {
+                "id": str(uuid.uuid4()),
+                "type": "knowledge_request",
+                "requester": requester,
+                "query": query,
+                "results_count": len(results),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         return results
 
@@ -250,11 +263,13 @@ class AgentChorus:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
-        self._log_message({
-            "id": vote_id,
-            "type": "vote",
-            **result,
-        })
+        self._log_message(
+            {
+                "id": vote_id,
+                "type": "vote",
+                **result,
+            }
+        )
 
         await event_bus.emit("chorus.vote", result)
         return result
@@ -265,17 +280,22 @@ class AgentChorus:
     def get_conversation(self, channel: str, limit: int = 50) -> list[dict]:
         """Get recent messages in a channel."""
         channel_msgs = [
-            m for m in self.message_log
-            if m.get("channel") == channel or m.get("type") == "direct"
-            and (m.get("sender") in self.channels.get(channel, [])
-                 or m.get("recipient") in self.channels.get(channel, []))
+            m
+            for m in self.message_log
+            if m.get("channel") == channel
+            or m.get("type") == "direct"
+            and (
+                m.get("sender") in self.channels.get(channel, [])
+                or m.get("recipient") in self.channels.get(channel, [])
+            )
         ]
         return channel_msgs[-limit:]
 
     def get_agent_messages(self, agent_id: str, limit: int = 50) -> list[dict]:
         """Get all messages involving a specific agent."""
         relevant = [
-            m for m in self.message_log
+            m
+            for m in self.message_log
             if m.get("sender") == agent_id or m.get("recipient") == agent_id
         ]
         return relevant[-limit:]

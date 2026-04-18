@@ -58,17 +58,21 @@ async def invoke_webhook(trigger_id: str, request: Request):
         payload = await request.json()
     except Exception:
         payload = {}
-    
+
     headers = dict(request.headers)
     source_ip = request.client.host if request.client else "unknown"
-    
+
     # Optional signature verification
     signature = headers.get("x-webhook-signature", "")
-    if signature and not webhook_trigger_manager.verify_signature(trigger_id, await request.body(), signature):
+    if signature and not webhook_trigger_manager.verify_signature(
+        trigger_id, await request.body(), signature
+    ):
         raise HTTPException(status_code=401, detail="Invalid signature")
-    
+
     try:
-        invocation = await webhook_trigger_manager.invoke(trigger_id, payload, headers, source_ip)
+        invocation = await webhook_trigger_manager.invoke(
+            trigger_id, payload, headers, source_ip
+        )
         return asdict(invocation)
     except ValueError as e:
         safe_http_error(e, "Operation failed", 400)
@@ -76,7 +80,9 @@ async def invoke_webhook(trigger_id: str, request: Request):
 
 @router.get("/triggers/{trigger_id}/invocations")
 async def list_invocations(trigger_id: str, limit: int = 50):
-    invocations = webhook_trigger_manager.get_invocations(trigger_id=trigger_id, limit=limit)
+    invocations = webhook_trigger_manager.get_invocations(
+        trigger_id=trigger_id, limit=limit
+    )
     return {"invocations": [asdict(i) for i in invocations], "total": len(invocations)}
 
 

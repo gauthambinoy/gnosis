@@ -3,6 +3,7 @@ Gnosis Universal LLM Gateway
 Routes requests to any LLM provider via OpenRouter or direct APIs.
 Supports: OpenRouter (100+ models), OpenAI, Anthropic, Google, Mistral, Groq, Cohere, Together
 """
+
 import logging
 import aiohttp
 import time
@@ -108,11 +109,15 @@ class LLMGateway:
     def _resolve_model(self, provider: str, model: str) -> str:
         if model and "/" in model:
             return model  # Fully qualified model name
-        config = self.PROVIDER_CONFIGS.get(provider, self.PROVIDER_CONFIGS["openrouter"])
+        config = self.PROVIDER_CONFIGS.get(
+            provider, self.PROVIDER_CONFIGS["openrouter"]
+        )
         return config["models"].get(model or "default", config["models"]["default"])
 
     def _cache_key(self, req: LLMRequest) -> str:
-        raw = f"{req.prompt}:{req.system_prompt}:{req.model}:{round(req.temperature, 2)}"
+        raw = (
+            f"{req.prompt}:{req.system_prompt}:{req.model}:{round(req.temperature, 2)}"
+        )
         return hashlib.sha256(raw.encode()).hexdigest()
 
     def _check_cache(self, key: str) -> Optional[LLMResponse]:
@@ -142,7 +147,9 @@ class LLMGateway:
             return cached
 
         # Determine provider
-        provider = request.provider or self.settings.default_llm_provider or "openrouter"
+        provider = (
+            request.provider or self.settings.default_llm_provider or "openrouter"
+        )
         model = self._resolve_model(provider, request.model)
         api_key = self._get_api_key(provider)
 
@@ -207,7 +214,11 @@ class LLMGateway:
                     resp.latency_ms = (time.time() - start) * 1000
                     return resp
                 except Exception:
-                    logger.warning("LLM provider %s failed, trying fallback", provider, exc_info=True)
+                    logger.warning(
+                        "LLM provider %s failed, trying fallback",
+                        provider,
+                        exc_info=True,
+                    )
 
             return LLMResponse(
                 content=f"LLM Error: {str(e)}. Check your API key and try again.",
@@ -340,9 +351,7 @@ class LLMGateway:
         if provider == "openrouter" and self._get_api_key("openrouter"):
             try:
                 session = await self._get_session()
-                headers = {
-                    "Authorization": f"Bearer {self._get_api_key('openrouter')}"
-                }
+                headers = {"Authorization": f"Bearer {self._get_api_key('openrouter')}"}
                 async with session.get(
                     "https://openrouter.ai/api/v1/models", headers=headers
                 ) as resp:

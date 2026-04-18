@@ -1,4 +1,5 @@
 """Gnosis DPA Registry — Track Data Processing Agreements per LLM provider."""
+
 import uuid
 import logging
 from dataclasses import dataclass, field, asdict
@@ -7,20 +8,26 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger("gnosis.dpa")
 
+
 @dataclass
 class DataProcessingAgreement:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     provider: str = ""  # "openai", "anthropic", "google", etc.
     version: str = "1.0"
     status: str = "active"  # active, expired, pending_review
-    data_types_shared: List[str] = field(default_factory=list)  # ["prompts", "responses", "embeddings"]
+    data_types_shared: List[str] = field(
+        default_factory=list
+    )  # ["prompts", "responses", "embeddings"]
     data_retention_days: int = 0  # Provider's retention period
     region: str = ""  # Provider data processing region
     signed_at: Optional[str] = None
     expires_at: Optional[str] = None
     document_url: str = ""
     notes: str = ""
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
 
 class DPARegistry:
     def __init__(self):
@@ -39,7 +46,10 @@ class DPARegistry:
         return [d for d in self._agreements.values() if d.provider == provider]
 
     def list_all(self) -> List[dict]:
-        return [asdict(d) for d in sorted(self._agreements.values(), key=lambda d: d.provider)]
+        return [
+            asdict(d)
+            for d in sorted(self._agreements.values(), key=lambda d: d.provider)
+        ]
 
     def check_compliance(self, provider: str) -> dict:
         dpas = self.get_by_provider(provider)
@@ -55,5 +65,6 @@ class DPARegistry:
     def provider_summary(self) -> List[dict]:
         providers = set(d.provider for d in self._agreements.values())
         return [self.check_compliance(p) for p in sorted(providers)]
+
 
 dpa_registry = DPARegistry()

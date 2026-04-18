@@ -1,4 +1,5 @@
 """Tests for pagination utility."""
+
 from app.core.pagination import paginate, paginate_query, PaginationParams
 
 
@@ -83,5 +84,7 @@ class TestPaginateQuery:
 
     def test_with_sort_key(self):
         items = [{"name": "c"}, {"name": "a"}, {"name": "b"}]
-        result = paginate_query(items, page=1, per_page=10, sort_key="name", reverse=False)
+        result = paginate_query(
+            items, page=1, per_page=10, sort_key="name", reverse=False
+        )
         assert result["items"][0]["name"] == "a"

@@ -9,7 +9,9 @@ from app.models.base import Base, TimestampMixin
 class EngineState(Base, TimestampMixin):
     __tablename__ = "engine_states"
     __table_args__ = (
-        UniqueConstraint("engine_name", "entity_id", name="uq_engine_states_engine_entity"),
+        UniqueConstraint(
+            "engine_name", "entity_id", name="uq_engine_states_engine_entity"
+        ),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

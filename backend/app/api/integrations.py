@@ -26,7 +26,9 @@ async def list_providers():
             status = "connected" if connected else "not_connected"
         else:
             status = "available"
-        results.append({"id": pid, "name": meta["name"], "icon": meta["icon"], "status": status})
+        results.append(
+            {"id": pid, "name": meta["name"], "icon": meta["icon"], "status": status}
+        )
     return {"integrations": results}
 
 
@@ -40,7 +42,9 @@ async def start_oauth(provider: str, request: Request):
     if not oauth_prov:
         raise HTTPException(status_code=400, detail=f"{provider} does not use OAuth")
 
-    redirect_uri = str(request.base_url).rstrip("/") + f"/api/v1/integrations/{provider}/callback"
+    redirect_uri = (
+        str(request.base_url).rstrip("/") + f"/api/v1/integrations/{provider}/callback"
+    )
     auth_url = oauth_manager.get_auth_url(oauth_prov, _DEFAULT_USER, redirect_uri)
     return {"auth_url": auth_url, "provider": provider}
 
@@ -60,12 +64,20 @@ async def oauth_callback(
     if not oauth_prov:
         raise HTTPException(status_code=400, detail=f"{provider} does not use OAuth")
 
-    redirect_uri = str(request.base_url).rstrip("/") + f"/api/v1/integrations/{provider}/callback"
+    redirect_uri = (
+        str(request.base_url).rstrip("/") + f"/api/v1/integrations/{provider}/callback"
+    )
     try:
-        token_data = await oauth_manager.exchange_code(oauth_prov, _DEFAULT_USER, code, redirect_uri)
+        token_data = await oauth_manager.exchange_code(
+            oauth_prov, _DEFAULT_USER, code, redirect_uri
+        )
     except RuntimeError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    return {"status": "connected", "provider": provider, "scope": token_data.get("scope", "")}
+    return {
+        "status": "connected",
+        "provider": provider,
+        "scope": token_data.get("scope", ""),
+    }
 
 
 @router.delete("/{provider}")
@@ -92,4 +104,7 @@ async def provider_status(provider: str):
     if not oauth_prov:
         return {"provider": provider, "status": "available"}
     connected = oauth_manager.is_connected(oauth_prov, _DEFAULT_USER)
-    return {"provider": provider, "status": "connected" if connected else "not_connected"}
+    return {
+        "provider": provider,
+        "status": "connected" if connected else "not_connected",
+    }

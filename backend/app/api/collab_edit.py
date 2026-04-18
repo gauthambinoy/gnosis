@@ -17,7 +17,9 @@ async def start_session(data: dict, user_id: str = Depends(get_current_user_id))
 
 
 @router.post("/{session_id}/change")
-async def apply_change(session_id: str, data: dict, user_id: str = Depends(get_current_user_id)):
+async def apply_change(
+    session_id: str, data: dict, user_id: str = Depends(get_current_user_id)
+):
     try:
         session = collab_editor.apply_change(
             session_id=session_id,

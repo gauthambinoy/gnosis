@@ -2,6 +2,7 @@
 
 Oracle endpoints query PostgreSQL directly. We mock _load_agents to avoid DB hits.
 """
+
 import pytest
 from unittest.mock import patch, AsyncMock
 

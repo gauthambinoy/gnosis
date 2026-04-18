@@ -1,4 +1,5 @@
 """Gnosis Agent Builder — converts natural language to structured AgentConfig via LLM."""
+
 from dataclasses import dataclass, field, asdict
 
 
@@ -53,10 +54,14 @@ class AgentBuilder:
 
         trigger_type = "manual"
         trigger_config = {}
-        if any(w in desc_lower for w in ["every day", "daily", "every morning", "schedule"]):
+        if any(
+            w in desc_lower for w in ["every day", "daily", "every morning", "schedule"]
+        ):
             trigger_type = "schedule"
             trigger_config = {"cron": "0 9 * * *"}
-        elif any(w in desc_lower for w in ["when email", "new email", "inbox", "gmail"]):
+        elif any(
+            w in desc_lower for w in ["when email", "new email", "inbox", "gmail"]
+        ):
             trigger_type = "email_received"
         elif any(w in desc_lower for w in ["when message", "slack message", "channel"]):
             trigger_type = "slack_message"
@@ -66,7 +71,9 @@ class AgentBuilder:
         integrations = []
         if any(w in desc_lower for w in ["email", "gmail", "inbox", "send email"]):
             integrations.append("gmail")
-        if any(w in desc_lower for w in ["sheet", "spreadsheet", "google sheet", "log to"]):
+        if any(
+            w in desc_lower for w in ["sheet", "spreadsheet", "google sheet", "log to"]
+        ):
             integrations.append("sheets")
         if any(w in desc_lower for w in ["slack", "channel", "message"]):
             integrations.append("slack")
@@ -75,7 +82,9 @@ class AgentBuilder:
 
         guardrails = ["Never send emails without draft approval on first 10 executions"]
         if "money" in desc_lower or "payment" in desc_lower or "invoice" in desc_lower:
-            guardrails.append("Flag any action involving money over $100 for human approval")
+            guardrails.append(
+                "Flag any action involving money over $100 for human approval"
+            )
         if "delete" in desc_lower:
             guardrails.append("Never delete data without explicit confirmation")
 
@@ -115,22 +124,54 @@ class AgentBuilder:
 
         if "gmail" in integrations:
             if "read" in desc_lower or "monitor" in desc_lower or "check" in desc_lower:
-                steps.append({"action": "Read incoming emails", "integration": "gmail", "capability": "read_inbox"})
+                steps.append(
+                    {
+                        "action": "Read incoming emails",
+                        "integration": "gmail",
+                        "capability": "read_inbox",
+                    }
+                )
             if "send" in desc_lower or "reply" in desc_lower:
-                steps.append({"action": "Send/reply to email", "integration": "gmail", "capability": "send_email"})
+                steps.append(
+                    {
+                        "action": "Send/reply to email",
+                        "integration": "gmail",
+                        "capability": "send_email",
+                    }
+                )
 
         if "sheets" in integrations:
             if "log" in desc_lower or "write" in desc_lower or "append" in desc_lower:
-                steps.append({"action": "Log data to spreadsheet", "integration": "sheets", "capability": "append_row"})
+                steps.append(
+                    {
+                        "action": "Log data to spreadsheet",
+                        "integration": "sheets",
+                        "capability": "append_row",
+                    }
+                )
             if "read" in desc_lower:
-                steps.append({"action": "Read spreadsheet data", "integration": "sheets", "capability": "read_sheet"})
+                steps.append(
+                    {
+                        "action": "Read spreadsheet data",
+                        "integration": "sheets",
+                        "capability": "read_sheet",
+                    }
+                )
 
         if "slack" in integrations:
             if "send" in desc_lower or "post" in desc_lower or "notify" in desc_lower:
-                steps.append({"action": "Send Slack notification", "integration": "slack", "capability": "send_message"})
+                steps.append(
+                    {
+                        "action": "Send Slack notification",
+                        "integration": "slack",
+                        "capability": "send_message",
+                    }
+                )
 
         if not steps:
-            steps.append({"action": description, "integration": "manual", "capability": "custom"})
+            steps.append(
+                {"action": description, "integration": "manual", "capability": "custom"}
+            )
 
         return steps
 
@@ -139,17 +180,27 @@ class AgentBuilder:
         questions = []
         desc_lower = description.lower()
 
-        if "email" in desc_lower and not any(w in desc_lower for w in ["gmail", "outlook"]):
-            questions.append("Which email provider should I connect to? (Gmail, Outlook, etc.)")
+        if "email" in desc_lower and not any(
+            w in desc_lower for w in ["gmail", "outlook"]
+        ):
+            questions.append(
+                "Which email provider should I connect to? (Gmail, Outlook, etc.)"
+            )
 
         if not any(w in desc_lower for w in ["when", "every", "schedule", "trigger"]):
-            questions.append("When should this agent run? (On schedule, when triggered by an event, or manually?)")
+            questions.append(
+                "When should this agent run? (On schedule, when triggered by an event, or manually?)"
+            )
 
         if any(w in desc_lower for w in ["important", "urgent", "priority"]):
-            questions.append("How should I determine what counts as 'important'? Any specific keywords or senders?")
+            questions.append(
+                "How should I determine what counts as 'important'? Any specific keywords or senders?"
+            )
 
         if not questions:
-            questions.append("Can you give me more details about exactly what actions this agent should take?")
+            questions.append(
+                "Can you give me more details about exactly what actions this agent should take?"
+            )
 
         return questions
 
