@@ -11,7 +11,7 @@ jobs:
     name: mypy (backend/app/core)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v6
@@ -35,7 +35,7 @@ jobs:
     name: tsc --noEmit (frontend)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Node 20
         uses: actions/setup-node@v6
