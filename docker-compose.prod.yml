@@ -1,0 +1,74 @@
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Required environment variables (set in shell or .env at repo root):
+#   POSTGRES_PASSWORD      Strong random password for PostgreSQL
+#   NEXT_PUBLIC_API_URL    Public HTTPS URL of the backend  (e.g. https://api.gnosis.example.com)
+#   GRAFANA_ADMIN_PASSWORD Strong random password for Grafana
+
+version: "3.8"
+
+services:
+  backend:
+    # No locally-built image in prod — use ECR image
+    image: ${ECR_REGISTRY}/gnosis-backend:${IMAGE_TAG:-latest}
+    environment:
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  frontend:
+    image: ${ECR_REGISTRY}/gnosis-frontend:${IMAGE_TAG:-latest}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  postgres:
+    # Do NOT expose PostgreSQL port to the host in production
+    ports: !reset []
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in production}
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  redis:
+    # Do NOT expose Redis port to the host in production
+    ports: !reset []
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in production}
+      --save 60 1000
+
+  prometheus:
+    # Prometheus internal only — accessed via Grafana, not directly
+    ports: !reset []
+
+  grafana:
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in production}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-https://metrics.gnosis.example.com}
+      - GF_AUTH_ANONYMOUS_ENABLED=false
