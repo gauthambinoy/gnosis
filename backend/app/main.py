@@ -107,7 +107,7 @@ from app.core.security import SecurityMiddleware
 from app.core.security_hardened import UltraSecurityMiddleware
 from app.core.versioning import APIVersionMiddleware
 from app.core.logger import setup_logging, get_logger
-from app.core.error_handlers import register_error_handlers
+from app.core.error_handling import register_error_handlers
 from app.core.rate_limiter import require_rate_limit
 from app.core.env_validator import validate_environment
 from app.middleware.request_id import RequestIDMiddleware
