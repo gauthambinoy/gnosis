@@ -82,3 +82,48 @@ When all the boxes above are checked, post in `#gnosis-ops`:
 > ✅ @your-handle has completed ops onboarding and is on the rotation as of `YYYY-MM-DD`.
 
 The previous on-call lead approves with a 👍 and you're in.
+
+## Reading the request-audit buffer
+
+The per-request audit middleware (`backend/app/middleware/audit_log.py`)
+persists every captured request to durable storage so records survive process
+restarts.
+
+**Primary store — Redis list**
+
+- Key: `gnosis:audit:requests`
+- Encoding: one JSON document per entry (`LPUSH` head = newest)
+- Cap: 10 000 entries (enforced via `LTRIM 0 9999` on each write)
+
+Quick peek from a shell on any pod:
+
+```bash
+redis-cli -u "$REDIS_URL" LRANGE gnosis:audit:requests 0 49 | jq .
+redis-cli -u "$REDIS_URL" LLEN   gnosis:audit:requests
+```
+
+**Fallback store — Postgres table** `request_audit_log`
+
+Written to whenever Redis is unavailable. Schema is defined by
+`app/models/audit.py` and created by Alembic migration
+`004_request_audit_log`.
+
+```sql
+SELECT timestamp, method, path, status_code, latency_ms, user_id
+FROM   request_audit_log
+ORDER  BY timestamp DESC
+LIMIT  100;
+```
+
+**Operator API**
+
+The same view is exposed over HTTP at `GET /api/v1/audit/recent` which reads
+from Redis first and transparently falls back to the database, so ops never
+needs to know which backend currently has the data.
+
+**Alerting on Redis outage**
+
+Persistence failures during a Redis outage are logged at WARNING level with
+the prefix `audit.redis_write_failed` / `audit.redis_read_failed`. Alert on a
+sustained rate of these lines — during an outage the DB fallback keeps
+durability intact but write latency and DB load will rise.

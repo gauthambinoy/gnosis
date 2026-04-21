@@ -14,7 +14,7 @@ async def recent_requests(
     user_id: str = Depends(get_current_user_id),
 ):
     return {
-        "records": audit_store.recent(
+        "records": await audit_store.recent(
             limit=limit, path_filter=path, method_filter=method
         )
     }
