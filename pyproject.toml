@@ -41,6 +41,13 @@ exclude = """(?x)
 module = ["sqlalchemy.*", "boto3.*"]
 ignore_missing_imports = true
 
+[tool.pytest.ini_options]
+# Skip tests that hit real LLM providers unless explicitly requested via `-m live_llm`.
+addopts = "-m 'not live_llm'"
+markers = [
+  "live_llm: test makes real outbound calls to an LLM provider (OpenRouter/OpenAI/Anthropic/Ollama). Skipped by default; run with `pytest -m live_llm` after setting API keys.",
+]
+
 # Phase 5 deferred modules — silence errors when imported by clean app/core modules.
 # Each module here has unresolved type issues deferred to a future phase.
 [[tool.mypy.overrides]]

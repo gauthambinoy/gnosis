@@ -146,6 +146,8 @@ pytest tests/ -v --tb=short
 
 `pytest-cov` is available in the requirements; add `--cov=app --cov-report=term-missing` for coverage output.
 
+**LLM calls are mocked by default.** An autouse fixture in `backend/tests/conftest.py` replaces `llm_gateway.complete`, every provider in `app/llm/client.py`, and any `aiohttp`/`httpx` call aimed at OpenRouter, OpenAI, Anthropic, Google, or Ollama with a deterministic canned response, so the suite can never reach a real provider. Customize the canned response per-test with the `mock_llm` fixture (`mock_llm.set_response(content=..., tokens_prompt=..., tokens_completion=..., cost_estimate=..., provider=...)`). To run against a real provider, mark the test with `@pytest.mark.live_llm` and invoke `pytest -m live_llm` with the appropriate API keys exported.
+
 ### Frontend
 
 ```bash

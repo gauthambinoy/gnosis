@@ -191,9 +191,8 @@ async def _memory_decay():
     """Periodic task: decay memory strength for all agents."""
     try:
         from app.core.memory_engine import memory_engine
-        from app.tasks.memory_decay import run_decay_cycle
 
-        await asyncio.to_thread(run_decay_cycle, memory_engine)
+        await memory_engine.decay_all()
     except Exception as e:
         logger.warning(f"memory-decay: {e}")
 
