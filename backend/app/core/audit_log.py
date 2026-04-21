@@ -80,6 +80,37 @@ class AuditLog:
         else:
             raise ValueError(f"Unsupported export format: {format}")
 
+    async def prune(self, retention_days: int = 365) -> dict:
+        """Delete audit entries older than ``retention_days`` while preserving the hash chain.
+
+        The chain is rebuilt across the surviving entries so :meth:`verify_integrity`
+        keeps returning ``valid=True`` after pruning.
+        """
+        if retention_days <= 0:
+            raise ValueError("retention_days must be positive")
+
+        from datetime import timedelta
+
+        cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+        cutoff_iso = cutoff.isoformat()
+
+        before = len(self.entries)
+        kept = [e for e in self.entries if e["timestamp"] >= cutoff_iso]
+
+        # Rebuild the chain for the surviving entries
+        prev_hash = "genesis"
+        for idx, entry in enumerate(kept):
+            entry["id"] = idx
+            entry["prev_hash"] = prev_hash
+            entry.pop("hash", None)
+            raw = json.dumps(entry, sort_keys=True, default=str)
+            entry["hash"] = hashlib.sha256(raw.encode()).hexdigest()
+            prev_hash = entry["hash"]
+
+        self.entries = kept
+        self._last_hash = prev_hash
+        return {"pruned": before - len(kept), "remaining": len(kept)}
+
     def verify_integrity(self) -> dict:
         """Verify the hash chain hasn't been tampered with."""
         if not self.entries:
