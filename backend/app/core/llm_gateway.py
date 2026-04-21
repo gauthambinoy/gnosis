@@ -26,6 +26,7 @@ class LLMRequest:
     temperature: float = 0.7
     stream: bool = False
     user_id: str = ""
+    validate_as: str = "free_text"  # ContentType value: free_text, tool_parameter, etc.
 
 
 @dataclass
@@ -135,6 +136,26 @@ class LLMGateway:
             del self._cache[oldest]
         self._cache[key] = (resp, time.time())
 
+    def _validate_output(self, content: str, content_type_name: str = "free_text") -> str:
+        """Run the LLM output validator as a non-blocking defence-in-depth check.
+
+        Validation failures are logged as warnings; the original content is always
+        returned so user-facing flows are never broken by the validator.
+        """
+        try:
+            from app.core.llm_output_validator import (
+                LLMOutputValidator,
+                ContentType,
+            )
+            try:
+                ct = ContentType(content_type_name or "free_text")
+            except ValueError:
+                ct = ContentType.FREE_TEXT
+            LLMOutputValidator.validate(content, ct)
+        except Exception as e:  # noqa: BLE001 — non-blocking by design
+            logger.warning("LLM output validator flagged response: %s", e)
+        return content
+
     async def complete(self, request: LLMRequest) -> LLMResponse:
         """Main entry point — routes to the right provider with caching + fallback."""
         start = time.time()
@@ -195,6 +216,7 @@ class LLMGateway:
             resp.latency_ms = (time.time() - start) * 1000
             self._total_tokens += resp.tokens_used
             self._total_cost += resp.cost_estimate
+            resp.content = self._validate_output(resp.content, request.validate_as)
             self._store_cache(cache_key, resp)
             return resp
 
@@ -212,6 +234,9 @@ class LLMGateway:
                         "openrouter",
                     )
                     resp.latency_ms = (time.time() - start) * 1000
+                    resp.content = self._validate_output(
+                        resp.content, request.validate_as
+                    )
                     return resp
                 except Exception:
                     logger.warning(

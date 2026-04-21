@@ -112,6 +112,7 @@ from app.core.rate_limiter import require_rate_limit
 from app.core.env_validator import validate_environment
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.body_limit import RequestBodyLimitMiddleware
+from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.core.redis_client import redis_manager
 from app.core.scheduler import scheduler_engine
 from app.core.task_worker import task_worker
@@ -123,6 +124,8 @@ from app.core.startup_banner import print_banner
 from fastapi import Depends
 from app.api import health as health_router_mod
 from app.api import aws_status
+from app.api import health_check
+from app.api import feedback
 import app.core.database as _db_mod
 
 settings = get_settings()
@@ -335,6 +338,9 @@ app.add_middleware(
 # Security middleware (hardened layer + original)
 app.add_middleware(UltraSecurityMiddleware, settings=settings)
 app.add_middleware(SecurityMiddleware, rate_limit=100)
+
+# Baseline HTTP security headers (HSTS, CSP, X-Frame-Options, ...)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Request body size limit (10MB default)
 app.add_middleware(RequestBodyLimitMiddleware, max_body_size=10 * 1024 * 1024)
@@ -670,3 +676,5 @@ app.include_router(health_router_mod.router, tags=["health"])
 app.include_router(
     health_router_mod.router, prefix=settings.api_prefix, tags=["health"]
 )
+app.include_router(health_check.router)
+app.include_router(feedback.router)
