@@ -1,0 +1,7 @@
+# npm audit allowlist — one advisory source ID (e.g. 1234567 or GHSA-xxxx-xxxx-xxxx) per line.
+# Lines starting with `#` are comments. Empty lines are ignored.
+# Findings whose `via` entries are ALL listed here will be ignored by the security workflow.
+# Use sparingly and document WHY each vuln is being ignored.
+#
+# Example:
+#   1098094   # GHSA-xxxx-xxxx-xxxx — only affects dev tooling, not shipped, see ticket #123

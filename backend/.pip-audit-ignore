@@ -1,0 +1,7 @@
+# pip-audit allowlist — one PYSEC/GHSA ID per line.
+# Lines starting with `#` are comments. Empty lines are ignored.
+# Entries here will be passed to pip-audit as `--ignore-vuln <ID>`.
+# Use sparingly and document WHY each vuln is being ignored.
+#
+# Example:
+#   GHSA-xxxx-xxxx-xxxx   # false positive: not exploitable in our usage, see ticket #123

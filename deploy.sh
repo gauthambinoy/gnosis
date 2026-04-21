@@ -23,19 +23,17 @@ aws ecr get-login-password --region "${AWS_REGION}" \
 
 # ─── 2. Build Docker images ──────────────────────────────────────────────────
 echo "🔨 Building backend..."
-docker build -t "${BACKEND_REPO}:${IMAGE_TAG}" -t "${BACKEND_REPO}:latest" ./backend
+docker build -t "${BACKEND_REPO}:${IMAGE_TAG}" ./backend
 
 echo "🔨 Building frontend..."
-docker build -t "${FRONTEND_REPO}:${IMAGE_TAG}" -t "${FRONTEND_REPO}:latest" ./frontend
+docker build -t "${FRONTEND_REPO}:${IMAGE_TAG}" ./frontend
 
 # ─── 3. Push to ECR ──────────────────────────────────────────────────────────
 echo "📤 Pushing backend..."
 docker push "${BACKEND_REPO}:${IMAGE_TAG}"
-docker push "${BACKEND_REPO}:latest"
 
 echo "📤 Pushing frontend..."
 docker push "${FRONTEND_REPO}:${IMAGE_TAG}"
-docker push "${FRONTEND_REPO}:latest"
 
 # ─── 4. Update ECS services ──────────────────────────────────────────────────
 echo "♻️  Updating ECS backend service..."

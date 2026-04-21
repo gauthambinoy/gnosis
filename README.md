@@ -155,6 +155,16 @@ npx vitest run
 
 The full CI pipeline (`npm run build && npm run lint && npx vitest run`) mirrors `.github/workflows/ci.yml`.
 
+### CI repo-secrets
+
+`.github/workflows/ci.yml` reads `SECRET_KEY` from a GitHub Actions repo secret named **`CI_SECRET_KEY`** (no longer hard-coded). Before CI can pass, a maintainer must set this secret once in **GitHub → Settings → Secrets and variables → Actions → New repository secret**:
+
+| Name            | Value                                                              |
+| --------------- | ------------------------------------------------------------------ |
+| `CI_SECRET_KEY` | Any random 32+ char string (e.g. `openssl rand -hex 32`). Test-only — do **not** reuse in any other environment. |
+
+If the secret is missing, the backend test job will fail on app import because `SECRET_KEY` will be empty.
+
 ## Contributing
 
 See **[CONTRIBUTING.md](CONTRIBUTING.md)** for branching model, Conventional Commits, pre-PR checks, and coding standards.

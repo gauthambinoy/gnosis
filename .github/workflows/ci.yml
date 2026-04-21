@@ -7,11 +7,12 @@ on:
     branches: [main]
 
 env:
-  CI_SECRET_KEY: "ci-test-secret-key-not-for-production-use-only-do-not-reuse-anywhere"
+  CI_SECRET_KEY: ${{ secrets.CI_SECRET_KEY }}
 
 jobs:
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -81,6 +82,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
 

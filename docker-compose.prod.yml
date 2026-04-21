@@ -11,7 +11,7 @@ version: "3.8"
 services:
   backend:
     # No locally-built image in prod — use ECR image
-    image: ${ECR_REGISTRY}/gnosis-backend:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/gnosis-backend:${IMAGE_TAG:?IMAGE_TAG must be set (immutable git-SHA tag — :latest is no longer published)}
     environment:
       - DEBUG=false
       - LOG_LEVEL=INFO
@@ -28,7 +28,7 @@ services:
         max-file: "5"
 
   frontend:
-    image: ${ECR_REGISTRY}/gnosis-frontend:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/gnosis-frontend:${IMAGE_TAG:?IMAGE_TAG must be set (immutable git-SHA tag — :latest is no longer published)}
     deploy:
       resources:
         limits:

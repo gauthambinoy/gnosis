@@ -10,6 +10,7 @@ jobs:
   gitleaks:
     name: Gitleaks – secret scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
         with:
@@ -21,6 +22,7 @@ jobs:
   bandit:
     name: Bandit – Python SAST
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -34,7 +36,7 @@ jobs:
   pip-audit:
     name: pip-audit – Python dependency CVEs
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
@@ -43,12 +45,23 @@ jobs:
       - name: Install pip-audit
         run: pip install pip-audit
       - name: Run pip-audit
-        run: pip-audit -r backend/requirements.txt --strict
+        # Allowlist false-positives in backend/.pip-audit-ignore (one VULN-ID per line, # comments OK).
+        run: |
+          cd backend
+          IGNORE_ARGS=""
+          if [ -f .pip-audit-ignore ]; then
+            while IFS= read -r vuln; do
+              [ -z "$vuln" ] && continue
+              case "$vuln" in \#*) continue ;; esac
+              IGNORE_ARGS="$IGNORE_ARGS --ignore-vuln $vuln"
+            done < <(grep -v '^\s*#' .pip-audit-ignore | grep -v '^\s*$')
+          fi
+          pip-audit -r requirements.txt --strict $IGNORE_ARGS
 
   npm-audit:
     name: npm audit – JS dependency CVEs
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -58,33 +71,59 @@ jobs:
         working-directory: frontend
         run: npm ci
       - name: Run npm audit
+        # Allowlist false-positives in frontend/.npm-audit-ignore (one advisory ID per line, # comments OK).
+        # npm has no native --ignore flag; we filter the JSON report and fail on remaining high+ findings.
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: |
+          set -o pipefail
+          npm audit --audit-level=high --json > audit.json || true
+          python3 - <<'PY'
+          import json, os, sys
+          ignore = set()
+          path = ".npm-audit-ignore"
+          if os.path.exists(path):
+              with open(path) as f:
+                  for line in f:
+                      line = line.strip()
+                      if line and not line.startswith("#"):
+                          ignore.add(line)
+          with open("audit.json") as f:
+              data = json.load(f)
+          vulns = data.get("vulnerabilities", {}) or {}
+          bad = []
+          for name, v in vulns.items():
+              sev = v.get("severity", "")
+              if sev not in ("high", "critical"):
+                  continue
+              via_ids = []
+              for via in v.get("via", []):
+                  if isinstance(via, dict):
+                      via_ids.append(str(via.get("source") or via.get("url") or via.get("name") or ""))
+              if via_ids and all(i in ignore for i in via_ids if i):
+                  continue
+              bad.append(f"{name} ({sev}) via={via_ids}")
+          if bad:
+              print("npm audit failures (not in .npm-audit-ignore):", file=sys.stderr)
+              for b in bad:
+                  print(" -", b, file=sys.stderr)
+              sys.exit(1)
+          print("npm audit: clean (or all findings allowlisted)")
+          PY
 
   trivy-fs:
     name: Trivy – filesystem scan (CRITICAL+HIGH)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
-      # Fail on CRITICAL vulnerabilities
-      - name: Trivy scan – CRITICAL (fail)
+      # Fail on CRITICAL and HIGH vulnerabilities
+      - name: Trivy scan – CRITICAL+HIGH (fail)
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: "."
-          severity: CRITICAL
+          severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
-          exit-code: "1"
-          format: table
-
-      # Surface HIGH vulnerabilities as advisory (no fail)
-      - name: Trivy scan – HIGH (advisory)
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: fs
-          scan-ref: "."
-          severity: HIGH
-          ignore-unfixed: true
-          exit-code: "0"
+          exit-code: '1'
           format: table
