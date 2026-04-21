@@ -1,5 +1,61 @@
+/*
+ * Token storage hardening (issue H11).
+ *
+ * Previous behavior: both accessToken and refreshToken were persisted to
+ * localStorage via Zustand's `persist` middleware (key: "gnosis-auth").
+ * That made both tokens trivially exfiltrable by any successful XSS.
+ *
+ * Current (interim) model:
+ *   - accessToken: kept IN MEMORY ONLY on the Zustand store. Never written to
+ *     localStorage or sessionStorage. Lost on full page reload — the
+ *     refreshToken is used to mint a new one.
+ *   - refreshToken: persisted to sessionStorage under key
+ *     "gnosis-auth-refresh". Cleared automatically when the tab closes,
+ *     and never written to localStorage.
+ *   - On first load, any legacy "gnosis-auth" entry in localStorage is
+ *     migrated (refreshToken extracted into sessionStorage) and DELETED.
+ *
+ * TODO follow-up: the backend should issue the refresh token as an
+ * httpOnly + SameSite=Strict + Secure cookie scoped to the auth refresh
+ * endpoint, eliminating JS access entirely. This file is the interim
+ * hardening to remove the localStorage exposure now; the cookie-based
+ * design will replace sessionStorage once the backend lands.
+ */
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
+
+const LEGACY_LS_KEY = "gnosis-auth";
+const REFRESH_SS_KEY = "gnosis-auth-refresh";
+
+// Run once, synchronously, before the store is created.
+function migrateLegacyTokenStorage(): string | null {
+  if (typeof window === "undefined") return null;
+  let migratedRefresh: string | null = null;
+  try {
+    const raw = window.localStorage.getItem(LEGACY_LS_KEY);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        const refresh: unknown = parsed?.state?.refreshToken ?? parsed?.refreshToken;
+        if (typeof refresh === "string" && refresh.length > 0) {
+          migratedRefresh = refresh;
+          window.sessionStorage.setItem(
+            REFRESH_SS_KEY,
+            JSON.stringify({ state: { refreshToken: refresh }, version: 0 }),
+          );
+        }
+      } catch {
+        // Corrupt legacy payload — drop it anyway.
+      }
+      window.localStorage.removeItem(LEGACY_LS_KEY);
+    }
+  } catch {
+    // localStorage / sessionStorage may be unavailable (e.g. privacy mode).
+  }
+  return migratedRefresh;
+}
+
+migrateLegacyTokenStorage();
 
 interface User {
   id: string;
@@ -102,6 +158,6 @@ export const useAuth = create<AuthState>()(
 
       setLoading: (loading) => set({ isLoading: loading }),
     }),
-    { name: "gnosis-auth" }
+    { name: REFRESH_SS_KEY, storage: createJSONStorage(() => sessionStorage), partialize: (s) => ({ refreshToken: s.refreshToken }) }
   )
 );

@@ -1,5 +1,8 @@
 import { useAuth } from "./auth";
 
+// Tokens are sourced exclusively from the in-memory Zustand store
+// (see lib/auth.ts). Never read tokens directly from localStorage —
+// that storage is intentionally unused for auth material (issue H11).
 function normalizeApiBase(url: string) {
   const trimmed = url.replace(/\/+$/, "");
   return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
