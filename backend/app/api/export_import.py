@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends
 from fastapi.responses import JSONResponse
 from typing import List
+from app.core.auth import get_current_user_id
 from app.core.agent_export import (
     export_agent,
     export_agents_bulk,
@@ -24,7 +25,7 @@ def _get_agents_store():
 
 
 @router.get("/{agent_id}/export")
-async def export_single_agent(agent_id: str):
+async def export_single_agent(agent_id: str, user_id: str = Depends(get_current_user_id)):
     agents = _get_agents_store()
     agent = agents.get(agent_id)
     if not agent:
@@ -39,7 +40,7 @@ async def export_single_agent(agent_id: str):
 
 
 @router.post("/export/bulk")
-async def export_bulk(agent_ids: List[str]):
+async def export_bulk(agent_ids: List[str], user_id: str = Depends(get_current_user_id)):
     agents = _get_agents_store()
     agent_list = [agents[aid] for aid in agent_ids if aid in agents]
     if not agent_list:
@@ -54,7 +55,7 @@ async def export_bulk(agent_ids: List[str]):
 
 
 @router.post("/import")
-async def import_single_agent(data: dict):
+async def import_single_agent(data: dict, user_id: str = Depends(get_current_user_id)):
     valid, msg = validate_import(data)
     if not valid:
         raise HTTPException(status_code=400, detail=msg)
@@ -69,7 +70,7 @@ async def import_single_agent(data: dict):
 
 
 @router.post("/import/bulk")
-async def import_bulk_agents(data: dict):
+async def import_bulk_agents(data: dict, user_id: str = Depends(get_current_user_id)):
     valid, msg = validate_import(data)
     if not valid:
         raise HTTPException(status_code=400, detail=msg)
@@ -88,7 +89,7 @@ async def import_bulk_agents(data: dict):
 
 
 @router.post("/import/file")
-async def import_from_file(file: UploadFile = File(...)):
+async def import_from_file(file: UploadFile = File(...), user_id: str = Depends(get_current_user_id)):
     try:
         content = await file.read()
         data = json.loads(content)

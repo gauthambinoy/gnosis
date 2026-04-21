@@ -142,6 +142,7 @@ class CallAPIRequest(BaseModel):
 # ─── Catalog ───
 
 
+# PUBLIC: read-only public catalog of known APIs; no user data
 @router.get("/catalog")
 async def list_catalog(category: Optional[str] = Query(None)):
     """List all known APIs in the catalog."""
@@ -149,6 +150,7 @@ async def list_catalog(category: Optional[str] = Query(None)):
     return {"apis": apis, "count": len(apis)}
 
 
+# PUBLIC: read-only catalog entry metadata
 @router.get("/catalog/{name}")
 async def get_api_info(name: str):
     """Get detailed info about a specific API."""
@@ -160,6 +162,7 @@ async def get_api_info(name: str):
     return info
 
 
+# PUBLIC: read-only catalog search
 @router.get("/search")
 async def search_apis(q: str = Query(..., min_length=1, description="Search query")):
     """Search APIs by name, description, or category."""
@@ -167,6 +170,7 @@ async def search_apis(q: str = Query(..., min_length=1, description="Search quer
     return {"results": results, "count": len(results)}
 
 
+# PUBLIC: read-only catalog categories
 @router.get("/categories")
 async def list_categories():
     """List all API categories."""
@@ -178,7 +182,7 @@ async def list_categories():
 
 
 @router.post("/connect")
-async def connect_api(req: ConnectRequest):
+async def connect_api(req: ConnectRequest, user_id: str = Depends(get_current_user_id)):
     """Connect to an API with credentials."""
     result = auto_api.connect(req.api_name, req.api_key, req.extra_config)
     if "error" in result:
@@ -187,7 +191,7 @@ async def connect_api(req: ConnectRequest):
 
 
 @router.get("/connections")
-async def list_connections():
+async def list_connections(user_id: str = Depends(get_current_user_id)):
     """List all API connections."""
     connections = auto_api.list_connections()
     # Mask API keys in response
@@ -198,7 +202,7 @@ async def list_connections():
 
 
 @router.get("/connections/{connection_id}")
-async def get_connection(connection_id: str):
+async def get_connection(connection_id: str, user_id: str = Depends(get_current_user_id)):
     """Get a specific connection (key masked)."""
     conn = auto_api.get_connection(connection_id)
     if not conn:
@@ -207,7 +211,7 @@ async def get_connection(connection_id: str):
 
 
 @router.post("/connections/{connection_id}/test")
-async def test_connection(connection_id: str):
+async def test_connection(connection_id: str, user_id: str = Depends(get_current_user_id)):
     """Test an API connection."""
     result = await auto_api.test_connection(connection_id)
     if "error" in result:
@@ -241,7 +245,7 @@ async def call_api(
 
 
 @router.delete("/connections/{connection_id}")
-async def delete_connection(connection_id: str):
+async def delete_connection(connection_id: str, user_id: str = Depends(get_current_user_id)):
     """Delete an API connection."""
     removed = auto_api.delete_connection(connection_id)
     if not removed:
@@ -253,7 +257,7 @@ async def delete_connection(connection_id: str):
 
 
 @router.get("/generate/{name}")
-async def generate_connector(name: str):
+async def generate_connector(name: str, user_id: str = Depends(get_current_user_id)):
     """Generate a Python connector class for an API."""
     code = auto_api.generate_connector_code(name)
     if not code:
@@ -265,6 +269,6 @@ async def generate_connector(name: str):
 
 
 @router.get("/stats")
-async def get_stats():
+async def get_stats(user_id: str = Depends(get_current_user_id)):
     """Get Auto-API engine statistics."""
     return auto_api.get_stats()

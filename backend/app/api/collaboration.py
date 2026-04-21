@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from app.core.collaboration import collaboration_engine
+from app.core.auth import get_current_user_id
 from dataclasses import asdict
 from app.core.safe_error import safe_http_error
 
@@ -28,7 +29,9 @@ class ResolveRequest(BaseModel):
 
 
 @router.post("/rooms")
-async def create_room(req: CreateRoomRequest):
+async def create_room(
+    req: CreateRoomRequest, user_id: str = Depends(get_current_user_id)
+):
     room = collaboration_engine.create_room(
         name=req.name,
         topic=req.topic,
@@ -40,7 +43,9 @@ async def create_room(req: CreateRoomRequest):
 
 
 @router.get("/rooms")
-async def list_rooms(status: Optional[str] = None):
+async def list_rooms(
+    status: Optional[str] = None, user_id: str = Depends(get_current_user_id)
+):
     rooms = collaboration_engine.list_rooms(status=status)
     summaries = [
         {
@@ -58,7 +63,7 @@ async def list_rooms(status: Optional[str] = None):
 
 
 @router.get("/rooms/{room_id}")
-async def get_room(room_id: str):
+async def get_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     room = collaboration_engine.get_room(room_id)
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
@@ -66,7 +71,11 @@ async def get_room(room_id: str):
 
 
 @router.post("/rooms/{room_id}/messages")
-async def add_message(room_id: str, req: AddMessageRequest):
+async def add_message(
+    room_id: str,
+    req: AddMessageRequest,
+    user_id: str = Depends(get_current_user_id),
+):
     msg = collaboration_engine.add_message(
         room_id, req.agent_id, req.content, req.message_type, req.in_reply_to
     )
@@ -76,7 +85,7 @@ async def add_message(room_id: str, req: AddMessageRequest):
 
 
 @router.post("/rooms/{room_id}/discuss")
-async def run_discussion(room_id: str):
+async def run_discussion(room_id: str, user_id: str = Depends(get_current_user_id)):
     try:
         room = await collaboration_engine.run_discussion(room_id)
         return asdict(room)
@@ -85,7 +94,11 @@ async def run_discussion(room_id: str):
 
 
 @router.post("/rooms/{room_id}/resolve")
-async def resolve_room(room_id: str, req: ResolveRequest):
+async def resolve_room(
+    room_id: str,
+    req: ResolveRequest,
+    user_id: str = Depends(get_current_user_id),
+):
     room = collaboration_engine.resolve_room(room_id, req.conclusion)
     if not room:
         raise HTTPException(status_code=404, detail="Room not found")
@@ -93,12 +106,12 @@ async def resolve_room(room_id: str, req: ResolveRequest):
 
 
 @router.post("/rooms/{room_id}/archive")
-async def archive_room(room_id: str):
+async def archive_room(room_id: str, user_id: str = Depends(get_current_user_id)):
     if not collaboration_engine.archive_room(room_id):
         raise HTTPException(status_code=404, detail="Room not found")
     return {"archived": True}
 
 
 @router.get("/stats")
-async def collab_stats():
+async def collab_stats(user_id: str = Depends(get_current_user_id)):
     return collaboration_engine.stats

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, timezone
 import uuid
 
+from app.core.auth import get_current_user_id
 from app.core.templates import WORKFLOW_TEMPLATES
 from app.core.event_bus import event_bus, Events
 
@@ -15,6 +16,7 @@ class DeployRequest(BaseModel):
     personality: Optional[str] = "professional"
 
 
+# PUBLIC: workflow template catalog is browseable pre-login
 @router.get("")
 async def list_templates(category: Optional[str] = None):
     """List all workflow templates, optionally filtered by category."""
@@ -28,6 +30,7 @@ async def list_templates(category: Optional[str] = None):
     }
 
 
+# PUBLIC: individual template metadata is part of the public catalog
 @router.get("/{template_id}")
 async def get_template(template_id: str):
     """Get a specific template by ID."""
@@ -38,7 +41,7 @@ async def get_template(template_id: str):
 
 
 @router.post("/{template_id}/deploy")
-async def deploy_template(template_id: str, body: DeployRequest = DeployRequest()):
+async def deploy_template(template_id: str, body: DeployRequest = DeployRequest(), user_id: str = Depends(get_current_user_id)):
     """Create an agent from a workflow template."""
     template = None
     for t in WORKFLOW_TEMPLATES:

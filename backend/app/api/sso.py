@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.core.auth import get_current_user_id
 from app.core.sso import sso_engine
 from dataclasses import asdict
 from app.core.safe_error import safe_http_error
@@ -28,11 +29,13 @@ class LinkAccountRequest(BaseModel):
     gnosis_user_id: Optional[str] = None
 
 
+# PUBLIC: SSO providers list drives the login page before a user is authenticated
 @router.get("/providers")
 async def list_providers():
     return {"providers": sso_engine.get_providers()}
 
 
+# PUBLIC: initiates SSO flow for anonymous users
 @router.post("/authorize")
 async def get_authorize_url(req: AuthorizeRequest):
     try:
@@ -42,6 +45,7 @@ async def get_authorize_url(req: AuthorizeRequest):
         safe_http_error(e, "Operation failed", 400)
 
 
+# PUBLIC: OAuth provider redirects user here; state param is validated below
 @router.post("/callback")
 async def handle_callback(req: CallbackRequest):
     """Handle OAuth callback — in production this exchanges code for token."""
@@ -60,7 +64,7 @@ async def handle_callback(req: CallbackRequest):
 
 
 @router.post("/link")
-async def link_sso_account(req: LinkAccountRequest):
+async def link_sso_account(req: LinkAccountRequest, user_id: str = Depends(get_current_user_id)):
     account = sso_engine.register_sso_account(
         provider=req.provider,
         provider_user_id=req.provider_user_id,
@@ -73,11 +77,13 @@ async def link_sso_account(req: LinkAccountRequest):
 
 
 @router.get("/accounts/{user_id}")
-async def get_linked_accounts(user_id: str):
+async def get_linked_accounts(
+    user_id: str, caller_id: str = Depends(get_current_user_id)
+):
     accounts = sso_engine.get_linked_accounts(user_id)
     return {"accounts": [asdict(a) for a in accounts], "total": len(accounts)}
 
 
 @router.get("/stats")
-async def sso_stats():
+async def sso_stats(user_id: str = Depends(get_current_user_id)):
     return sso_engine.stats

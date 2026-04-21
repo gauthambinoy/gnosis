@@ -4,10 +4,11 @@ Predictions API — Predictive Agent Spawning endpoints.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Any
 
+from app.core.auth import get_current_user_id
 from app.core.predictive_engine import predictive_engine
 
 router = APIRouter(prefix="/api/v1/predictions", tags=["predictions"])
@@ -30,7 +31,7 @@ class TrackActionRequest(BaseModel):
 
 
 @router.get("")
-async def get_predictions(user_id: str = "default"):
+async def get_predictions(user_id: str = Depends(get_current_user_id)):
     """Get current predictions for user."""
     suggestions = await predictive_engine.suggest_agents(user_id)
     return {
@@ -41,10 +42,12 @@ async def get_predictions(user_id: str = "default"):
 
 
 @router.post("/track")
-async def track_action(body: TrackActionRequest):
+async def track_action(
+    body: TrackActionRequest, user_id: str = Depends(get_current_user_id)
+):
     """Track a user action for pattern learning."""
     event = await predictive_engine.track_action(
-        body.user_id, body.action, body.metadata
+        user_id, body.action, body.metadata
     )
     return {
         "tracked": True,
@@ -55,7 +58,7 @@ async def track_action(body: TrackActionRequest):
 
 
 @router.get("/patterns")
-async def get_patterns(user_id: str = "default"):
+async def get_patterns(user_id: str = Depends(get_current_user_id)):
     """View detected patterns for user."""
     patterns = await predictive_engine.analyze_patterns(user_id)
     return {
@@ -66,7 +69,7 @@ async def get_patterns(user_id: str = "default"):
 
 
 @router.post("/dismiss/{prediction_id}")
-async def dismiss_prediction(prediction_id: str):
+async def dismiss_prediction(prediction_id: str, user_id: str = Depends(get_current_user_id)):
     """Dismiss a prediction."""
     result = await predictive_engine.dismiss_prediction(prediction_id)
     if not result:
@@ -75,7 +78,7 @@ async def dismiss_prediction(prediction_id: str):
 
 
 @router.post("/accept/{prediction_id}")
-async def accept_prediction(prediction_id: str):
+async def accept_prediction(prediction_id: str, user_id: str = Depends(get_current_user_id)):
     """Accept & deploy a predicted agent."""
     result = await predictive_engine.accept_prediction(prediction_id)
     if not result:
@@ -88,7 +91,7 @@ async def accept_prediction(prediction_id: str):
 
 
 @router.get("/stats")
-async def prediction_stats(user_id: str = "default"):
+async def prediction_stats(user_id: str = Depends(get_current_user_id)):
     """Prediction engine statistics."""
     stats = await predictive_engine.get_stats(user_id)
     return stats

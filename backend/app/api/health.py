@@ -15,11 +15,13 @@ _start_time = time.time()
 _settings = get_settings()
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health")
 async def health():
     return {"status": "ok", "service": "gnosis", "version": "1.0.0"}
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health/ready")
 async def readiness():
     """Deep health check — verifies all dependencies. Returns 503 if any critical component is down."""
@@ -122,12 +124,14 @@ async def readiness():
     )
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health/live")
 async def liveness():
     """Simple liveness probe for k8s — always returns 200."""
     return {"status": "alive"}
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health/deep")
 async def deep_health():
     """Component-level health with latency measurements."""
@@ -220,6 +224,7 @@ async def deep_health():
     )
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health/detailed")
 async def detailed():
     """Full system info: uptime, route count, memory, DB pool stats."""

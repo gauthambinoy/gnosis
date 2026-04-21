@@ -26,6 +26,7 @@ class RateRequest(BaseModel):
     score: float
 
 
+# PUBLIC: internal catalog browse (no sensitive data, listing metadata only)
 @router.get("/")
 async def search_listings(
     query: Optional[str] = Query(None), category: Optional[str] = Query(None)
@@ -50,6 +51,7 @@ async def publish_listing(
     return asdict(listing)
 
 
+# PUBLIC: read-only internal listing metadata
 @router.get("/{listing_id}")
 async def get_listing(listing_id: str):
     listing = internal_marketplace_engine.get_listing(listing_id)
@@ -59,7 +61,7 @@ async def get_listing(listing_id: str):
 
 
 @router.post("/{listing_id}/rate")
-async def rate_listing(listing_id: str, body: RateRequest):
+async def rate_listing(listing_id: str, body: RateRequest, user_id: str = Depends(get_current_user_id)):
     try:
         listing = internal_marketplace_engine.rate(listing_id, body.score)
         return asdict(listing)
@@ -70,7 +72,7 @@ async def rate_listing(listing_id: str, body: RateRequest):
 
 
 @router.post("/{listing_id}/download")
-async def download_listing(listing_id: str):
+async def download_listing(listing_id: str, user_id: str = Depends(get_current_user_id)):
     try:
         listing = internal_marketplace_engine.increment_downloads(listing_id)
         return asdict(listing)

@@ -47,7 +47,7 @@ async def list_tokens(user_id: str = Depends(get_current_user_id)):
 
 
 @router.delete("/{token_id}")
-async def revoke_token(token_id: str):
+async def revoke_token(token_id: str, user_id: str = Depends(get_current_user_id)):
     try:
         integration_token_engine.revoke_token(token_id)
         return {"status": "revoked"}
@@ -56,6 +56,6 @@ async def revoke_token(token_id: str):
 
 
 @router.post("/{token_id}/validate")
-async def validate_token(token_id: str, body: ValidateTokenRequest):
+async def validate_token(token_id: str, body: ValidateTokenRequest, user_id: str = Depends(get_current_user_id)):
     result = integration_token_engine.validate_token(body.token)
     return result

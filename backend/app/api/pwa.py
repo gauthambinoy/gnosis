@@ -21,11 +21,13 @@ PWA_MANIFEST = {
 }
 
 
+# PUBLIC: PWA manifest must be fetchable without auth for install prompts
 @router.get("/manifest")
 async def pwa_manifest():
     return PWA_MANIFEST
 
 
+# PUBLIC: frontend fetches PWA config before login to bootstrap service worker
 @router.get("/config")
 async def pwa_config():
     return {

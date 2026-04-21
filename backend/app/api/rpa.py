@@ -1,7 +1,8 @@
 import re
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
+from app.core.auth import get_current_user_id
 from app.core.rpa_engine import rpa_engine
 from app.core.error_handling import ValidationError
 
@@ -107,15 +108,17 @@ class ExecuteRequest(BaseModel):
 
 
 @router.post("/record/start")
-async def start_recording(req: StartRecordingRequest):
+async def start_recording(
+    req: StartRecordingRequest, user_id: str = Depends(get_current_user_id)
+):
     session_id = rpa_engine.start_recording(
-        user_id=req.user_id, start_url=req.start_url
+        user_id=user_id, start_url=req.start_url
     )
     return {"session_id": session_id}
 
 
 @router.post("/record/{session_id}/action")
-async def record_action(session_id: str, req: RecordActionRequest):
+async def record_action(session_id: str, req: RecordActionRequest, user_id: str = Depends(get_current_user_id)):
     _validate_record_action(req)
     result = rpa_engine.record_action(session_id, req.model_dump())
     if "error" in result:
@@ -124,13 +127,13 @@ async def record_action(session_id: str, req: RecordActionRequest):
 
 
 @router.get("/record/{session_id}/actions")
-async def get_recording_actions(session_id: str):
+async def get_recording_actions(session_id: str, user_id: str = Depends(get_current_user_id)):
     actions = rpa_engine.get_recording_actions(session_id)
     return {"session_id": session_id, "actions": actions, "count": len(actions)}
 
 
 @router.post("/record/{session_id}/stop")
-async def stop_recording(session_id: str, req: StopRecordingRequest):
+async def stop_recording(session_id: str, req: StopRecordingRequest, user_id: str = Depends(get_current_user_id)):
     result = rpa_engine.stop_recording(
         session_id, name=req.name, description=req.description
     )
@@ -145,19 +148,19 @@ async def stop_recording(session_id: str, req: StopRecordingRequest):
 
 
 @router.get("/workflows")
-async def list_workflows(tag: str = "", status: str = ""):
+async def list_workflows(tag: str = "", status: str = "", user_id: str = Depends(get_current_user_id)):
     workflows = rpa_engine.list_workflows(tag=tag, status=status)
     return {"workflows": workflows, "total": len(workflows)}
 
 
 @router.post("/workflows")
-async def create_workflow(req: WorkflowCreateRequest):
+async def create_workflow(req: WorkflowCreateRequest, user_id: str = Depends(get_current_user_id)):
     _validate_workflow_actions(req.actions)
     return rpa_engine.create_workflow(req.model_dump())
 
 
 @router.get("/workflows/{workflow_id}")
-async def get_workflow(workflow_id: str):
+async def get_workflow(workflow_id: str, user_id: str = Depends(get_current_user_id)):
     wf = rpa_engine.get_workflow(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -165,7 +168,7 @@ async def get_workflow(workflow_id: str):
 
 
 @router.put("/workflows/{workflow_id}")
-async def update_workflow(workflow_id: str, req: WorkflowUpdateRequest):
+async def update_workflow(workflow_id: str, req: WorkflowUpdateRequest, user_id: str = Depends(get_current_user_id)):
     _validate_workflow_actions(req.actions)
     data = {k: v for k, v in req.model_dump().items() if v is not None}
     wf = rpa_engine.update_workflow(workflow_id, data)
@@ -175,14 +178,14 @@ async def update_workflow(workflow_id: str, req: WorkflowUpdateRequest):
 
 
 @router.delete("/workflows/{workflow_id}")
-async def delete_workflow(workflow_id: str):
+async def delete_workflow(workflow_id: str, user_id: str = Depends(get_current_user_id)):
     if not rpa_engine.delete_workflow(workflow_id):
         raise HTTPException(status_code=404, detail="Workflow not found")
     return {"deleted": True}
 
 
 @router.post("/workflows/{workflow_id}/duplicate")
-async def duplicate_workflow(workflow_id: str):
+async def duplicate_workflow(workflow_id: str, user_id: str = Depends(get_current_user_id)):
     wf = rpa_engine.duplicate_workflow(workflow_id)
     if not wf:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -193,7 +196,7 @@ async def duplicate_workflow(workflow_id: str):
 
 
 @router.post("/workflows/{workflow_id}/execute")
-async def execute_workflow(workflow_id: str, req: ExecuteRequest):
+async def execute_workflow(workflow_id: str, req: ExecuteRequest, user_id: str = Depends(get_current_user_id)):
     result = await rpa_engine.execute_workflow(workflow_id, variables=req.variables)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
@@ -201,13 +204,13 @@ async def execute_workflow(workflow_id: str, req: ExecuteRequest):
 
 
 @router.post("/workflows/{workflow_id}/stop")
-async def stop_execution(workflow_id: str):
+async def stop_execution(workflow_id: str, user_id: str = Depends(get_current_user_id)):
     stopped = rpa_engine.stop_execution(workflow_id)
     return {"stopped": stopped}
 
 
 @router.get("/workflows/{workflow_id}/script")
-async def generate_script(workflow_id: str):
+async def generate_script(workflow_id: str, user_id: str = Depends(get_current_user_id)):
     script = rpa_engine.generate_playwright_script(workflow_id)
     if script is None:
         raise HTTPException(status_code=404, detail="Workflow not found")
@@ -218,13 +221,13 @@ async def generate_script(workflow_id: str):
 
 
 @router.get("/executions")
-async def list_executions(workflow_id: str = ""):
+async def list_executions(workflow_id: str = "", user_id: str = Depends(get_current_user_id)):
     execs = rpa_engine.list_executions(workflow_id=workflow_id)
     return {"executions": execs, "total": len(execs)}
 
 
 @router.get("/executions/{run_id}")
-async def get_execution(run_id: str):
+async def get_execution(run_id: str, user_id: str = Depends(get_current_user_id)):
     ex = rpa_engine.get_execution(run_id)
     if not ex:
         raise HTTPException(status_code=404, detail="Execution not found")
@@ -235,5 +238,5 @@ async def get_execution(run_id: str):
 
 
 @router.get("/stats")
-async def get_stats():
+async def get_stats(user_id: str = Depends(get_current_user_id)):
     return rpa_engine.get_stats()

@@ -2,9 +2,10 @@
 Security Dashboard API — monitoring and management endpoints.
 """
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
 from app.config import get_settings
+from app.core.auth import get_current_user_id
 from app.core.security_hardened import (
     SECURITY_HEADERS,
     rate_limiter,
@@ -55,7 +56,7 @@ def _get_middleware(request: Request):
 
 
 @router.get("/stats")
-async def security_stats(request: Request):
+async def security_stats(request: Request, user_id: str = Depends(get_current_user_id)):
     """Overall security statistics."""
     mw = _get_middleware(request)
     if mw:
@@ -71,7 +72,7 @@ async def security_stats(request: Request):
 
 
 @router.get("/threats")
-async def recent_threats(request: Request):
+async def recent_threats(request: Request, user_id: str = Depends(get_current_user_id)):
     """Recent threat log."""
     mw = _get_middleware(request)
     threats = mw._threat_log[-50:] if mw else []
@@ -79,7 +80,7 @@ async def recent_threats(request: Request):
 
 
 @router.get("/blocked-ips")
-async def blocked_ips(request: Request):
+async def blocked_ips(request: Request, user_id: str = Depends(get_current_user_id)):
     """Currently blocked IP addresses."""
     mw = _get_middleware(request)
     rl = mw.rate_limiter if mw else rate_limiter
@@ -90,7 +91,7 @@ async def blocked_ips(request: Request):
 
 
 @router.post("/block-ip")
-async def block_ip(body: BlockIPRequest, request: Request):
+async def block_ip(body: BlockIPRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Manually block an IP address."""
     mw = _get_middleware(request)
     rl = mw.rate_limiter if mw else rate_limiter
@@ -99,7 +100,7 @@ async def block_ip(body: BlockIPRequest, request: Request):
 
 
 @router.post("/unblock-ip")
-async def unblock_ip(body: UnblockIPRequest, request: Request):
+async def unblock_ip(body: UnblockIPRequest, request: Request, user_id: str = Depends(get_current_user_id)):
     """Unblock an IP address."""
     mw = _get_middleware(request)
     rl = mw.rate_limiter if mw else rate_limiter
@@ -109,6 +110,7 @@ async def unblock_ip(body: UnblockIPRequest, request: Request):
     return {"status": "unblocked", "ip": body.ip}
 
 
+# PUBLIC: CSRF token must be retrievable before login to protect auth POST endpoints
 @router.get("/csrf-token")
 async def get_csrf_token():
     """Generate a CSRF token."""
@@ -117,7 +119,7 @@ async def get_csrf_token():
 
 
 @router.post("/scan")
-async def security_scan(request: Request):
+async def security_scan(request: Request, user_id: str = Depends(get_current_user_id)):
     """Run a security self-scan and return score + findings."""
     findings = []
     score = 100

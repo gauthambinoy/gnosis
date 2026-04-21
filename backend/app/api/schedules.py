@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.core.auth import get_current_user_id
 from app.core.scheduler import scheduler_engine
 from dataclasses import asdict
 
@@ -26,7 +27,7 @@ class UpdateScheduleRequest(BaseModel):
 
 
 @router.post("")
-async def create_schedule(req: CreateScheduleRequest):
+async def create_schedule(req: CreateScheduleRequest, user_id: str = Depends(get_current_user_id)):
     schedule = scheduler_engine.create(
         agent_id=req.agent_id,
         name=req.name,
@@ -38,18 +39,18 @@ async def create_schedule(req: CreateScheduleRequest):
 
 
 @router.get("/stats/overview")
-async def schedule_stats():
+async def schedule_stats(user_id: str = Depends(get_current_user_id)):
     return scheduler_engine.stats
 
 
 @router.get("")
-async def list_schedules(agent_id: str = None):
+async def list_schedules(agent_id: str = None, user_id: str = Depends(get_current_user_id)):
     schedules = scheduler_engine.list_schedules(agent_id=agent_id)
     return {"schedules": [asdict(s) for s in schedules], "total": len(schedules)}
 
 
 @router.get("/{schedule_id}")
-async def get_schedule(schedule_id: str):
+async def get_schedule(schedule_id: str, user_id: str = Depends(get_current_user_id)):
     schedule = scheduler_engine.get(schedule_id)
     if not schedule:
         raise HTTPException(status_code=404, detail="Schedule not found")
@@ -57,7 +58,7 @@ async def get_schedule(schedule_id: str):
 
 
 @router.patch("/{schedule_id}")
-async def update_schedule(schedule_id: str, req: UpdateScheduleRequest):
+async def update_schedule(schedule_id: str, req: UpdateScheduleRequest, user_id: str = Depends(get_current_user_id)):
     updates = req.model_dump(exclude_none=True)
     schedule = scheduler_engine.update(schedule_id, **updates)
     if not schedule:
@@ -66,14 +67,14 @@ async def update_schedule(schedule_id: str, req: UpdateScheduleRequest):
 
 
 @router.delete("/{schedule_id}")
-async def delete_schedule(schedule_id: str):
+async def delete_schedule(schedule_id: str, user_id: str = Depends(get_current_user_id)):
     if not scheduler_engine.delete(schedule_id):
         raise HTTPException(status_code=404, detail="Schedule not found")
     return {"deleted": True}
 
 
 @router.post("/{schedule_id}/pause")
-async def pause_schedule(schedule_id: str):
+async def pause_schedule(schedule_id: str, user_id: str = Depends(get_current_user_id)):
     if not scheduler_engine.pause(schedule_id):
         raise HTTPException(
             status_code=404, detail="Schedule not found or already paused"
@@ -82,7 +83,7 @@ async def pause_schedule(schedule_id: str):
 
 
 @router.post("/{schedule_id}/resume")
-async def resume_schedule(schedule_id: str):
+async def resume_schedule(schedule_id: str, user_id: str = Depends(get_current_user_id)):
     if not scheduler_engine.resume(schedule_id):
         raise HTTPException(status_code=404, detail="Schedule not found or not paused")
     return {"resumed": True}

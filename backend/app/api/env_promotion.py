@@ -51,7 +51,7 @@ async def approve_promotion(
 
 
 @router.post("/{promotion_id}/deploy")
-async def deploy_promotion(promotion_id: str):
+async def deploy_promotion(promotion_id: str, user_id: str = Depends(get_current_user_id)):
     try:
         record = env_promotion_engine.deploy_promotion(promotion_id)
         return asdict(record)
@@ -62,7 +62,7 @@ async def deploy_promotion(promotion_id: str):
 
 
 @router.post("/{promotion_id}/rollback")
-async def rollback_promotion(promotion_id: str):
+async def rollback_promotion(promotion_id: str, user_id: str = Depends(get_current_user_id)):
     try:
         record = env_promotion_engine.rollback(promotion_id)
         return asdict(record)
@@ -73,6 +73,6 @@ async def rollback_promotion(promotion_id: str):
 
 
 @router.get("/")
-async def list_promotions(agent_id: Optional[str] = Query(None)):
+async def list_promotions(agent_id: Optional[str] = Query(None), user_id: str = Depends(get_current_user_id)):
     records = env_promotion_engine.list_promotions(agent_id=agent_id)
     return [asdict(r) for r in records]

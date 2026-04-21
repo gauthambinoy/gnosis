@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.core.auth import get_current_user_id
 from app.core.rag_engine import rag_engine
 from dataclasses import asdict
 
@@ -22,7 +23,7 @@ class SearchRequest(BaseModel):
 
 
 @router.post("/ingest/text")
-async def ingest_text(req: IngestTextRequest):
+async def ingest_text(req: IngestTextRequest, user_id: str = Depends(get_current_user_id)):
     doc = await rag_engine.ingest(
         name=req.name,
         content=req.content,
@@ -35,7 +36,9 @@ async def ingest_text(req: IngestTextRequest):
 
 @router.post("/ingest/file")
 async def ingest_file(
-    file: UploadFile = File(...), agent_id: Optional[str] = Query(None)
+    file: UploadFile = File(...),
+    agent_id: Optional[str] = Query(None),
+    user_id: str = Depends(get_current_user_id),
 ):
     content_bytes = await file.read()
     try:
@@ -56,7 +59,7 @@ async def ingest_file(
 
 
 @router.post("/search")
-async def search_documents(req: SearchRequest):
+async def search_documents(req: SearchRequest, user_id: str = Depends(get_current_user_id)):
     results = await rag_engine.search(
         query=req.query, agent_id=req.agent_id, top_k=req.top_k
     )
@@ -68,13 +71,13 @@ async def search_documents(req: SearchRequest):
 
 
 @router.get("/documents")
-async def list_documents(agent_id: Optional[str] = None):
+async def list_documents(agent_id: Optional[str] = None, user_id: str = Depends(get_current_user_id)):
     docs = rag_engine.list_documents(agent_id=agent_id)
     return {"documents": [asdict(d) for d in docs], "total": len(docs)}
 
 
 @router.get("/documents/{doc_id}")
-async def get_document(doc_id: str):
+async def get_document(doc_id: str, user_id: str = Depends(get_current_user_id)):
     doc = rag_engine.get_document(doc_id)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -82,7 +85,7 @@ async def get_document(doc_id: str):
 
 
 @router.get("/documents/{doc_id}/chunks")
-async def get_document_chunks(doc_id: str):
+async def get_document_chunks(doc_id: str, user_id: str = Depends(get_current_user_id)):
     chunks = rag_engine.get_chunks(doc_id)
     if not chunks:
         raise HTTPException(
@@ -98,12 +101,12 @@ async def get_document_chunks(doc_id: str):
 
 
 @router.delete("/documents/{doc_id}")
-async def delete_document(doc_id: str):
+async def delete_document(doc_id: str, user_id: str = Depends(get_current_user_id)):
     if not rag_engine.delete_document(doc_id):
         raise HTTPException(status_code=404, detail="Document not found")
     return {"deleted": True}
 
 
 @router.get("/stats")
-async def rag_stats():
+async def rag_stats(user_id: str = Depends(get_current_user_id)):
     return rag_engine.stats

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from app.core.auth import get_current_user_id
 from app.core.marketplace import marketplace_engine
 from dataclasses import asdict
 
@@ -20,11 +21,13 @@ class ReviewRequest(BaseModel):
     comment: str = Field(default="", max_length=500)
 
 
+# PUBLIC: marketplace category listing is browseable without auth
 @router.get("/categories")
 async def list_categories():
     return {"categories": marketplace_engine.get_categories()}
 
 
+# PUBLIC: marketplace browse is intentionally anonymous
 @router.get("/browse")
 async def browse_marketplace(
     category: Optional[str] = None,
@@ -50,13 +53,14 @@ async def browse_marketplace(
     }
 
 
+# PUBLIC: aggregate non-sensitive marketplace counts
 @router.get("/stats")
 async def marketplace_stats():
     return marketplace_engine.stats
 
 
 @router.post("/publish")
-async def publish_agent(req: PublishRequest):
+async def publish_agent(req: PublishRequest, user_id: str = Depends(get_current_user_id)):
     agent = marketplace_engine.publish(
         name=req.name,
         description=req.description,
@@ -67,6 +71,7 @@ async def publish_agent(req: PublishRequest):
     return asdict(agent)
 
 
+# PUBLIC: public listing view
 @router.get("/{agent_id}")
 async def get_marketplace_agent(agent_id: str):
     agent = marketplace_engine.get_agent(agent_id)
@@ -76,7 +81,7 @@ async def get_marketplace_agent(agent_id: str):
 
 
 @router.post("/{agent_id}/clone")
-async def clone_agent(agent_id: str):
+async def clone_agent(agent_id: str, user_id: str = Depends(get_current_user_id)):
     config = marketplace_engine.clone_config(agent_id)
     if config is None:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -84,15 +89,20 @@ async def clone_agent(agent_id: str):
 
 
 @router.post("/{agent_id}/reviews")
-async def add_review(agent_id: str, req: ReviewRequest):
+async def add_review(
+    agent_id: str,
+    req: ReviewRequest,
+    user_id: str = Depends(get_current_user_id),
+):
     review = marketplace_engine.add_review(
-        agent_id, user_id="anonymous", rating=req.rating, comment=req.comment
+        agent_id, user_id=user_id, rating=req.rating, comment=req.comment
     )
     if not review:
         raise HTTPException(status_code=404, detail="Agent not found")
     return asdict(review)
 
 
+# PUBLIC: reviews are displayed on public listing page
 @router.get("/{agent_id}/reviews")
 async def get_reviews(agent_id: str):
     reviews = marketplace_engine.get_reviews(agent_id)

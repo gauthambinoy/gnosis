@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from app.core.audit_log import audit_log
-from app.core.auth import decode_token
+from app.core.auth import decode_token, get_current_user_id
 
 router = APIRouter(prefix="/api/v1/feedback", tags=["feedback"])
 
@@ -48,6 +48,7 @@ async def get_optional_user_id(
     return str(sub) if sub else None
 
 
+# PUBLIC: anonymous feedback submission is supported via optional bearer; user_id captured when present
 @router.post("", response_model=FeedbackOut, status_code=201)
 async def submit_feedback(
     payload: FeedbackIn,
@@ -74,7 +75,9 @@ async def submit_feedback(
 
 
 @router.get("", response_model=list[dict])
-async def list_feedback(limit: int = 100) -> list[dict]:
+async def list_feedback(
+    limit: int = 100, user_id: str = Depends(get_current_user_id)
+) -> list[dict]:
     if limit < 1 or limit > 1000:
         raise HTTPException(status_code=400, detail="limit must be between 1 and 1000")
     return _feedback_store[-limit:]

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from app.core.auth import get_current_user_id
 from app.core.pipeline import pipeline_engine
 from dataclasses import asdict
 from app.core.safe_error import safe_http_error
@@ -41,7 +42,7 @@ class ExecutePipelineRequest(BaseModel):
 
 
 @router.post("")
-async def create_pipeline(req: CreatePipelineRequest):
+async def create_pipeline(req: CreatePipelineRequest, user_id: str = Depends(get_current_user_id)):
     steps = [s.model_dump() for s in req.steps]
     pipeline = pipeline_engine.create_pipeline(
         name=req.name, description=req.description, steps=steps
@@ -50,18 +51,18 @@ async def create_pipeline(req: CreatePipelineRequest):
 
 
 @router.get("")
-async def list_pipelines():
+async def list_pipelines(user_id: str = Depends(get_current_user_id)):
     pipelines = pipeline_engine.list_pipelines()
     return {"pipelines": [asdict(p) for p in pipelines], "total": len(pipelines)}
 
 
 @router.get("/stats")
-async def pipeline_stats():
+async def pipeline_stats(user_id: str = Depends(get_current_user_id)):
     return pipeline_engine.stats
 
 
 @router.get("/{pipeline_id}")
-async def get_pipeline(pipeline_id: str):
+async def get_pipeline(pipeline_id: str, user_id: str = Depends(get_current_user_id)):
     pipeline = pipeline_engine.get_pipeline(pipeline_id)
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -69,7 +70,7 @@ async def get_pipeline(pipeline_id: str):
 
 
 @router.patch("/{pipeline_id}")
-async def update_pipeline(pipeline_id: str, req: UpdatePipelineRequest):
+async def update_pipeline(pipeline_id: str, req: UpdatePipelineRequest, user_id: str = Depends(get_current_user_id)):
     updates = req.model_dump(exclude_none=True)
     pipeline = pipeline_engine.update_pipeline(pipeline_id, **updates)
     if not pipeline:
@@ -78,14 +79,14 @@ async def update_pipeline(pipeline_id: str, req: UpdatePipelineRequest):
 
 
 @router.delete("/{pipeline_id}")
-async def delete_pipeline(pipeline_id: str):
+async def delete_pipeline(pipeline_id: str, user_id: str = Depends(get_current_user_id)):
     if not pipeline_engine.delete_pipeline(pipeline_id):
         raise HTTPException(status_code=404, detail="Pipeline not found")
     return {"deleted": True}
 
 
 @router.post("/{pipeline_id}/steps")
-async def add_step(pipeline_id: str, req: AddStepRequest):
+async def add_step(pipeline_id: str, req: AddStepRequest, user_id: str = Depends(get_current_user_id)):
     step = pipeline_engine.add_step(
         pipeline_id,
         req.agent_id,
@@ -99,14 +100,14 @@ async def add_step(pipeline_id: str, req: AddStepRequest):
 
 
 @router.delete("/{pipeline_id}/steps/{step_id}")
-async def remove_step(pipeline_id: str, step_id: str):
+async def remove_step(pipeline_id: str, step_id: str, user_id: str = Depends(get_current_user_id)):
     if not pipeline_engine.remove_step(pipeline_id, step_id):
         raise HTTPException(status_code=404, detail="Pipeline or step not found")
     return {"deleted": True}
 
 
 @router.post("/{pipeline_id}/execute")
-async def execute_pipeline(pipeline_id: str, req: ExecutePipelineRequest):
+async def execute_pipeline(pipeline_id: str, req: ExecutePipelineRequest, user_id: str = Depends(get_current_user_id)):
     try:
         run = await pipeline_engine.execute(pipeline_id, initial_input=req.input_data)
         return asdict(run)
@@ -115,13 +116,13 @@ async def execute_pipeline(pipeline_id: str, req: ExecutePipelineRequest):
 
 
 @router.get("/{pipeline_id}/runs")
-async def list_pipeline_runs(pipeline_id: str):
+async def list_pipeline_runs(pipeline_id: str, user_id: str = Depends(get_current_user_id)):
     runs = pipeline_engine.list_runs(pipeline_id=pipeline_id)
     return {"runs": [asdict(r) for r in runs], "total": len(runs)}
 
 
 @router.get("/runs/{run_id}")
-async def get_pipeline_run(run_id: str):
+async def get_pipeline_run(run_id: str, user_id: str = Depends(get_current_user_id)):
     run = pipeline_engine.get_run(run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")

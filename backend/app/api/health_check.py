@@ -186,12 +186,14 @@ async def check_feature_flags() -> ComponentHealth:
         )
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health")
 async def health_simple():
     """Simple health check for load balancers."""
     return {"status": "ok"}
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health/detailed")
 async def health_detailed() -> HealthResponse:
     """
@@ -247,12 +249,14 @@ async def health_detailed() -> HealthResponse:
     )
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health/live")
 async def health_live() -> dict:
     """Liveness probe for Kubernetes."""
     return {"status": "alive"}
 
 
+# PUBLIC: health/liveness/readiness probe required for load balancers and uptime monitors
 @router.get("/health/ready")
 async def health_ready() -> dict:
     """

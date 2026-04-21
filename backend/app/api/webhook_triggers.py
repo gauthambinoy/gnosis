@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from app.core.auth import get_current_user_id
 from app.core.webhook_triggers import webhook_trigger_manager
 from dataclasses import asdict
 from app.core.safe_error import safe_http_error
@@ -15,7 +16,7 @@ class CreateTriggerRequest(BaseModel):
 
 
 @router.post("/triggers")
-async def create_trigger(req: CreateTriggerRequest):
+async def create_trigger(req: CreateTriggerRequest, user_id: str = Depends(get_current_user_id)):
     trigger = webhook_trigger_manager.create_trigger(
         agent_id=req.agent_id, name=req.name, allowed_sources=req.allowed_sources
     )
@@ -23,13 +24,13 @@ async def create_trigger(req: CreateTriggerRequest):
 
 
 @router.get("/triggers")
-async def list_triggers(agent_id: Optional[str] = None):
+async def list_triggers(agent_id: Optional[str] = None, user_id: str = Depends(get_current_user_id)):
     triggers = webhook_trigger_manager.list_triggers(agent_id=agent_id)
     return {"triggers": [asdict(t) for t in triggers], "total": len(triggers)}
 
 
 @router.get("/triggers/{trigger_id}")
-async def get_trigger(trigger_id: str):
+async def get_trigger(trigger_id: str, user_id: str = Depends(get_current_user_id)):
     trigger = webhook_trigger_manager.get_trigger(trigger_id)
     if not trigger:
         raise HTTPException(status_code=404, detail="Trigger not found")
@@ -37,20 +38,21 @@ async def get_trigger(trigger_id: str):
 
 
 @router.delete("/triggers/{trigger_id}")
-async def delete_trigger(trigger_id: str):
+async def delete_trigger(trigger_id: str, user_id: str = Depends(get_current_user_id)):
     if not webhook_trigger_manager.delete_trigger(trigger_id):
         raise HTTPException(status_code=404, detail="Trigger not found")
     return {"deleted": True}
 
 
 @router.post("/triggers/{trigger_id}/toggle")
-async def toggle_trigger(trigger_id: str):
+async def toggle_trigger(trigger_id: str, user_id: str = Depends(get_current_user_id)):
     result = webhook_trigger_manager.toggle_trigger(trigger_id)
     if result is None:
         raise HTTPException(status_code=404, detail="Trigger not found")
     return {"active": result}
 
 
+# PUBLIC: external webhook callers hit this endpoint; authenticity is verified via optional x-webhook-signature header
 @router.post("/trigger/{trigger_id}")
 async def invoke_webhook(trigger_id: str, request: Request):
     """Public endpoint — external services POST here to trigger an agent."""
@@ -79,7 +81,7 @@ async def invoke_webhook(trigger_id: str, request: Request):
 
 
 @router.get("/triggers/{trigger_id}/invocations")
-async def list_invocations(trigger_id: str, limit: int = 50):
+async def list_invocations(trigger_id: str, limit: int = 50, user_id: str = Depends(get_current_user_id)):
     invocations = webhook_trigger_manager.get_invocations(
         trigger_id=trigger_id, limit=limit
     )
@@ -87,5 +89,5 @@ async def list_invocations(trigger_id: str, limit: int = 50):
 
 
 @router.get("/stats")
-async def webhook_stats():
+async def webhook_stats(user_id: str = Depends(get_current_user_id)):
     return webhook_trigger_manager.stats

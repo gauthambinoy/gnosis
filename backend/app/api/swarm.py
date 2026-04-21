@@ -1,8 +1,9 @@
 """Gnosis Swarm Intelligence API — Agent teams that self-organize."""
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.core.auth import get_current_user_id
 from app.core.swarm_engine import swarm_engine
 
 router = APIRouter(prefix="/api/v1/swarm", tags=["swarm"])
@@ -34,14 +35,14 @@ class SubmitResultRequest(BaseModel):
 
 
 @router.post("/register")
-async def register_agent(req: RegisterAgentRequest):
+async def register_agent(req: RegisterAgentRequest, user_id: str = Depends(get_current_user_id)):
     """Register an agent's capabilities in the swarm."""
     cap = swarm_engine.register_agent(req.agent_id, req.model_dump())
     return {"status": "registered", "agent": cap}
 
 
 @router.delete("/register/{agent_id}")
-async def unregister_agent(agent_id: str):
+async def unregister_agent(agent_id: str, user_id: str = Depends(get_current_user_id)):
     """Remove an agent from the swarm registry."""
     removed = swarm_engine.unregister_agent(agent_id)
     if not removed:
@@ -53,6 +54,7 @@ async def unregister_agent(agent_id: str):
 async def discover_agents(
     skills: Optional[str] = Query(None, description="Comma-separated skills"),
     specialization: Optional[str] = Query(None, description="Specialization filter"),
+    user_id: str = Depends(get_current_user_id),
 ):
     """Discover agents by skills or specialization."""
     skill_list = [s.strip() for s in skills.split(",") if s.strip()] if skills else None
@@ -63,7 +65,7 @@ async def discover_agents(
 
 
 @router.get("/registry")
-async def get_registry():
+async def get_registry(user_id: str = Depends(get_current_user_id)):
     """Get full agent registry."""
     registry = swarm_engine.get_registry()
     return {"agents": registry, "count": len(registry)}
@@ -73,21 +75,21 @@ async def get_registry():
 
 
 @router.post("/tasks")
-async def create_swarm_task(req: CreateSwarmTaskRequest):
+async def create_swarm_task(req: CreateSwarmTaskRequest, user_id: str = Depends(get_current_user_id)):
     """Create a swarm task — agents are auto-recruited."""
     task = await swarm_engine.create_swarm_task(req.model_dump())
     return {"status": "created", "task": task}
 
 
 @router.get("/tasks")
-async def list_tasks(status: Optional[str] = Query(None)):
+async def list_tasks(status: Optional[str] = Query(None), user_id: str = Depends(get_current_user_id)):
     """List swarm tasks, optionally filtered by status."""
     tasks = swarm_engine.list_tasks(status=status or "")
     return {"tasks": tasks, "count": len(tasks)}
 
 
 @router.get("/tasks/{task_id}")
-async def get_task(task_id: str):
+async def get_task(task_id: str, user_id: str = Depends(get_current_user_id)):
     """Get a specific swarm task."""
     task = swarm_engine.get_task(task_id)
     if not task:
@@ -96,7 +98,7 @@ async def get_task(task_id: str):
 
 
 @router.post("/tasks/{task_id}/result")
-async def submit_result(task_id: str, req: SubmitResultRequest):
+async def submit_result(task_id: str, req: SubmitResultRequest, user_id: str = Depends(get_current_user_id)):
     """Submit a result for a swarm task."""
     result = await swarm_engine.submit_result(task_id, req.agent_id, req.result)
     if "error" in result:
@@ -108,7 +110,7 @@ async def submit_result(task_id: str, req: SubmitResultRequest):
 
 
 @router.get("/inbox/{agent_id}")
-async def get_inbox(agent_id: str, limit: int = Query(20, ge=1, le=100)):
+async def get_inbox(agent_id: str, limit: int = Query(20, ge=1, le=100), user_id: str = Depends(get_current_user_id)):
     """Get an agent's message inbox."""
     messages = swarm_engine.get_inbox(agent_id, limit=limit)
     return {"messages": messages, "count": len(messages)}
@@ -118,6 +120,6 @@ async def get_inbox(agent_id: str, limit: int = Query(20, ge=1, le=100)):
 
 
 @router.get("/stats")
-async def get_stats():
+async def get_stats(user_id: str = Depends(get_current_user_id)):
     """Get swarm intelligence statistics."""
     return swarm_engine.get_stats()

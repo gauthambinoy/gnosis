@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from app.core.auth import get_current_user_id
 from app.core.execution_recorder import execution_recorder
 from dataclasses import asdict
 
@@ -6,7 +7,7 @@ router = APIRouter(prefix="/api/v1/replay", tags=["replay"])
 
 
 @router.get("")
-async def list_recordings(agent_id: str = None, limit: int = 50):
+async def list_recordings(agent_id: str = None, limit: int = 50, user_id: str = Depends(get_current_user_id)):
     recordings = execution_recorder.list_recordings(agent_id=agent_id, limit=limit)
     # Return summaries without full steps for list view
     summaries = []
@@ -27,12 +28,12 @@ async def list_recordings(agent_id: str = None, limit: int = 50):
 
 
 @router.get("/stats/overview")
-async def replay_stats():
+async def replay_stats(user_id: str = Depends(get_current_user_id)):
     return execution_recorder.stats
 
 
 @router.get("/{recording_id}")
-async def get_recording(recording_id: str):
+async def get_recording(recording_id: str, user_id: str = Depends(get_current_user_id)):
     recording = execution_recorder.get_recording(recording_id)
     if not recording:
         raise HTTPException(status_code=404, detail="Recording not found")
@@ -40,7 +41,7 @@ async def get_recording(recording_id: str):
 
 
 @router.get("/{recording_id}/steps")
-async def get_recording_steps(recording_id: str):
+async def get_recording_steps(recording_id: str, user_id: str = Depends(get_current_user_id)):
     recording = execution_recorder.get_recording(recording_id)
     if not recording:
         raise HTTPException(status_code=404, detail="Recording not found")

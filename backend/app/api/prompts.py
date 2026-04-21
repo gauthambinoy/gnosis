@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
+from app.core.auth import get_current_user_id
 from app.core.prompt_optimizer import prompt_optimizer
 from dataclasses import asdict
 
@@ -13,17 +14,17 @@ class OptimizeRequest(BaseModel):
 
 
 @router.post("/optimize")
-async def optimize_prompt(req: OptimizeRequest):
+async def optimize_prompt(req: OptimizeRequest, user_id: str = Depends(get_current_user_id)):
     result = prompt_optimizer.optimize(req.prompt, agent_id=req.agent_id)
     return asdict(result)
 
 
 @router.get("/history/{agent_id}")
-async def prompt_history(agent_id: str):
+async def prompt_history(agent_id: str, user_id: str = Depends(get_current_user_id)):
     history = prompt_optimizer.get_history(agent_id)
     return {"history": history, "total": len(history)}
 
 
 @router.get("/stats")
-async def prompt_stats():
+async def prompt_stats(user_id: str = Depends(get_current_user_id)):
     return prompt_optimizer.stats

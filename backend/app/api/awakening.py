@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import json
 
+from app.core.auth import get_current_user_id
 from app.core.llm_gateway import llm_gateway, LLMRequest
 
 router = APIRouter()
@@ -14,7 +15,9 @@ class AwakenRequest(BaseModel):
 
 
 @router.post("/chat")
-async def awaken_chat(data: AwakenRequest):
+async def awaken_chat(
+    data: AwakenRequest, user_id: str = Depends(get_current_user_id)
+):
     """Conversational agent creation via streaming SSE — powered by LLM Gateway."""
 
     async def stream():

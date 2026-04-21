@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request, Query
+from fastapi import APIRouter, HTTPException, Request, Query, Depends
 
+from app.core.auth import get_current_user_id
 from app.integrations.oauth import oauth_manager
 
 router = APIRouter()
@@ -16,13 +17,13 @@ _DEFAULT_USER = "default"
 
 
 @router.get("/providers")
-async def list_providers():
+async def list_providers(user_id: str = Depends(get_current_user_id)):
     """List available integrations with connection status."""
     results = []
     for pid, meta in PROVIDERS.items():
         oauth_prov = meta["oauth_provider"]
         if oauth_prov:
-            connected = oauth_manager.is_connected(oauth_prov, _DEFAULT_USER)
+            connected = oauth_manager.is_connected(oauth_prov, user_id)
             status = "connected" if connected else "not_connected"
         else:
             status = "available"
@@ -33,7 +34,9 @@ async def list_providers():
 
 
 @router.get("/{provider}/auth")
-async def start_oauth(provider: str, request: Request):
+async def start_oauth(
+    provider: str, request: Request, user_id: str = Depends(get_current_user_id)
+):
     """Start OAuth flow — returns the authorization URL."""
     meta = PROVIDERS.get(provider)
     if not meta:
@@ -45,10 +48,11 @@ async def start_oauth(provider: str, request: Request):
     redirect_uri = (
         str(request.base_url).rstrip("/") + f"/api/v1/integrations/{provider}/callback"
     )
-    auth_url = oauth_manager.get_auth_url(oauth_prov, _DEFAULT_USER, redirect_uri)
+    auth_url = oauth_manager.get_auth_url(oauth_prov, user_id, redirect_uri)
     return {"auth_url": auth_url, "provider": provider}
 
 
+# PUBLIC: OAuth provider redirects the end user here with code/state; protected by state validation in oauth_manager
 @router.get("/{provider}/callback")
 async def oauth_callback(
     provider: str,
@@ -81,7 +85,9 @@ async def oauth_callback(
 
 
 @router.delete("/{provider}")
-async def disconnect_provider(provider: str):
+async def disconnect_provider(
+    provider: str, user_id: str = Depends(get_current_user_id)
+):
     """Disconnect / revoke OAuth tokens for a provider."""
     meta = PROVIDERS.get(provider)
     if not meta:
@@ -90,12 +96,14 @@ async def disconnect_provider(provider: str):
     if not oauth_prov:
         raise HTTPException(status_code=400, detail=f"{provider} does not use OAuth")
 
-    await oauth_manager.revoke(oauth_prov, _DEFAULT_USER)
+    await oauth_manager.revoke(oauth_prov, user_id)
     return {"status": "disconnected", "provider": provider}
 
 
 @router.get("/{provider}/status")
-async def provider_status(provider: str):
+async def provider_status(
+    provider: str, user_id: str = Depends(get_current_user_id)
+):
     """Check connection status for a provider."""
     meta = PROVIDERS.get(provider)
     if not meta:
@@ -103,7 +111,7 @@ async def provider_status(provider: str):
     oauth_prov = meta["oauth_provider"]
     if not oauth_prov:
         return {"provider": provider, "status": "available"}
-    connected = oauth_manager.is_connected(oauth_prov, _DEFAULT_USER)
+    connected = oauth_manager.is_connected(oauth_prov, user_id)
     return {
         "provider": provider,
         "status": "connected" if connected else "not_connected",

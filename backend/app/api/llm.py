@@ -35,7 +35,7 @@ class TestRequest(BaseModel):
 
 
 @router.get("/models")
-async def list_models(provider: str = ""):
+async def list_models(provider: str = "", user_id: str = Depends(get_current_user_id)):
     """List available models from the configured provider."""
     models = await llm_gateway.list_available_models(provider)
     return {
@@ -77,7 +77,7 @@ async def complete(
 
 
 @router.get("/stats")
-async def get_llm_stats():
+async def get_llm_stats(user_id: str = Depends(get_current_user_id)):
     return {
         "router": model_router.stats,
         "gateway": llm_gateway.get_stats(),
@@ -111,12 +111,12 @@ async def test_connection(
 
 
 @router.get("/tiers")
-async def get_tiers():
+async def get_tiers(user_id: str = Depends(get_current_user_id)):
     return {"tiers": TIER_CONFIG}
 
 
 @router.get("/providers")
-async def get_providers():
+async def get_providers(user_id: str = Depends(get_current_user_id)):
     return {
         "providers": [
             {
@@ -153,15 +153,15 @@ async def get_providers():
 
 
 @router.get("/costs")
-async def get_costs():
+async def get_costs(user_id: str = Depends(get_current_user_id)):
     return {"today": cost_tracker.today_stats, "total": cost_tracker.total_stats}
 
 
 @router.get("/costs/{agent_id}")
-async def get_agent_costs(agent_id: str):
+async def get_agent_costs(agent_id: str, user_id: str = Depends(get_current_user_id)):
     return cost_tracker.agent_stats(agent_id)
 
 
 @router.get("/costs/recent/records")
-async def get_recent_cost_records(limit: int = 50):
+async def get_recent_cost_records(limit: int = 50, user_id: str = Depends(get_current_user_id)):
     return {"records": cost_tracker.recent_records(limit)}

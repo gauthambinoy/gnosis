@@ -55,12 +55,12 @@ async def list_workspaces(user_id: str = Depends(get_current_user_id)):
 
 
 @router.get("/stats")
-async def workspace_stats():
+async def workspace_stats(user_id: str = Depends(get_current_user_id)):
     return workspace_engine.stats
 
 
 @router.get("/{workspace_id}")
-async def get_workspace(workspace_id: str):
+async def get_workspace(workspace_id: str, user_id: str = Depends(get_current_user_id)):
     ws = workspace_engine.get(workspace_id)
     if not ws:
         raise HTTPException(status_code=404, detail="Workspace not found")
@@ -68,7 +68,7 @@ async def get_workspace(workspace_id: str):
 
 
 @router.patch("/{workspace_id}")
-async def update_workspace(workspace_id: str, body: UpdateWorkspaceRequest):
+async def update_workspace(workspace_id: str, body: UpdateWorkspaceRequest, user_id: str = Depends(get_current_user_id)):
     updates = body.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -79,7 +79,7 @@ async def update_workspace(workspace_id: str, body: UpdateWorkspaceRequest):
 
 
 @router.delete("/{workspace_id}")
-async def delete_workspace(workspace_id: str):
+async def delete_workspace(workspace_id: str, user_id: str = Depends(get_current_user_id)):
     if not workspace_engine.delete(workspace_id):
         raise HTTPException(status_code=404, detail="Workspace not found")
     return {"deleted": True}
@@ -112,7 +112,7 @@ async def accept_invite(invite_id: str, user_id: str = Depends(get_current_user_
 
 
 @router.delete("/{workspace_id}/members/{member_user_id}")
-async def remove_member(workspace_id: str, member_user_id: str):
+async def remove_member(workspace_id: str, member_user_id: str, user_id: str = Depends(get_current_user_id)):
     if not workspace_engine.remove_member(workspace_id, member_user_id):
         raise HTTPException(status_code=404, detail="Workspace or member not found")
     return {"removed": True}
@@ -120,7 +120,10 @@ async def remove_member(workspace_id: str, member_user_id: str):
 
 @router.patch("/{workspace_id}/members/{member_user_id}/role")
 async def update_member_role(
-    workspace_id: str, member_user_id: str, body: UpdateRoleRequest
+    workspace_id: str,
+    member_user_id: str,
+    body: UpdateRoleRequest,
+    user_id: str = Depends(get_current_user_id),
 ):
     try:
         role = Role(body.role)
@@ -132,7 +135,7 @@ async def update_member_role(
 
 
 @router.get("/{workspace_id}/members")
-async def list_members(workspace_id: str):
+async def list_members(workspace_id: str, user_id: str = Depends(get_current_user_id)):
     ws = workspace_engine.get(workspace_id)
     if not ws:
         raise HTTPException(status_code=404, detail="Workspace not found")

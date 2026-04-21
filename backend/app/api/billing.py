@@ -23,6 +23,7 @@ class RecordUsageRequest(BaseModel):
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 
+# PUBLIC: pricing plan catalog is shown on the marketing/pricing page pre-login
 @router.get("/plans")
 async def list_plans():
     return {"plans": billing_engine.get_plans()}
@@ -65,5 +66,5 @@ async def check_quota(metric: str, user_id: str = Depends(get_current_user_id)):
 
 
 @router.get("/stats")
-async def billing_stats():
+async def billing_stats(user_id: str = Depends(get_current_user_id)):
     return billing_engine.stats

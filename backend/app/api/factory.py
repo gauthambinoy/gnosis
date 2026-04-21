@@ -1,7 +1,8 @@
 """Gnosis Agent Factory API — Create AI agents from natural language."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
+from app.core.auth import get_current_user_id
 from app.core.agent_factory import agent_factory, INTENT_TEMPLATES
 
 router = APIRouter(prefix="/api/v1/factory", tags=["factory"])
@@ -16,20 +17,20 @@ class AnalyzeRequest(BaseModel):
 
 
 @router.post("/analyze")
-async def analyze(req: AnalyzeRequest):
+async def analyze(req: AnalyzeRequest, user_id: str = Depends(get_current_user_id)):
     """Analyze a natural language description and return a deployment plan."""
     plan = agent_factory.analyze(req.description)
     return plan
 
 
 @router.get("/plans")
-async def list_plans():
+async def list_plans(user_id: str = Depends(get_current_user_id)):
     """List all deployment plans."""
     return agent_factory.list_plans()
 
 
 @router.get("/plans/{plan_id}")
-async def get_plan(plan_id: str):
+async def get_plan(plan_id: str, user_id: str = Depends(get_current_user_id)):
     """Get a specific deployment plan."""
     plan = agent_factory.get_plan(plan_id)
     if not plan:
@@ -38,7 +39,7 @@ async def get_plan(plan_id: str):
 
 
 @router.post("/plans/{plan_id}/deploy")
-async def deploy_plan(plan_id: str):
+async def deploy_plan(plan_id: str, user_id: str = Depends(get_current_user_id)):
     """Deploy (approve) a plan — creates agents, pipelines, schedules."""
     plan = agent_factory.get_plan(plan_id)
     if not plan:
@@ -50,7 +51,7 @@ async def deploy_plan(plan_id: str):
 
 
 @router.delete("/plans/{plan_id}")
-async def delete_plan(plan_id: str):
+async def delete_plan(plan_id: str, user_id: str = Depends(get_current_user_id)):
     """Delete a deployment plan."""
     if not agent_factory.delete_plan(plan_id):
         raise HTTPException(status_code=404, detail="Plan not found")
@@ -58,13 +59,13 @@ async def delete_plan(plan_id: str):
 
 
 @router.get("/deployments")
-async def list_deployments():
+async def list_deployments(user_id: str = Depends(get_current_user_id)):
     """List all completed deployments."""
     return agent_factory.get_deployments()
 
 
 @router.get("/intents")
-async def list_intents():
+async def list_intents(user_id: str = Depends(get_current_user_id)):
     """List available intent categories with their keywords."""
     return {
         name: {
@@ -78,6 +79,6 @@ async def list_intents():
 
 
 @router.get("/stats")
-async def factory_stats():
+async def factory_stats(user_id: str = Depends(get_current_user_id)):
     """Get factory statistics."""
     return agent_factory.get_stats()
