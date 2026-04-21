@@ -7,12 +7,19 @@ Fails fast with clear error messages if any secrets are missing.
 
 Usage:
     python3 scripts/validate_secrets.py [--environment prod|staging|dev]
+
+Programmatic use (called from app startup):
+    from scripts.validate_secrets import enforce_no_default_secrets
+    enforce_no_default_secrets(settings)        # raises RuntimeError on default
 """
 
 import sys
 import os
-from typing import Optional
+import logging
+from typing import Iterable, Optional
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # ANSI colors for terminal output
 RED = "\033[91m"
@@ -150,6 +157,91 @@ def main():
     success = validator.validate()
 
     sys.exit(0 if success else 1)
+
+
+# ─── Startup hook (programmatic) ───────────────────────────────────────────
+#
+# The CLI ``SecretValidator`` above is meant for human-driven pre-deploy
+# checks. The ``enforce_no_default_secrets`` helper below is the in-process
+# guard wired into ``app.main`` so the FastAPI app refuses to serve a single
+# request when a known shipped default secret is still in place in a
+# production-like environment.
+
+_KNOWN_DEFAULT_SECRETS: frozenset[str] = frozenset(
+    {
+        "gnosis-secret-key-change-in-production-minimum-32-chars",
+        "change-in-production",
+        "changeme",
+        "secret",
+        "default",
+    }
+)
+
+_NON_PRODUCTION_ENVIRONMENTS: frozenset[str] = frozenset(
+    {"dev", "development", "local", "test", "testing", "ci"}
+)
+
+# Settings attribute names (and their canonical env var names) that must never
+# hold a known default secret in production.
+_PROTECTED_SECRET_FIELDS: tuple[tuple[str, str], ...] = (
+    ("secret_key", "SECRET_KEY"),
+    ("jwt_secret_key", "JWT_SECRET_KEY"),
+    ("encryption_key", "ENCRYPTION_KEY"),
+)
+
+
+def _resolve_environment(settings, override: Optional[str]) -> str:
+    if override is not None:
+        return override
+    env = getattr(settings, "environment", None)
+    if not env:
+        env = os.getenv("ENVIRONMENT") or os.getenv("ENV") or "development"
+    return str(env)
+
+
+def _is_production(environment: str) -> bool:
+    return environment.strip().lower() not in _NON_PRODUCTION_ENVIRONMENTS
+
+
+def _iter_default_secret_fields(settings) -> Iterable[tuple[str, str]]:
+    for attr, env_name in _PROTECTED_SECRET_FIELDS:
+        value = getattr(settings, attr, None)
+        if value is None:
+            continue
+        if value in _KNOWN_DEFAULT_SECRETS:
+            yield env_name, value
+
+
+def enforce_no_default_secrets(settings, environment: Optional[str] = None) -> None:
+    """Fail-fast guard for app startup.
+
+    Raises ``RuntimeError`` when any protected secret on ``settings`` matches a
+    known shipped default and the resolved environment is production-like.
+    In development/test environments the check only emits a warning so local
+    boots are not disrupted.
+    """
+    env = _resolve_environment(settings, environment)
+    offenders = list(_iter_default_secret_fields(settings))
+
+    if not offenders:
+        return
+
+    names = ", ".join(name for name, _ in offenders)
+
+    if _is_production(env):
+        raise RuntimeError(
+            f"FATAL: refusing to start Gnosis in environment={env!r} because the "
+            f"following secret(s) still hold a known insecure default value: "
+            f"{names}. Rotate them before launching (generate with: "
+            f"openssl rand -hex 32)."
+        )
+
+    logger.warning(
+        "Insecure default secret(s) detected in environment=%s: %s. "
+        "Acceptable only in dev/test — production startup will be refused.",
+        env,
+        names,
+    )
 
 
 if __name__ == "__main__":

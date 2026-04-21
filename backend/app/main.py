@@ -110,6 +110,14 @@ from app.core.logger import setup_logging, get_logger
 from app.core.error_handling import register_error_handlers
 from app.core.rate_limiter import require_rate_limit
 from app.core.env_validator import validate_environment
+# ``scripts/`` lives next to ``app/`` (one level above the package root),
+# so ensure it is importable for the startup secret validator.
+import sys as _sys
+from pathlib import Path as _Path
+_SCRIPTS_DIR = _Path(__file__).resolve().parents[1] / "scripts"
+if str(_SCRIPTS_DIR) not in _sys.path:
+    _sys.path.insert(0, str(_SCRIPTS_DIR))
+from validate_secrets import enforce_no_default_secrets  # noqa: E402
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.body_limit import RequestBodyLimitMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
@@ -233,6 +241,11 @@ async def lifespan(app: FastAPI):
 
     # Log environment configuration before opening connections.
     validate_environment(strict=False)
+
+    # Hard fail-fast guard: refuse to serve if a known default secret is in
+    # place in any production-like environment. Must run BEFORE any side
+    # effects (DB/Redis connections, background workers, etc.).
+    enforce_no_default_secrets(settings)
 
     # Connect Redis (graceful — never crashes)
     await redis_manager.connect()
