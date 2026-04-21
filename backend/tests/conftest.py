@@ -22,6 +22,41 @@ except Exception:
 pytest_plugins = ["anyio"]
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Clear in-memory rate limiter state between tests to avoid cross-test bleed."""
+    try:
+        from app.core.rate_limiter import rate_limiter
+        rate_limiter.windows.clear()
+    except Exception:
+        pass
+    # Reset Starlette security middleware counts if present
+    try:
+        from app.main import app
+        for mw in app.user_middleware:
+            inst = getattr(mw, "kwargs", {})
+            # No direct access — walk app.middleware_stack at runtime
+        # Walk middleware stack to clear per-IP counters
+        stack = getattr(app, "middleware_stack", None)
+        seen = set()
+        while stack is not None and id(stack) not in seen:
+            seen.add(id(stack))
+            for attr in ("request_counts", "_windows"):
+                d = getattr(stack, attr, None)
+                if isinstance(d, dict):
+                    d.clear()
+            rl = getattr(stack, "rate_limiter", None)
+            if rl is not None:
+                for attr in ("requests", "_windows", "request_counts"):
+                    d = getattr(rl, attr, None)
+                    if isinstance(d, dict):
+                        d.clear()
+            stack = getattr(stack, "app", None)
+    except Exception:
+        pass
+    yield
+
+
 @pytest.fixture
 def anyio_backend():
     return "asyncio"

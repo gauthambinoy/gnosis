@@ -1,17 +1,20 @@
 """User feedback collection endpoint."""
 
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Literal, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from app.core.audit_log import audit_log
+from app.core.auth import decode_token
 
 router = APIRouter(prefix="/api/v1/feedback", tags=["feedback"])
 
 _feedback_store: list[dict] = []
+_optional_security = HTTPBearer(auto_error=False)
 
 
 class FeedbackIn(BaseModel):
@@ -28,15 +31,27 @@ class FeedbackOut(BaseModel):
     status: str = "received"
 
 
-def _current_user_id() -> str | None:
-    """Best-effort user id resolver. Replaced by real auth dependency in main.py."""
-    return None
+async def get_optional_user_id(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(_optional_security),
+) -> Optional[str]:
+    """Best-effort user resolver. Returns the JWT subject when a valid token is
+    presented, otherwise None so anonymous feedback continues to work."""
+    if credentials is None:
+        return None
+    try:
+        payload = decode_token(credentials.credentials)
+    except Exception:
+        return None
+    if payload.get("type") != "access":
+        return None
+    sub = payload.get("sub")
+    return str(sub) if sub else None
 
 
 @router.post("", response_model=FeedbackOut, status_code=201)
 async def submit_feedback(
     payload: FeedbackIn,
-    user_id: str | None = Depends(_current_user_id),
+    user_id: Optional[str] = Depends(get_optional_user_id),
 ) -> FeedbackOut:
     entry = {
         "id": str(uuid4()),

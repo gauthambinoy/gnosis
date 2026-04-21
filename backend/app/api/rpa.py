@@ -1,9 +1,50 @@
+import re
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from app.core.rpa_engine import rpa_engine
+from app.core.error_handling import ValidationError
 
 router = APIRouter(prefix="/api/v1/rpa", tags=["rpa"])
+
+
+# ─── Selector / xpath validation ───
+
+_DANGEROUS_PATTERNS = (
+    re.compile(r"javascript:", re.IGNORECASE),
+    re.compile(r"\bon[a-z]+\s*=", re.IGNORECASE),
+    re.compile(r"expression\s*\(", re.IGNORECASE),
+)
+
+
+def _validate_selector_value(value: str, field: str) -> None:
+    """Reject obvious selector/xpath injection vectors."""
+    if not value:
+        return
+    if len(value) > 1024:
+        raise ValidationError(f"{field} exceeds 1024 character limit")
+    if "<" in value or ">" in value:
+        raise ValidationError(
+            f"{field} may not contain '<' or '>' characters"
+        )
+    for pat in _DANGEROUS_PATTERNS:
+        if pat.search(value):
+            raise ValidationError(f"{field} contains a forbidden pattern")
+
+
+def _validate_record_action(req: "RecordActionRequest") -> None:
+    _validate_selector_value(req.selector, "selector")
+    _validate_selector_value(req.xpath, "xpath")
+
+
+def _validate_workflow_actions(actions: list[dict] | None) -> None:
+    if not actions:
+        return
+    for idx, action in enumerate(actions):
+        for field in ("selector", "xpath"):
+            value = action.get(field)
+            if isinstance(value, str):
+                _validate_selector_value(value, f"actions[{idx}].{field}")
 
 
 # ─── Request Models ───
@@ -75,6 +116,7 @@ async def start_recording(req: StartRecordingRequest):
 
 @router.post("/record/{session_id}/action")
 async def record_action(session_id: str, req: RecordActionRequest):
+    _validate_record_action(req)
     result = rpa_engine.record_action(session_id, req.model_dump())
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
@@ -110,6 +152,7 @@ async def list_workflows(tag: str = "", status: str = ""):
 
 @router.post("/workflows")
 async def create_workflow(req: WorkflowCreateRequest):
+    _validate_workflow_actions(req.actions)
     return rpa_engine.create_workflow(req.model_dump())
 
 
@@ -123,6 +166,7 @@ async def get_workflow(workflow_id: str):
 
 @router.put("/workflows/{workflow_id}")
 async def update_workflow(workflow_id: str, req: WorkflowUpdateRequest):
+    _validate_workflow_actions(req.actions)
     data = {k: v for k, v in req.model_dump().items() if v is not None}
     wf = rpa_engine.update_workflow(workflow_id, data)
     if not wf:

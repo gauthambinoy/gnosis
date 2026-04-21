@@ -22,16 +22,37 @@ Before any deployment, verify:
 - [ ] Secrets exist in AWS Secrets Manager (never commit secrets)
 - [ ] Feature flags configured for gradual rollout
 - [ ] Monitoring dashboards ready in Grafana
+- [ ] `GNOSIS_AUTO_API_ALLOWED_HOSTS` set (see [Auto-API outbound allowlist](#auto-api-outbound-allowlist))
+
+## Auto-API outbound allowlist
+
+The `/api/v1/apis/connections/{id}/call` endpoint can issue outbound HTTP
+requests to third-party APIs. To prevent SSRF and abuse, the endpoint enforces:
+
+- A per-user rate limit (30 calls/minute).
+- A host allowlist read from the env var **`GNOSIS_AUTO_API_ALLOWED_HOSTS`**
+  (comma-separated hostnames, e.g.
+  `GNOSIS_AUTO_API_ALLOWED_HOSTS=api.stripe.com,api.github.com`). Subdomains
+  of allowed hosts are accepted.
+- A hard block on private, loopback, link-local, multicast, reserved, and
+  unresolvable hostnames (DNS-resolved before the call).
+
+In production (`DEBUG=false`) an empty allowlist disables the endpoint
+entirely (every call returns 403). In development (`DEBUG=true`) an empty
+allowlist logs a warning but allows the call so local testing is not blocked.
 
 ## Deployment Procedure
+
+> **Immutable image tags (policy)**
+> As of the H14 hardening pass, **production no longer publishes or consumes the `:latest` tag**. CI (`.github/workflows/deploy.yml`) and `deploy.sh` push only the immutable git-SHA tag, and `docker-compose.prod.yml` requires `IMAGE_TAG` to be explicitly set (`${IMAGE_TAG:?…}`) so a missing or stale environment fails fast instead of silently re-running an arbitrary `:latest`. Roll forward and roll back by exporting the exact SHA you want (`export IMAGE_TAG=<git-sha>`) before `docker compose … up -d` or before the ECS task-definition update. The CI pipeline additionally requires a GitHub Actions repo secret named **`CI_SECRET_KEY`** (any random 32+ char string — test-only, generate with `openssl rand -hex 32`); without it the backend test job fails because `SECRET_KEY` resolves to empty. Set it once under *GitHub → Settings → Secrets and variables → Actions*.
 
 ### 1. Build Backend Docker Image
 
 ```bash
 cd backend
 
-# Set build variables
-export IMAGE_TAG="v$(date +%Y%m%d-%H%M%S)"
+# Set build variables — IMAGE_TAG MUST be the git SHA (immutable). No :latest.
+export IMAGE_TAG="$(git rev-parse --short HEAD)"
 export AWS_REGION="us-east-1"
 export AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 export ECR_REPO="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/gnosis-backend"
@@ -40,10 +61,9 @@ export ECR_REPO="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/gnosis-backen
 aws ecr get-login-password --region $AWS_REGION | \
   docker login --username AWS --password-stdin $ECR_REPO
 
-# Build and push
-docker build -t $ECR_REPO:$IMAGE_TAG -t $ECR_REPO:latest .
+# Build and push (SHA tag only — :latest is intentionally NOT published)
+docker build -t $ECR_REPO:$IMAGE_TAG .
 docker push $ECR_REPO:$IMAGE_TAG
-docker push $ECR_REPO:latest
 
 echo "✅ Backend image pushed: $ECR_REPO:$IMAGE_TAG"
 ```
@@ -55,10 +75,9 @@ cd ../frontend
 
 export FRONTEND_REPO="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/gnosis-frontend"
 
-# Build and push
-docker build -t $FRONTEND_REPO:$IMAGE_TAG -t $FRONTEND_REPO:latest .
+# Build and push (SHA tag only — :latest is intentionally NOT published)
+docker build -t $FRONTEND_REPO:$IMAGE_TAG .
 docker push $FRONTEND_REPO:$IMAGE_TAG
-docker push $FRONTEND_REPO:latest
 
 echo "✅ Frontend image pushed: $FRONTEND_REPO:$IMAGE_TAG"
 ```

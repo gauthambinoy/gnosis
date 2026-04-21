@@ -1,10 +1,23 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from app.llm.router import model_router, TIER_CONFIG
 from app.core.cost_tracker import cost_tracker
 from app.core.llm_gateway import llm_gateway, LLMRequest
+from app.core.auth import get_current_user_id
+from app.core.quota_engine import quota_engine
+from app.core.error_handling import QuotaExceededError
 
 router = APIRouter()
+
+
+def _enforce_token_quota(user_id: str, requested_tokens: int) -> None:
+    """Reject request if it would push the user over their daily token quota."""
+    check = quota_engine.check_quota(user_id, "tokens", max(1, int(requested_tokens)))
+    if not check["allowed"]:
+        raise QuotaExceededError(
+            "Daily token quota exceeded",
+            detail=check,
+        )
 
 
 class CompletionRequest(BaseModel):
@@ -34,8 +47,12 @@ async def list_models(provider: str = ""):
 
 
 @router.post("/complete")
-async def complete(request: CompletionRequest):
+async def complete(
+    request: CompletionRequest,
+    user_id: str = Depends(get_current_user_id),
+):
     """Direct LLM completion endpoint via the universal gateway."""
+    _enforce_token_quota(user_id, request.max_tokens)
     llm_req = LLMRequest(
         prompt=request.prompt,
         system_prompt=request.system_prompt,
@@ -45,6 +62,7 @@ async def complete(request: CompletionRequest):
         temperature=request.temperature,
     )
     response = await llm_gateway.complete(llm_req)
+    quota_engine.record_usage(user_id, "tokens", int(response.tokens_used or 0))
     return {
         "content": response.content,
         "model": response.model,
@@ -67,8 +85,12 @@ async def get_llm_stats():
 
 
 @router.post("/test")
-async def test_connection(request: TestRequest):
+async def test_connection(
+    request: TestRequest,
+    user_id: str = Depends(get_current_user_id),
+):
     """Test LLM connection with a simple prompt."""
+    _enforce_token_quota(user_id, 100)
     llm_req = LLMRequest(
         prompt=request.prompt,
         system_prompt="You are a helpful assistant. Be very brief.",
@@ -78,6 +100,7 @@ async def test_connection(request: TestRequest):
         temperature=0.5,
     )
     response = await llm_gateway.complete(llm_req)
+    quota_engine.record_usage(user_id, "tokens", int(response.tokens_used or 0))
     return {
         "status": "ok" if response.provider != "none" else "no_api_key",
         "content": response.content,

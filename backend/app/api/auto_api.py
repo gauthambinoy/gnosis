@@ -1,11 +1,126 @@
 """Gnosis Auto-API Discovery — Connect to any API by name."""
 
-from fastapi import APIRouter, HTTPException, Query
+import ipaddress
+import logging
+import os
+import socket
+from urllib.parse import urlparse
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from typing import Optional
 from app.core.auto_api import auto_api
+from app.core.auth import get_current_user_id
+from app.core.rate_limiter import rate_limiter
+from app.core.error_handling import (
+    ForbiddenError,
+    RateLimitError,
+    ValidationError,
+)
+from app.config import get_settings
+
+logger = logging.getLogger("gnosis.auto_api")
+_settings = get_settings()
 
 router = APIRouter(prefix="/api/v1/apis", tags=["auto-api"])
+
+
+# ─── Security helpers ───
+
+
+_AUTO_API_CALL_LIMIT_PER_MIN = 30
+
+
+def _allowed_hosts() -> set[str]:
+    """Read GNOSIS_AUTO_API_ALLOWED_HOSTS at call time (test-friendly)."""
+    raw = os.environ.get("GNOSIS_AUTO_API_ALLOWED_HOSTS") or getattr(
+        _settings, "auto_api_allowed_hosts", ""
+    )
+    return {h.strip().lower() for h in (raw or "").split(",") if h.strip()}
+
+
+def _is_private_ip(host: str) -> bool:
+    """Resolve host and reject private/loopback/link-local/multicast IPs."""
+    try:
+        # Direct IP literal
+        ip = ipaddress.ip_address(host)
+        return (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        )
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except socket.gaierror:
+        # Unresolvable host — reject as a precaution
+        return True
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr.split("%")[0])
+        except ValueError:
+            continue
+        if (
+            ip.is_private
+            or ip.is_loopback
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+        ):
+            return True
+    return False
+
+
+def _enforce_outbound_call_security(target_url: str, user_id: str) -> None:
+    """Validate that the outbound URL is allowed: host whitelist + private-IP block."""
+    parsed = urlparse(target_url)
+    host = (parsed.hostname or "").lower()
+    if not host:
+        raise ValidationError("Invalid target URL: missing host")
+
+    if _is_private_ip(host):
+        logger.warning(
+            "auto_api blocked private/loopback host '%s' for user %s", host, user_id
+        )
+        raise ForbiddenError("Outbound calls to private/loopback addresses are blocked")
+
+    allowed = _allowed_hosts()
+    if not allowed:
+        if _settings.debug:
+            logger.warning(
+                "GNOSIS_AUTO_API_ALLOWED_HOSTS is empty — allowing host '%s' "
+                "ONLY because DEBUG=true. Set the env var before deploying.",
+                host,
+            )
+            return
+        raise ForbiddenError(
+            "Auto-API outbound calls are disabled: set GNOSIS_AUTO_API_ALLOWED_HOSTS"
+        )
+
+    # Allow exact match or subdomain match
+    if host in allowed:
+        return
+    for allowed_host in allowed:
+        if host.endswith("." + allowed_host):
+            return
+    raise ForbiddenError(f"Host '{host}' is not in GNOSIS_AUTO_API_ALLOWED_HOSTS")
+
+
+def _enforce_call_rate_limit(user_id: str) -> None:
+    result = rate_limiter.check(
+        f"auto_api_call:{user_id}", limit=_AUTO_API_CALL_LIMIT_PER_MIN
+    )
+    if not result["allowed"]:
+        raise RateLimitError(
+            "Auto-API call rate limit exceeded",
+            detail=result,
+        )
 
 
 # ─── Request Models ───
@@ -101,8 +216,22 @@ async def test_connection(connection_id: str):
 
 
 @router.post("/connections/{connection_id}/call")
-async def call_api(connection_id: str, req: CallAPIRequest):
+async def call_api(
+    connection_id: str,
+    req: CallAPIRequest,
+    user_id: str = Depends(get_current_user_id),
+):
     """Make an API call through a connection."""
+    _enforce_call_rate_limit(user_id)
+
+    conn = auto_api.get_connection(connection_id)
+    if not conn:
+        raise HTTPException(status_code=404, detail="Connection not found")
+
+    base_url = conn.get("base_url") or ""
+    target_url = f"{base_url}{req.endpoint_path}"
+    _enforce_outbound_call_security(target_url, user_id)
+
     result = await auto_api.call_api(
         connection_id, req.endpoint_path, req.method, req.body, req.params
     )

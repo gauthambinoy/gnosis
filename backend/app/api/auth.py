@@ -1,5 +1,6 @@
 import asyncio
-from fastapi import APIRouter, HTTPException, status, Depends
+import logging
+from fastapi import APIRouter, HTTPException, Request, status, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
@@ -13,7 +14,7 @@ from app.core.auth import (
     get_current_user_id,
 )
 from app.core.audit_log import audit_log
-from app.core.rate_limiter import require_rate_limit
+from app.core.rate_limiter import rate_limiter, require_rate_limit
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.auth import (
@@ -24,7 +25,29 @@ from app.schemas.auth import (
     UserResponse,
 )
 
+logger = logging.getLogger("gnosis.auth")
+
 router = APIRouter()
+
+REGISTER_RATE_LIMIT_PER_MIN = 5
+GENERIC_REGISTER_FAILURE = "Registration failed"
+
+
+async def _register_ip_rate_limit(request: Request) -> None:
+    """Stricter per-IP rate limit (5/min) for the register endpoint."""
+    client_ip = request.client.host if request.client else "unknown"
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    result = rate_limiter.check(
+        f"register_ip:{client_ip}", limit=REGISTER_RATE_LIMIT_PER_MIN
+    )
+    if not result["allowed"]:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many registration attempts. Try again in {result['reset_in']}s",
+            headers={"Retry-After": str(int(result["reset_in"]))},
+        )
 
 # ---------------------------------------------------------------------------
 # In-memory fallback (demo mode when PostgreSQL is unavailable)
@@ -68,13 +91,16 @@ def _token_response(user_id: str, email: str, full_name: str | None) -> TokenRes
     "/register",
     response_model=TokenResponse,
     status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(require_rate_limit)],
+    dependencies=[Depends(require_rate_limit), Depends(_register_ip_rate_limit)],
 )
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if _use_db():
         result = await db.execute(select(User).where(User.email == data.email))
         if result.scalars().first():
-            raise HTTPException(status_code=400, detail="Email already registered")
+            logger.warning(
+                "Registration rejected: email already registered (%s)", data.email
+            )
+            raise HTTPException(status_code=400, detail=GENERIC_REGISTER_FAILURE)
 
         user = User(
             id=uuid.uuid4(),
@@ -92,7 +118,10 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     # Fallback: in-memory
     async with _users_lock:
         if data.email in _users_by_email:
-            raise HTTPException(status_code=400, detail="Email already registered")
+            logger.warning(
+                "Registration rejected: email already registered (%s)", data.email
+            )
+            raise HTTPException(status_code=400, detail=GENERIC_REGISTER_FAILURE)
         user_id = str(uuid.uuid4())
         _users[user_id] = {
             "id": user_id,
