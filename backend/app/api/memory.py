@@ -7,6 +7,7 @@ from dataclasses import asdict
 
 from app.core.memory_engine import memory_engine
 from app.core.database import get_db
+from app.core.auth import get_current_user_id
 from app.core.logger import get_logger
 from app.models.memory import Memory, MemoryTier
 
@@ -26,6 +27,7 @@ async def get_agent_memories(
     tier: str | None = None,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     if _use_db():
         query = select(Memory).where(Memory.agent_id == uuid.UUID(agent_id))
@@ -71,7 +73,11 @@ async def get_agent_memories(
 
 @router.get("/{agent_id}/search")
 async def search_memories(
-    agent_id: str, query: str, limit: int = 10, db: AsyncSession = Depends(get_db)
+    agent_id: str,
+    query: str,
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
     # Vector search always uses the in-memory engine (FAISS) for similarity
     results = await memory_engine.search_memories(agent_id, query, limit)
@@ -90,28 +96,20 @@ async def store_memory(
     content: str,
     metadata: dict = {},
     db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
 ):
-    # Always store in vector engine
+    # memory_engine persists directly to the DB (when available) or to an
+    # in-process fallback otherwise — no more dual-write needed.
     entry = await memory_engine.store(agent_id, tier, content, metadata)
-
-    # Dual-write to PostgreSQL when available
-    if _use_db():
-        mem = Memory(
-            id=uuid.UUID(entry.id),
-            agent_id=uuid.UUID(agent_id),
-            tier=MemoryTier(tier),
-            content=content,
-            relevance_score=entry.relevance_score,
-            extra_metadata=metadata,
-        )
-        db.add(mem)
-        await db.flush()
-
     return {"status": "stored", "memory": asdict(entry)}
 
 
 @router.get("/{agent_id}/stats")
-async def get_memory_stats(agent_id: str, db: AsyncSession = Depends(get_db)):
+async def get_memory_stats(
+    agent_id: str,
+    db: AsyncSession = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
     vector_stats = memory_engine.stats(agent_id)
 
     if _use_db():
@@ -133,22 +131,22 @@ async def get_memory_stats(agent_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/decay")
-async def trigger_memory_decay(agent_id: str | None = None):
+async def trigger_memory_decay(
+    agent_id: str | None = None,
+    user_id: str = Depends(get_current_user_id),
+):
     """Manually trigger memory decay cycle.
 
     If agent_id is provided, decays only that agent's memories.
     Otherwise, decays all agents' memories.
     """
-    from app.tasks.memory_decay import decay_agent_memories, run_decay_cycle
 
     try:
         if agent_id:
-            stats = await asyncio.to_thread(
-                decay_agent_memories, memory_engine, agent_id
-            )
+            stats = await memory_engine.decay_agent(agent_id)
             return {"status": "success", "agent_id": agent_id, "stats": stats}
         else:
-            stats = await asyncio.to_thread(run_decay_cycle, memory_engine)
+            stats = await memory_engine.decay_all()
             return {"status": "success", "stats": stats}
     except Exception as e:
         logger.error(f"Memory decay error: {e}", exc_info=True)

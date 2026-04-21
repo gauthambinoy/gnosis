@@ -6,6 +6,7 @@ from app.models.memory import Memory, MemoryTier
 from app.models.insight import Insight
 from app.models.trust import TrustEvent
 from app.models.engine_state import EngineState
+from app.models.audit import RequestAuditLog
 
 __all__ = [
     "Base",
@@ -20,4 +21,5 @@ __all__ = [
     "Insight",
     "TrustEvent",
     "EngineState",
+    "RequestAuditLog",
 ]
