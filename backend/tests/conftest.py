@@ -41,13 +41,28 @@ def _reset_rate_limiter():
         seen = set()
         while stack is not None and id(stack) not in seen:
             seen.add(id(stack))
-            for attr in ("request_counts", "_windows"):
+            for attr in (
+                "request_counts",
+                "_windows",
+                "_buckets",
+                "_blocked_ips",
+                "_attempts",
+                "_locked",
+            ):
                 d = getattr(stack, attr, None)
                 if isinstance(d, dict):
                     d.clear()
             rl = getattr(stack, "rate_limiter", None)
             if rl is not None:
-                for attr in ("requests", "_windows", "request_counts"):
+                for attr in (
+                    "requests",
+                    "_windows",
+                    "request_counts",
+                    "_buckets",
+                    "_blocked_ips",
+                    "_attempts",
+                    "_locked",
+                ):
                     d = getattr(rl, attr, None)
                     if isinstance(d, dict):
                         d.clear()
