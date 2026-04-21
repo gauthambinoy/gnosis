@@ -1,5 +1,6 @@
 """Gnosis Audit Log — immutable audit trail of all agent actions."""
 
+import asyncio
 import json
 import hashlib
 from datetime import datetime, timezone
@@ -16,26 +17,33 @@ class AuditLog:
     def __init__(self):
         self.entries: list[dict] = []
         self._last_hash: str = "genesis"
+        self._lock: asyncio.Lock | None = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        """Lazily create the lock on first use, on the running event loop."""
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     async def log(
         self, event_type: str, agent_id: str, details: dict, user_id: str | None = None
     ):
         """Log an audit event with timestamp, type, agent, details, and integrity hash."""
-        entry = {
-            "id": len(self.entries),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "event_type": event_type,
-            "agent_id": agent_id,
-            "user_id": user_id,
-            "details": details,
-            "prev_hash": self._last_hash,
-        }
-        # Chain hash for tamper detection
-        raw = json.dumps(entry, sort_keys=True, default=str)
-        entry["hash"] = hashlib.sha256(raw.encode()).hexdigest()
-        self._last_hash = entry["hash"]
+        async with self._get_lock():
+            entry = {
+                "id": len(self.entries),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "event_type": event_type,
+                "agent_id": agent_id,
+                "user_id": user_id,
+                "details": details,
+                "prev_hash": self._last_hash,
+            }
+            raw = json.dumps(entry, sort_keys=True, default=str)
+            entry["hash"] = hashlib.sha256(raw.encode()).hexdigest()
+            self._last_hash = entry["hash"]
 
-        self.entries.append(entry)
+            self.entries.append(entry)
 
     async def query(
         self,
@@ -94,30 +102,36 @@ class AuditLog:
         cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
         cutoff_iso = cutoff.isoformat()
 
-        before = len(self.entries)
-        kept = [e for e in self.entries if e["timestamp"] >= cutoff_iso]
+        async with self._get_lock():
+            before = len(self.entries)
+            kept = [e for e in self.entries if e["timestamp"] >= cutoff_iso]
 
-        # Rebuild the chain for the surviving entries
-        prev_hash = "genesis"
-        for idx, entry in enumerate(kept):
-            entry["id"] = idx
-            entry["prev_hash"] = prev_hash
-            entry.pop("hash", None)
-            raw = json.dumps(entry, sort_keys=True, default=str)
-            entry["hash"] = hashlib.sha256(raw.encode()).hexdigest()
-            prev_hash = entry["hash"]
+            prev_hash = "genesis"
+            for idx, entry in enumerate(kept):
+                entry["id"] = idx
+                entry["prev_hash"] = prev_hash
+                entry.pop("hash", None)
+                raw = json.dumps(entry, sort_keys=True, default=str)
+                entry["hash"] = hashlib.sha256(raw.encode()).hexdigest()
+                prev_hash = entry["hash"]
 
-        self.entries = kept
-        self._last_hash = prev_hash
-        return {"pruned": before - len(kept), "remaining": len(kept)}
+            self.entries = kept
+            self._last_hash = prev_hash
+            return {"pruned": before - len(kept), "remaining": len(kept)}
 
     def verify_integrity(self) -> dict:
-        """Verify the hash chain hasn't been tampered with."""
-        if not self.entries:
+        """Verify the hash chain hasn't been tampered with.
+
+        Snapshots ``self.entries`` so concurrent reads are safe even if a
+        producer appends during iteration. Verification itself contains no
+        ``await`` so under asyncio it cannot interleave with ``log``/``prune``.
+        """
+        snapshot = list(self.entries)
+        if not snapshot:
             return {"valid": True, "entries_checked": 0}
 
         prev_hash = "genesis"
-        for i, entry in enumerate(self.entries):
+        for i, entry in enumerate(snapshot):
             if entry["prev_hash"] != prev_hash:
                 return {"valid": False, "broken_at": i, "entries_checked": i}
             # Recompute hash
@@ -128,7 +142,7 @@ class AuditLog:
                 return {"valid": False, "broken_at": i, "entries_checked": i}
             prev_hash = entry["hash"]
 
-        return {"valid": True, "entries_checked": len(self.entries)}
+        return {"valid": True, "entries_checked": len(snapshot)}
 
 
 # Global singleton

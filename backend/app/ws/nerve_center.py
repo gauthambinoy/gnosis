@@ -20,4 +20,4 @@ async def nerve_center_ws(websocket: WebSocket):
                     )
                 )
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
+        await ws_manager.disconnect(websocket)

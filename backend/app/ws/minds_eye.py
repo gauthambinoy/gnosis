@@ -23,4 +23,4 @@ async def minds_eye_ws(websocket: WebSocket, agent_id: str):
                     )
                 )
     except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
+        await ws_manager.disconnect(websocket)
