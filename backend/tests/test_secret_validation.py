@@ -4,7 +4,6 @@ Covers both the in-process ``Settings`` model_validator and the
 ``enforce_no_default_secrets`` startup hook used by ``app.main``.
 """
 
-import os
 import sys
 import warnings
 from pathlib import Path

@@ -19,7 +19,6 @@ import fakeredis.aioredis
 import pytest
 
 from app.middleware.audit_log import (
-    REDIS_LIST_CAP,
     REDIS_LIST_KEY,
     AuditRecord,
     AuditStore,

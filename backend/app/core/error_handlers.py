@@ -5,7 +5,6 @@ This module is kept for backwards compatibility only.
 Import from app.core.error_handling instead.
 """
 
-from fastapi import FastAPI
 
 from app.core.error_handling import register_error_handlers
 

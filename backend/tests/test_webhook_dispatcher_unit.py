@@ -2,7 +2,6 @@
 
 import hmac
 import hashlib
-import json
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 from app.core.webhook_dispatcher import WebhookDispatcher

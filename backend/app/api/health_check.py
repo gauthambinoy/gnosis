@@ -9,11 +9,10 @@ Provides real-time system health information for:
 - Feature flags loaded
 """
 
-from typing import Any
 from datetime import datetime, timezone
 
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from sqlalchemy import text
 
 from app.core.logger import get_logger
@@ -49,7 +48,7 @@ async def check_database() -> ComponentHealth:
     try:
         start = time.time()
         db = get_db()
-        result = await db.execute(text("SELECT 1"))
+        await db.execute(text("SELECT 1"))
         latency = (time.time() - start) * 1000
         
         return ComponentHealth(

@@ -1,6 +1,5 @@
 """Unit tests for agent_export."""
 
-import pytest
 from app.core.agent_export import (
     export_agent,
     import_agent,

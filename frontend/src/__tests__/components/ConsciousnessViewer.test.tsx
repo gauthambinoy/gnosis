@@ -23,7 +23,7 @@ describe("ConsciousnessViewer", () => {
           confidence: 50,
           actions: [],
           active: false,
-        } as any}
+        }}
       />,
     );
     expect(container.textContent).toMatch(/Replay|Waiting/);

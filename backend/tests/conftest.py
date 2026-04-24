@@ -296,8 +296,7 @@ def _reset_rate_limiter():
     try:
         from app.main import app
         for mw in app.user_middleware:
-            inst = getattr(mw, "kwargs", {})
-            # No direct access — walk app.middleware_stack at runtime
+            _ = getattr(mw, "kwargs", {})  # touch to keep iteration explicit
         # Walk middleware stack to clear per-IP counters
         stack = getattr(app, "middleware_stack", None)
         seen = set()

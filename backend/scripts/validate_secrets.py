@@ -17,7 +17,6 @@ import sys
 import os
 import logging
 from typing import Iterable, Optional
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 

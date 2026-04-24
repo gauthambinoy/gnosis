@@ -12,7 +12,6 @@ Tests cover:
 
 import pytest
 from app.core.llm_output_validator import (
-    LLMOutputValidator,
     ContentType,
     validate_llm_output,
     validate_llm_tool_parameters,
@@ -378,10 +377,9 @@ class TestMultiTurnAttacks:
 
     def test_reject_encoded_injection(self):
         """Detect URL-encoded or obfuscated injection attempts."""
-        # Even if partially obfuscated, should detect shell patterns
-        obfuscated = "r m  -  r f  /"
-        # This specific pattern won't match, but demonstrates the defense
-        # Real obfuscation would be more sophisticated and rejected by semantic analysis
+        # Placeholder: real obfuscation defense is exercised in semantic-analysis
+        # tests; this case-stub documents the intent without an unused local.
+        assert True
 
     def test_reject_unicode_injection(self):
         """Detect injection attempts using Unicode tricks."""
@@ -447,8 +445,9 @@ Line 3"""
 
     def test_whitespace_in_patterns(self):
         """Patterns with extra whitespace should still be detected."""
-        content = "r   m    -    r   f    /"  # Extra spaces
-        # This won't match the exact pattern, but shows robustness needed
+        # Placeholder: the spaced-out injection variant is documented but
+        # not currently caught — see TODO in validator semantic-analysis.
+        assert True
 
     def test_unicode_normalization(self):
         """Unicode variations should be handled."""

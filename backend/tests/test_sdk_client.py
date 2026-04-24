@@ -7,7 +7,6 @@ Covers retries, error classification, and Retry-After handling. Uses
 from __future__ import annotations
 
 import sys
-import types
 from pathlib import Path
 
 import httpx

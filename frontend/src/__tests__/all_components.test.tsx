@@ -13,10 +13,10 @@ vi.mock("next/navigation", async () => {
   return m.nextNavigationMock;
 });
 
-const modules = import.meta.glob("../components/**/*.tsx", { eager: true }) as Record<
-  string,
-  Record<string, unknown>
->;
+type ModuleMap = Record<string, Record<string, unknown>>;
+
+const modules = (import.meta as unknown as { glob: (p: string, o?: object) => ModuleMap })
+  .glob("../components/**/*.tsx", { eager: true });
 
 describe("all component modules import cleanly", () => {
   const entries = Object.entries(modules);
@@ -34,18 +34,19 @@ describe("all component modules import cleanly", () => {
 
   for (const [path, mod] of entries) {
     const candidates: Array<[string, unknown]> = [];
-    if (typeof (mod as any).default === "function") {
-      candidates.push(["default", (mod as any).default]);
+    const m = mod as Record<string, unknown>;
+    const def = m.default;
+    if (typeof def === "function") {
+      candidates.push(["default", def]);
     }
-    for (const [k, v] of Object.entries(mod)) {
+    for (const [k, v] of Object.entries(m)) {
       if (k === "default") continue;
       if (typeof v === "function" && /^[A-Z]/.test(k)) {
         candidates.push([k, v]);
       }
-      // memo() returns object with $$typeof
       if (
         typeof v === "object" && v !== null &&
-        (v as any).$$typeof !== undefined &&
+        (v as { $$typeof?: unknown }).$$typeof !== undefined &&
         /^[A-Z]/.test(k)
       ) {
         candidates.push([k, v]);
@@ -55,11 +56,10 @@ describe("all component modules import cleanly", () => {
     for (const [name, Comp] of candidates) {
       it(`renders or skips: ${path}::${name}`, () => {
         try {
-          render(React.createElement(Comp as any));
+          render(React.createElement(Comp as React.ComponentType));
         } catch {
           // Components requiring specific props or providers — acceptable
         }
-        // No assertion: just ensures no test-runner-level failure
         expect(true).toBe(true);
       });
     }

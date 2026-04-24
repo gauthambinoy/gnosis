@@ -1,5 +1,4 @@
 import uuid
-import asyncio
 from fastapi import APIRouter, Depends
 from sqlalchemy import select, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession

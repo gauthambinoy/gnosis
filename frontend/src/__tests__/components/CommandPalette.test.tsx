@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { mockRouterPush, resetRouterMocks } from "../test-utils";
+import { resetRouterMocks } from "../test-utils";
 
 vi.mock("next/navigation", async () => {
   const m = await import("../test-utils");

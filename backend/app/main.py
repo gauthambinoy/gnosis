@@ -111,31 +111,34 @@ from app.core.logger import setup_logging, get_logger
 from app.core.error_handling import register_error_handlers
 from app.core.rate_limiter import require_rate_limit
 from app.core.env_validator import validate_environment
+
 # ``scripts/`` lives next to ``app/`` (one level above the package root),
 # so ensure it is importable for the startup secret validator.
-import sys as _sys
-from pathlib import Path as _Path
+import sys as _sys  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
+
 _SCRIPTS_DIR = _Path(__file__).resolve().parents[1] / "scripts"
 if str(_SCRIPTS_DIR) not in _sys.path:
     _sys.path.insert(0, str(_SCRIPTS_DIR))
 from scripts.validate_secrets import enforce_no_default_secrets  # noqa: E402
-from app.middleware.request_id import RequestIDMiddleware
-from app.middleware.body_limit import RequestBodyLimitMiddleware
-from app.middleware.security_headers import SecurityHeadersMiddleware
-from app.core.redis_client import redis_manager
-from app.core.scheduler import scheduler_engine
-from app.core.task_worker import task_worker
-from app.core.database import engine
-from app.core.metrics import MetricsMiddleware, metrics_endpoint
-from app.core.http_client import init_http_client, close_http_client
-from app.core.shutdown import shutdown_manager
-from app.core.startup_banner import print_banner
-from fastapi import Depends
-from app.api import health as health_router_mod
-from app.api import aws_status
-from app.api import health_check
-from app.api import feedback
-import app.core.database as _db_mod
+
+from app.middleware.request_id import RequestIDMiddleware  # noqa: E402
+from app.middleware.body_limit import RequestBodyLimitMiddleware  # noqa: E402
+from app.middleware.security_headers import SecurityHeadersMiddleware  # noqa: E402
+from app.core.redis_client import redis_manager  # noqa: E402
+from app.core.scheduler import scheduler_engine  # noqa: E402
+from app.core.task_worker import task_worker  # noqa: E402
+from app.core.database import engine  # noqa: E402
+from app.core.metrics import MetricsMiddleware, metrics_endpoint  # noqa: E402
+from app.core.http_client import init_http_client, close_http_client  # noqa: E402
+from app.core.shutdown import shutdown_manager  # noqa: E402
+from app.core.startup_banner import print_banner  # noqa: E402
+from fastapi import Depends  # noqa: E402
+from app.api import health as health_router_mod  # noqa: E402
+from app.api import aws_status  # noqa: E402
+from app.api import health_check  # noqa: E402
+from app.api import feedback  # noqa: E402
+import app.core.database as _db_mod  # noqa: E402
 
 settings = get_settings()
 

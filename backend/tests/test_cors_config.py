@@ -1,6 +1,5 @@
 """Unit tests for cors_config."""
 
-import os
 import warnings
 import pytest
 from app.core import cors_config

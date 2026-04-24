@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from typing import Iterable, Optional
 
 import numpy as np
-from sqlalchemy import and_, delete, select, update
+from sqlalchemy import delete, select, update
 
 from app.core.embeddings import embedding_service
 from app.core.vector_store import SearchResult, agent_vectors
