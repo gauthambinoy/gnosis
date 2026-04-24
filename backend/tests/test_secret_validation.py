@@ -21,7 +21,7 @@ from app.config import (  # noqa: E402
     Settings,
     _INSECURE_DEFAULT_KEY,
 )
-from validate_secrets import enforce_no_default_secrets  # noqa: E402
+from scripts.validate_secrets import enforce_no_default_secrets  # noqa: E402
 
 
 # A valid 64-char hex value, the kind ``openssl rand -hex 32`` produces.

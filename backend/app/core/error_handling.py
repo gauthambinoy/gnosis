@@ -233,12 +233,21 @@ def _build_error_body(
     status: int,
     detail: Any = None,
 ) -> dict:
-    """Build a unified error response dict with the current trace_id."""
+    """Build a unified error response dict with the current trace_id.
+
+    Falls back to a freshly-generated UUID4 when the request_id middleware
+    isn't installed (e.g. in unit tests using a bare FastAPI() app); this
+    guarantees error responses always carry a non-empty ``trace_id`` clients
+    can quote in support tickets.
+    """
+    import uuid
+
+    trace_id = get_request_id() or uuid.uuid4().hex
     return ErrorResponse.build(
         error=error,
         code=code,
         detail=detail,
-        trace_id=get_request_id(),
+        trace_id=trace_id,
     )
 
 

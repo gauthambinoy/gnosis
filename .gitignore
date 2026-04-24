@@ -44,3 +44,13 @@ htmlcov/
 *.tfstate.backup
 .terraform.lock.hcl
 terraform.tfvars
+
+# Python virtualenvs
+.venv/
+venv/
+backend/.venv/
+backend/venv/
+*.egg-info/
+
+# Local pytest config artifact
+backend/pyproject_test.cfg

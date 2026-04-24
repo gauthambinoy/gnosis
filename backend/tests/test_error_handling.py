@@ -92,8 +92,13 @@ def test_app():
 
 @pytest.fixture
 def client(test_app):
-    """Create a TestClient for the test app."""
-    return TestClient(test_app)
+    """Create a TestClient for the test app.
+
+    ``raise_server_exceptions=False`` lets the registered Exception handler
+    convert unhandled errors into 500 JSON responses instead of TestClient
+    re-raising them — which is what we explicitly want to assert on here.
+    """
+    return TestClient(test_app, raise_server_exceptions=False)
 
 
 class TestErrorResponseFormat:

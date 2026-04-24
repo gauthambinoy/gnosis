@@ -117,7 +117,7 @@ from pathlib import Path as _Path
 _SCRIPTS_DIR = _Path(__file__).resolve().parents[1] / "scripts"
 if str(_SCRIPTS_DIR) not in _sys.path:
     _sys.path.insert(0, str(_SCRIPTS_DIR))
-from validate_secrets import enforce_no_default_secrets  # noqa: E402
+from scripts.validate_secrets import enforce_no_default_secrets  # noqa: E402
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.body_limit import RequestBodyLimitMiddleware
 from app.middleware.security_headers import SecurityHeadersMiddleware
