@@ -56,7 +56,7 @@ async def test_invalid_uuid_handled(client, api_prefix):
     assert r.status_code in (400, 404, 422)
 
 
-async def test_expired_token_rejected(client, api_prefix):
+async def test_expired_token_rejected(client, api_prefix, disable_auth_override):
     from app.core.auth import create_access_token
 
     token = create_access_token(
@@ -69,7 +69,7 @@ async def test_expired_token_rejected(client, api_prefix):
     assert r.status_code == 401
 
 
-async def test_malformed_bearer_token(client, api_prefix):
+async def test_malformed_bearer_token(client, api_prefix, disable_auth_override):
     r = await client.get(
         f"{api_prefix}/agents",
         headers={"Authorization": "Bearer not.valid.jwt"},

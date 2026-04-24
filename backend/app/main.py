@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import asyncio
+import os
 import signal
 
 from fastapi import FastAPI
@@ -245,6 +246,24 @@ async def lifespan(app: FastAPI):
     # place in any production-like environment. Must run BEFORE any side
     # effects (DB/Redis connections, background workers, etc.).
     enforce_no_default_secrets(settings)
+
+    # Validate OAuth provider credentials (warn-only — integrations remain
+    # disabled at runtime when keys are missing). Set
+    # ``GNOSIS_REQUIRE_OAUTH=1`` to make this a hard fail-fast check.
+    try:
+        from app.integrations.oauth import validate_oauth_credentials
+
+        strict_oauth = os.getenv("GNOSIS_REQUIRE_OAUTH", "").lower() in {
+            "1", "true", "yes",
+        }
+        oauth_status = validate_oauth_credentials(strict=strict_oauth)
+        logger.info(
+            "oauth.startup configured=%s missing=%s",
+            oauth_status["configured"],
+            oauth_status["missing"],
+        )
+    except Exception:
+        logger.exception("oauth.startup_validation_failed")
 
     # Connect Redis (graceful — never crashes)
     await redis_manager.connect()

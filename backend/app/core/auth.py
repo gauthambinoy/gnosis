@@ -62,10 +62,13 @@ def decode_token(token: str) -> dict:
 async def get_current_user_id(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
-    """Dependency that extracts user_id from JWT token."""
+    """Dependency that extracts user_id from JWT token.
+
+    No silent stub user — even in debug mode a missing/invalid token must
+    fail closed. Tests that need an authenticated context should call
+    ``/auth/login`` (or override the dependency) explicitly.
+    """
     if credentials is None:
-        if settings.debug:
-            return "00000000-0000-0000-0000-000000000001"
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
         )

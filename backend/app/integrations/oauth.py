@@ -1,6 +1,7 @@
 """OAuth2 flow manager for all integrations — supports PKCE, token refresh, revocation."""
 
 import hashlib
+import logging
 import secrets
 import time
 import base64
@@ -10,36 +11,87 @@ from urllib.parse import urlencode
 import aiohttp
 
 
-PROVIDER_CONFIGS: dict[str, dict] = {
-    "google": {
-        "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
-        "token_url": "https://oauth2.googleapis.com/token",
-        "revoke_url": "https://oauth2.googleapis.com/revoke",
-        "scopes": [
-            "https://www.googleapis.com/auth/gmail.modify",
-            "https://www.googleapis.com/auth/spreadsheets",
-            "openid",
-            "email",
-            "profile",
-        ],
-        "client_id": os.getenv("GOOGLE_CLIENT_ID", ""),
-        "client_secret": os.getenv("GOOGLE_CLIENT_SECRET", ""),
-    },
-    "slack": {
-        "auth_url": "https://slack.com/oauth/v2/authorize",
-        "token_url": "https://slack.com/api/oauth.v2.access",
-        "revoke_url": "https://slack.com/api/auth.revoke",
-        "scopes": [
-            "chat:write",
-            "channels:read",
-            "channels:history",
-            "reactions:write",
-            "search:read",
-        ],
-        "client_id": os.getenv("SLACK_CLIENT_ID", ""),
-        "client_secret": os.getenv("SLACK_CLIENT_SECRET", ""),
-    },
-}
+logger = logging.getLogger(__name__)
+
+
+def _build_provider_configs() -> dict[str, dict]:
+    """Build provider config dict from current environment variables.
+
+    Lazy / call-time evaluation lets tests inject credentials and lets
+    deployments rotate secrets without restarting the import system.
+    """
+    return {
+        "google": {
+            "auth_url": "https://accounts.google.com/o/oauth2/v2/auth",
+            "token_url": "https://oauth2.googleapis.com/token",
+            "revoke_url": "https://oauth2.googleapis.com/revoke",
+            "scopes": [
+                "https://www.googleapis.com/auth/gmail.modify",
+                "https://www.googleapis.com/auth/spreadsheets",
+                "openid",
+                "email",
+                "profile",
+            ],
+            "client_id": os.getenv("GOOGLE_CLIENT_ID", ""),
+            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET", ""),
+        },
+        "slack": {
+            "auth_url": "https://slack.com/oauth/v2/authorize",
+            "token_url": "https://slack.com/api/oauth.v2.access",
+            "revoke_url": "https://slack.com/api/auth.revoke",
+            "scopes": [
+                "chat:write",
+                "channels:read",
+                "channels:history",
+                "reactions:write",
+                "search:read",
+            ],
+            "client_id": os.getenv("SLACK_CLIENT_ID", ""),
+            "client_secret": os.getenv("SLACK_CLIENT_SECRET", ""),
+        },
+    }
+
+
+# Eager snapshot kept for backwards compatibility; new code should call
+# ``_build_provider_configs()`` to pick up env changes.
+PROVIDER_CONFIGS: dict[str, dict] = _build_provider_configs()
+
+
+class OAuthConfigurationError(RuntimeError):
+    """Raised when an OAuth provider is invoked without configured credentials."""
+
+
+def validate_oauth_credentials(
+    required_providers: list[str] | None = None, *, strict: bool = False
+) -> dict[str, list[str]]:
+    """Validate OAuth provider credentials are present.
+
+    Returns ``{"missing": [...], "configured": [...]}``. When ``strict=True``
+    and any of ``required_providers`` is missing credentials, raises
+    :class:`OAuthConfigurationError`. Intended to be invoked from app
+    startup so deploys fail fast instead of returning runtime 500s on the
+    first OAuth callback.
+    """
+    cfgs = _build_provider_configs()
+    providers = required_providers or list(cfgs.keys())
+    missing: list[str] = []
+    configured: list[str] = []
+    for p in providers:
+        cfg = cfgs.get(p)
+        if not cfg or not cfg.get("client_id") or not cfg.get("client_secret"):
+            missing.append(p)
+            logger.warning(
+                "oauth.credentials_missing provider=%s — integration disabled", p
+            )
+        else:
+            configured.append(p)
+    if strict and missing:
+        raise OAuthConfigurationError(
+            "Missing OAuth credentials for: "
+            + ", ".join(missing)
+            + ". Set <PROVIDER>_CLIENT_ID and <PROVIDER>_CLIENT_SECRET env vars."
+        )
+    return {"missing": missing, "configured": configured}
 
 
 def _generate_pkce() -> tuple[str, str]:

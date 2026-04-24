@@ -100,7 +100,7 @@ services:
   grafana:
     image: grafana/grafana:10.4.0
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=gnosis
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set in .env (no default — was hardcoded for dev convenience but caused supply-chain risk)}
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana

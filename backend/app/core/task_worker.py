@@ -43,7 +43,7 @@ class TaskWorker:
     async def start(self):
         """Start the background worker loop."""
         self._running = True
-        print("◎ Task worker started")
+        logger.info("task_worker.started")
         while self._running:
             now = datetime.now(timezone.utc)
             for name, task in self.tasks.items():
@@ -58,11 +58,13 @@ class TaskWorker:
                     except asyncio.TimeoutError:
                         task["errors"] += 1
                         logger.error(
-                            f"⚠ Task {name} timed out after {task['timeout']}s"
+                            "task_worker.timeout name=%s timeout=%ss",
+                            name,
+                            task["timeout"],
                         )
-                    except Exception as e:
+                    except Exception:
                         task["errors"] += 1
-                        print(f"⚠ Task {name} failed: {e}")
+                        logger.exception("task_worker.failed name=%s", name)
             await asyncio.sleep(10)
 
     async def stop(self):

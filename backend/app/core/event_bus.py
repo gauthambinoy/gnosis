@@ -71,8 +71,10 @@ class EventBus:
         for handler in handlers:
             try:
                 await handler(event)
-            except Exception as e:
-                print(f"Event handler error for {event_type}: {e}")
+            except Exception:
+                logger.exception(
+                    "event_bus.handler_failed event_type=%s", event_type
+                )
 
     async def subscribe_redis(self):
         """Subscribe to Redis pub/sub channel for distributed event listening.

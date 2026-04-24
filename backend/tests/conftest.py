@@ -23,6 +23,40 @@ pytest_plugins = ["anyio"]
 
 
 # ---------------------------------------------------------------------------
+# Auth bypass for tests
+#
+# Production `get_current_user_id` requires a real JWT (no debug stub). For
+# the existing test suite, we override it with a fixed test user so tests
+# don't all need to call /auth/login first. Tests that exercise the auth
+# contract itself (test_api_auth_contract.py) clear this override.
+# ---------------------------------------------------------------------------
+TEST_USER_ID = "00000000-0000-0000-0000-000000000001"
+
+if _APP_AVAILABLE:
+    from app.core.auth import get_current_user_id as _real_get_current_user_id
+
+    async def _test_user_id() -> str:
+        return TEST_USER_ID
+
+    app.dependency_overrides[_real_get_current_user_id] = _test_user_id
+
+
+@pytest.fixture
+def disable_auth_override():
+    """Use in tests that need to exercise real auth (e.g., the auth contract)."""
+    if not _APP_AVAILABLE:
+        yield
+        return
+    from app.core.auth import get_current_user_id as _real
+    saved = app.dependency_overrides.pop(_real, None)
+    try:
+        yield
+    finally:
+        if saved is not None:
+            app.dependency_overrides[_real] = saved
+
+
+# ---------------------------------------------------------------------------
 # LLM network safety net (M14)
 #
 # By default, NO test is allowed to reach a real LLM provider. The autouse

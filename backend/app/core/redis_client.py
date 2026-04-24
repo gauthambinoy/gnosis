@@ -1,5 +1,9 @@
+import logging
+
 import redis.asyncio as redis
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -18,10 +22,12 @@ class RedisManager:
             self._client = redis.from_url(settings.redis_url, decode_responses=True)
             await self._client.ping()
             self._available = True
-            print("◎ Redis connected")
+            logger.info("redis.connected url=%s", settings.redis_url)
         except Exception as e:
             self._available = False
-            print(f"⚠ Redis unavailable: {e} — using in-memory fallback")
+            logger.warning(
+                "redis.unavailable error=%r — using in-memory fallback", e
+            )
 
     @property
     def available(self) -> bool:

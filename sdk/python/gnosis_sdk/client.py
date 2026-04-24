@@ -1,34 +1,131 @@
 """Gnosis API Client — Typed Python SDK for all Gnosis endpoints."""
+import logging
+import random
+import time
+from typing import Any, Dict, Optional
+
 import httpx
-from typing import Optional, Dict, Any, List
+
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Typed error hierarchy
+# ---------------------------------------------------------------------------
 
 
 class GnosisError(Exception):
-    def __init__(self, status_code: int, detail: str):
+    """Base error raised for any non-2xx response from the Gnosis API."""
+
+    def __init__(self, status_code: int, detail: Any):
         self.status_code = status_code
         self.detail = detail
         super().__init__(f"Gnosis API Error {status_code}: {detail}")
 
 
+class GnosisAuthError(GnosisError):
+    """401/403 — credentials missing, invalid, or insufficient."""
+
+
+class GnosisNotFoundError(GnosisError):
+    """404 — resource does not exist."""
+
+
+class GnosisRateLimitError(GnosisError):
+    """429 — client should back off and retry."""
+
+    def __init__(self, status_code: int, detail: Any, retry_after: Optional[float] = None):
+        super().__init__(status_code, detail)
+        self.retry_after = retry_after
+
+
+class GnosisServerError(GnosisError):
+    """5xx — transient backend issue; safe to retry idempotent calls."""
+
+
+class GnosisNetworkError(GnosisError):
+    """Transport-level failure (DNS, refused, timeout)."""
+
+    def __init__(self, detail: Any):
+        super().__init__(0, detail)
+
+
+# Status codes worth retrying for idempotent verbs (GET/HEAD/PUT/DELETE).
+# POST/PATCH are NOT retried by default — they may not be idempotent.
+_RETRY_STATUSES = {408, 425, 429, 500, 502, 503, 504}
+_IDEMPOTENT_VERBS = {"GET", "HEAD", "PUT", "DELETE", "OPTIONS"}
+
+
+def _classify(status: int, detail: Any, response: Optional[httpx.Response] = None) -> GnosisError:
+    if status in (401, 403):
+        return GnosisAuthError(status, detail)
+    if status == 404:
+        return GnosisNotFoundError(status, detail)
+    if status == 429:
+        retry_after: Optional[float] = None
+        if response is not None:
+            ra = response.headers.get("Retry-After")
+            if ra:
+                try:
+                    retry_after = float(ra)
+                except ValueError:
+                    pass
+        return GnosisRateLimitError(status, detail, retry_after=retry_after)
+    if status >= 500:
+        return GnosisServerError(status, detail)
+    return GnosisError(status, detail)
+
+
 class GnosisClient:
     """Python SDK for the Gnosis AI Agent Platform.
+
+    Network failures and 429/5xx responses on idempotent verbs are retried
+    automatically with exponential backoff + full jitter. Configure via
+    constructor kwargs:
+
+        GnosisClient(
+            "http://localhost:8000",
+            max_retries=3,
+            backoff_base=0.5,
+            backoff_max=10.0,
+            timeout=30.0,
+        )
 
     Usage:
         client = GnosisClient("http://localhost:8000")
         client.login("user@example.com", "password")
-
-        # Create an agent
         agent = client.create_agent("My Agent", "You are a helpful assistant")
-
-        # Execute it
         result = client.execute_agent(agent["id"], "Summarize my emails")
     """
 
-    def __init__(self, base_url: str = "http://localhost:8000", api_key: str = None):
+    def __init__(
+        self,
+        base_url: str = "http://localhost:8000",
+        api_key: Optional[str] = None,
+        *,
+        timeout: float = 30.0,
+        max_retries: int = 3,
+        backoff_base: float = 0.5,
+        backoff_max: float = 10.0,
+    ):
         self.base_url = base_url.rstrip("/")
         self._token: Optional[str] = None
         self._api_key = api_key
-        self._client = httpx.Client(timeout=30)
+        self._client = httpx.Client(timeout=timeout)
+        self._max_retries = max(0, int(max_retries))
+        self._backoff_base = max(0.0, float(backoff_base))
+        self._backoff_max = max(self._backoff_base, float(backoff_max))
+
+    # Allow `with GnosisClient(...) as c:` use.
+    def __enter__(self) -> "GnosisClient":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.close()
+
+    def close(self) -> None:
+        self._client.close()
 
     def _headers(self) -> Dict[str, str]:
         headers = {"Content-Type": "application/json"}
@@ -38,16 +135,73 @@ class GnosisClient:
             headers["X-API-Key"] = self._api_key
         return headers
 
+    def _sleep_for_attempt(self, attempt: int, hint: Optional[float] = None) -> None:
+        """Exponential backoff with full jitter; respects server Retry-After."""
+        if hint is not None and hint > 0:
+            time.sleep(min(hint, self._backoff_max))
+            return
+        cap = min(self._backoff_max, self._backoff_base * (2**attempt))
+        time.sleep(random.uniform(0, cap))
+
     def _request(self, method: str, path: str, **kwargs) -> Any:
         url = f"{self.base_url}{path}"
-        response = self._client.request(method, url, headers=self._headers(), **kwargs)
-        if response.status_code >= 400:
+        verb = method.upper()
+        last_error: Optional[Exception] = None
+        attempts = self._max_retries + 1
+        for attempt in range(attempts):
+            try:
+                response = self._client.request(
+                    verb, url, headers=self._headers(), **kwargs
+                )
+            except (
+                httpx.TimeoutException,
+                httpx.ConnectError,
+                httpx.RemoteProtocolError,
+                httpx.NetworkError,
+            ) as exc:
+                last_error = GnosisNetworkError(repr(exc))
+                if verb in _IDEMPOTENT_VERBS and attempt < attempts - 1:
+                    logger.warning(
+                        "gnosis_sdk.network_retry attempt=%s/%s url=%s err=%r",
+                        attempt + 1, attempts, url, exc,
+                    )
+                    self._sleep_for_attempt(attempt)
+                    continue
+                raise last_error from exc
+
+            if response.status_code < 400:
+                if response.status_code == 204 or not response.content:
+                    return None
+                try:
+                    return response.json()
+                except ValueError:
+                    return response.text
+
+            # Error response
             try:
                 detail = response.json().get("detail", response.text)
             except Exception:
                 detail = response.text
-            raise GnosisError(response.status_code, detail)
-        return response.json()
+            err = _classify(response.status_code, detail, response)
+            should_retry = (
+                attempt < attempts - 1
+                and response.status_code in _RETRY_STATUSES
+                and verb in _IDEMPOTENT_VERBS
+            )
+            if should_retry:
+                hint = getattr(err, "retry_after", None)
+                logger.warning(
+                    "gnosis_sdk.status_retry attempt=%s/%s status=%s url=%s",
+                    attempt + 1, attempts, response.status_code, url,
+                )
+                self._sleep_for_attempt(attempt, hint=hint)
+                last_error = err
+                continue
+            raise err
+
+        # Loop exhausted (should be unreachable — defensive).
+        assert last_error is not None
+        raise last_error
 
     def _get(self, path: str, **params) -> Any:
         return self._request("GET", path, params=params)
