@@ -70,6 +70,7 @@ jobs:
           DEBUG: "true"
           SECRET_KEY: ${{ env.CI_SECRET_KEY }}
           DATABASE_URL: "postgresql+asyncpg://gnosis:gnosis_ci@localhost:5432/gnosis_ci"
+          PYTHONPATH: "."
 
       - name: Import check
         run: |
