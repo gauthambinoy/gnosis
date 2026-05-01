@@ -1,11 +1,6 @@
 name: Deploy to AWS
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '*.md'
-      - 'docs/**'
   workflow_dispatch:
 
 env:
@@ -48,7 +43,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: github.ref == 'refs/heads/main' && vars.ENABLE_AWS_DEPLOY == 'true'
+    if: github.ref == 'refs/heads/main'
     permissions:
       id-token: write
       contents: read
