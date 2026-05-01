@@ -24,7 +24,7 @@ celery>=5.4,<6
 
 # Auth / crypto
 bcrypt>=4.2,<6
-cryptography>=43,<47
+cryptography>=47.0.0,<48
 python-jose[cryptography]>=3.3,<4
 
 # HTTP / clients
