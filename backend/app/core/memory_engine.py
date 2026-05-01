@@ -22,7 +22,7 @@ import uuid
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 import numpy as np
 from sqlalchemy import delete, select, update
@@ -365,7 +365,7 @@ class MemoryEngine:
 
         if _db_active():
             rows = await self._load_from_db(agent_id)
-            scored: list[tuple[float, object]] = []
+            scored: list[tuple[float, Any]] = []
             qvec = np.asarray(query_embedding) if query_embedding is not None else None
             for r in rows:
                 emb = _decode_embedding(r.embedding)
@@ -500,8 +500,9 @@ class MemoryEngine:
                         continue
                     access_boost = min((row.access_count or 0) * 0.01, 0.05)
                     effective_rate = min(rate + access_boost, 0.999)
-                    row.strength = float(row.strength or 1.0) * effective_rate
-                    if row.strength < self.STRENGTH_FLOOR:
+                    decayed_strength = float(row.strength or 1.0) * effective_rate
+                    setattr(row, "strength", decayed_strength)
+                    if decayed_strength < self.STRENGTH_FLOOR:
                         to_delete.append(row.id)
                         stats["pruned"] += 1
                     else:

@@ -190,7 +190,7 @@ class LLMOutputValidator:
         Raises:
             ValidationError: If any parameter fails validation
         """
-        validated = {}
+        validated: dict[str, Any] = {}
 
         for key, value in params.items():
             # Validate parameter name
