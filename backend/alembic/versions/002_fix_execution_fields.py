@@ -17,6 +17,7 @@ depends_on = None
 
 def upgrade() -> None:
     # Fix was_corrected: String -> Boolean
+    op.alter_column("executions", "was_corrected", server_default=None)
     op.alter_column(
         "executions",
         "was_corrected",
