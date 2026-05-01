@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 env:
-  CI_SECRET_KEY: ${{ secrets.CI_SECRET_KEY }}
+  CI_SECRET_KEY: ${{ secrets.CI_SECRET_KEY || 'ci-test-secret-key-not-for-production-use-only' }}
 
 jobs:
   backend:

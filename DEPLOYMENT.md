@@ -44,7 +44,7 @@ allowlist logs a warning but allows the call so local testing is not blocked.
 ## Deployment Procedure
 
 > **Immutable image tags (policy)**
-> As of the H14 hardening pass, **production no longer publishes or consumes the `:latest` tag**. CI (`.github/workflows/deploy.yml`) and `deploy.sh` push only the immutable git-SHA tag, and `docker-compose.prod.yml` requires `IMAGE_TAG` to be explicitly set (`${IMAGE_TAG:?…}`) so a missing or stale environment fails fast instead of silently re-running an arbitrary `:latest`. Roll forward and roll back by exporting the exact SHA you want (`export IMAGE_TAG=<git-sha>`) before `docker compose … up -d` or before the ECS task-definition update. The CI pipeline additionally requires a GitHub Actions repo secret named **`CI_SECRET_KEY`** (any random 32+ char string — test-only, generate with `openssl rand -hex 32`); without it the backend test job fails because `SECRET_KEY` resolves to empty. Set it once under *GitHub → Settings → Secrets and variables → Actions*.
+> Production does not publish or consume the `:latest` tag. CI (`.github/workflows/deploy.yml`) and `deploy.sh` push only immutable git-SHA tags, and `docker-compose.prod.yml` requires `IMAGE_TAG` to be explicitly set (`${IMAGE_TAG:?…}`). Roll forward and roll back by exporting the exact SHA you want (`export IMAGE_TAG=<git-sha>`) before `docker compose … up -d` or before the ECS task-definition update. CI uses a test-only fallback secret when `CI_SECRET_KEY` is absent; production deployments must always set real secrets through the hosting provider or AWS Secrets Manager.
 
 ### 1. Build Backend Docker Image
 

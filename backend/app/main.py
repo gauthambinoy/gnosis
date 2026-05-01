@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 from contextlib import asynccontextmanager
 import asyncio
 import os

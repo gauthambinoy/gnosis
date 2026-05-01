@@ -276,7 +276,7 @@ Contributions welcome! Please see [CONTRIBUTING.md](../CONTRIBUTING.md)
 ## Support
 
 - **Documentation**: https://gnosis.example.com/docs
-- **Issues**: https://github.com/example/gnosis/issues
+- **Issues**: https://github.com/gauthambinoy/gnosis/issues
 - **Discord**: https://discord.gg/gnosis
 
 ## License

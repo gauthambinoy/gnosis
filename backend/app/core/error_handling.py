@@ -14,12 +14,14 @@ are consolidated here with backwards compatibility maintained.
 from __future__ import annotations
 
 import traceback
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.responses import JSONResponse
 
 from app.core.logger import get_logger
 from app.middleware.request_id import get_request_id
@@ -226,33 +228,89 @@ def safe_http_error(
 # =============================================================================
 
 
+def _resolve_trace_id(request: Request | None = None) -> str:
+    """Return an existing request trace ID or create one for bare test apps."""
+    trace_id = get_request_id()
+    if trace_id:
+        return trace_id
+    if request is not None:
+        trace_id = getattr(request.state, "request_id", "") or request.headers.get(
+            "X-Request-ID", ""
+        )
+        if trace_id:
+            return str(trace_id)
+    return uuid.uuid4().hex
+
+
 def _build_error_body(
     *,
     error: str,
     code: str,
     status: int,
     detail: Any = None,
+    request: Request | None = None,
 ) -> dict:
-    """Build a unified error response dict with the current trace_id.
-
-    Falls back to a freshly-generated UUID4 when the request_id middleware
-    isn't installed (e.g. in unit tests using a bare FastAPI() app); this
-    guarantees error responses always carry a non-empty ``trace_id`` clients
-    can quote in support tickets.
-    """
-    import uuid
-
-    trace_id = get_request_id() or uuid.uuid4().hex
+    """Build a unified error response dict with a non-empty trace_id."""
     return ErrorResponse.build(
         error=error,
         code=code,
         detail=detail,
-        trace_id=trace_id,
+        trace_id=_resolve_trace_id(request),
     )
 
 
 def register_error_handlers(app: FastAPI) -> None:
     """Register all exception handlers with the FastAPI app."""
+
+    async def _unhandled_error_response(request: Request, exc: Exception) -> JSONResponse:
+        trace_id = _resolve_trace_id(request)
+
+        logger.error(
+            "Unhandled exception: %s",
+            exc,
+            extra={
+                "extra_data": {
+                    "traceback": traceback.format_exc(),
+                    "path": str(request.url),
+                    "method": request.method,
+                    "trace_id": trace_id,
+                }
+            },
+        )
+
+        try:
+            from app.core.sentry_integration import error_tracker
+
+            error_tracker.capture_exception(
+                exc, {"path": str(request.url), "trace_id": trace_id}
+            )
+        except (ImportError, Exception):
+            pass
+
+        from app.config import get_settings
+
+        settings = get_settings()
+        show_detail = getattr(settings, "debug", False)
+        detail = str(exc) if show_detail else None
+
+        return JSONResponse(
+            status_code=500,
+            content=ErrorResponse.build(
+                error="Internal server error",
+                code="INTERNAL_ERROR",
+                detail=detail,
+                trace_id=trace_id,
+            ),
+        )
+
+    @app.middleware("http")
+    async def unhandled_exception_middleware(request: Request, call_next):
+        try:
+            return await call_next(request)
+        except (GnosisException, StarletteHTTPException):
+            raise
+        except Exception as exc:
+            return await _unhandled_error_response(request, exc)
 
     @app.exception_handler(GnosisException)
     async def gnosis_exception_handler(request: Request, exc: GnosisException):
@@ -265,7 +323,7 @@ def register_error_handlers(app: FastAPI) -> None:
                 "extra_data": {
                     "path": str(request.url),
                     "method": request.method,
-                    "trace_id": get_request_id(),
+                    "trace_id": _resolve_trace_id(request),
                 }
             },
         )
@@ -278,6 +336,7 @@ def register_error_handlers(app: FastAPI) -> None:
                 code=exc.code,
                 status=exc.status_code,
                 detail=exc.detail,
+                request=request,
             ),
         )
 
@@ -293,52 +352,11 @@ def register_error_handlers(app: FastAPI) -> None:
                 error=detail_str,
                 code="HTTP_ERROR",
                 status=exc.status_code,
+                request=request,
             ),
         )
 
     @app.exception_handler(Exception)
     async def unhandled_error_handler(request: Request, exc: Exception):
         """Catch all unhandled exceptions and return safe 500 response."""
-        trace_id = get_request_id()
-        
-        # Log full traceback for debugging
-        logger.error(
-            "Unhandled exception: %s",
-            exc,
-            extra={
-                "extra_data": {
-                    "traceback": traceback.format_exc(),
-                    "path": str(request.url),
-                    "method": request.method,
-                    "trace_id": trace_id,
-                }
-            },
-        )
-
-        # Send to Sentry if available
-        try:
-            from app.core.sentry_integration import error_tracker
-            error_tracker.capture_exception(
-                exc, {"path": str(request.url), "trace_id": trace_id}
-            )
-        except (ImportError, Exception):
-            pass
-
-        from fastapi.responses import JSONResponse
-        from app.config import get_settings
-
-        settings = get_settings()
-        show_detail = getattr(settings, "DEBUG", False)
-
-        # Never expose internal error details in production
-        detail = str(exc) if show_detail else None
-
-        return JSONResponse(
-            status_code=500,
-            content=_build_error_body(
-                error="Internal server error",
-                code="INTERNAL_ERROR",
-                status=500,
-                detail=detail,
-            ),
-        )
+        return await _unhandled_error_response(request, exc)

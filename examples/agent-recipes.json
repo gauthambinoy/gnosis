@@ -1,0 +1,31 @@
+{
+  "recipes": [
+    {
+      "name": "Investor Inbox Triage",
+      "description": "Classifies inbound founder/investor emails, extracts next actions, and drafts concise replies.",
+      "personality": "professional",
+      "avatar_emoji": "✉️",
+      "trigger_type": "email_received",
+      "integrations": ["gmail", "slack"],
+      "guardrails": ["require_approval_before_send", "scrub_pii", "max_cost_usd_1"]
+    },
+    {
+      "name": "Competitor Signal Scout",
+      "description": "Monitors competitor launches, pricing pages, and changelogs, then summarizes weekly strategy signals.",
+      "personality": "concise",
+      "avatar_emoji": "📡",
+      "trigger_type": "schedule_daily",
+      "integrations": ["http", "sheets"],
+      "guardrails": ["respect_robots_txt", "cite_sources", "deduplicate_results"]
+    },
+    {
+      "name": "Customer Memory Concierge",
+      "description": "Uses 4-tier memory to remember customer corrections, preferences, blockers, and success criteria across support sessions.",
+      "personality": "friendly",
+      "avatar_emoji": "🧠",
+      "trigger_type": "manual",
+      "integrations": ["slack", "notion"],
+      "guardrails": ["never_expose_private_memory", "require_human_handoff_on_refund"]
+    }
+  ]
+}

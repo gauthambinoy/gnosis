@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 import os
 
 # Set test environment variables BEFORE any app imports
@@ -295,8 +296,6 @@ def _reset_rate_limiter():
     # Reset Starlette security middleware counts if present
     try:
         from app.main import app
-        for mw in app.user_middleware:
-            _ = getattr(mw, "kwargs", {})  # touch to keep iteration explicit
         # Walk middleware stack to clear per-IP counters
         stack = getattr(app, "middleware_stack", None)
         seen = set()
