@@ -58,7 +58,7 @@ def upgrade() -> None:
         "error",
         "learning",
         name="agentstatus",
-        create_type=True,
+        create_type=False,
     )
     agent_status.create(op.get_bind(), checkfirst=True)
 
@@ -118,7 +118,7 @@ def upgrade() -> None:
         "cancelled",
         "awaiting_approval",
         name="executionstatus",
-        create_type=True,
+        create_type=False,
     )
     exec_status.create(op.get_bind(), checkfirst=True)
 
@@ -166,7 +166,7 @@ def upgrade() -> None:
         "semantic",
         "procedural",
         name="memorytier",
-        create_type=True,
+        create_type=False,
     )
     mem_tier.create(op.get_bind(), checkfirst=True)
 
